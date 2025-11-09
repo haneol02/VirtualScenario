@@ -1,80 +1,35 @@
 // @ts-ignore - electron is in devDependencies for electron-builder
 import { app, BrowserWindow, Menu, shell } from 'electron';
 import * as path from 'path';
-import { spawn, ChildProcess } from 'child_process';
-import * as net from 'net';
 
 let mainWindow: BrowserWindow | null = null;
-let serverProcess: ChildProcess | null = null;
 
 const isDev = process.env.NODE_ENV === 'development';
 const FRONTEND_PORT = 3000;
 const BACKEND_PORT = 3001;
-
-// Check if server is ready
-function checkServerReady(port: number, maxAttempts = 30): Promise<void> {
-  return new Promise((resolve, reject) => {
-    let attempts = 0;
-
-    const check = () => {
-      attempts++;
-      const client = net.createConnection({ port }, () => {
-        client.end();
-        console.log('[Electron] Server is ready!');
-        resolve();
-      });
-
-      client.on('error', () => {
-        if (attempts >= maxAttempts) {
-          reject(new Error('Server failed to start after ' + maxAttempts + ' attempts'));
-        } else {
-          setTimeout(check, 1000);
-        }
-      });
-    };
-
-    check();
-  });
-}
 
 function startExpressServer() {
   console.log('[Electron] Starting Express server...');
   console.log('[Electron] __dirname:', __dirname);
   console.log('[Electron] isDev:', isDev);
 
-  if (isDev) {
-    // Development mode: use tsx to run TypeScript directly
-    const serverPath = path.join(__dirname, '..', 'src', 'server.ts');
-    console.log('[Electron] Dev server path:', serverPath);
+  try {
+    if (isDev) {
+      console.log('[Electron] Development mode - please run backend separately');
+      console.log('[Electron] Run: cd backend && npm run dev');
+    } else {
+      // Production mode: require server.js directly (same process)
+      const serverPath = path.join(__dirname, 'server.js');
+      console.log('[Electron] Production server path:', serverPath);
+      console.log('[Electron] File exists:', require('fs').existsSync(serverPath));
 
-    serverProcess = spawn('npx', ['tsx', serverPath], {
-      stdio: 'inherit',
-      shell: true,
-    });
-  } else {
-    // Production mode: server.js is in the same directory as main.js
-    const serverPath = path.join(__dirname, 'server.js');
-    console.log('[Electron] Production server path:', serverPath);
-    console.log('[Electron] File exists:', require('fs').existsSync(serverPath));
-
-    serverProcess = spawn(process.execPath, [serverPath], {
-      stdio: 'inherit',
-      env: {
-        ...process.env,
-        NODE_ENV: 'production',
-      },
-    });
-  }
-
-  serverProcess.on('error', (error) => {
+      // Import and start the server in the same process
+      require(serverPath);
+      console.log('[Electron] Express server loaded successfully');
+    }
+  } catch (error) {
     console.error('[Electron] Failed to start Express server:', error);
-  });
-
-  serverProcess.on('exit', (code) => {
-    console.log('[Electron] Express server exited with code:', code);
-  });
-
-  console.log('[Electron] Express server process started');
+  }
 }
 
 function createWindow() {
@@ -96,9 +51,6 @@ function createWindow() {
     mainWindow.loadURL(`http://localhost:${FRONTEND_PORT}`);
     mainWindow.webContents.openDevTools();
     console.log('[Electron] Development mode: Loading from http://localhost:' + FRONTEND_PORT);
-    mainWindow.once('ready-to-show', () => {
-      mainWindow?.show();
-    });
   } else {
     // Production mode: load from built files in extraResources
     const resourcesPath = (process as any).resourcesPath || path.join(__dirname, '..');
@@ -116,11 +68,12 @@ function createWindow() {
     mainWindow.loadFile(frontendPath).catch((err: Error) => {
       console.error('[Electron] Failed to load frontend:', err);
     });
-
-    mainWindow.once('ready-to-show', () => {
-      mainWindow?.show();
-    });
   }
+
+  // Show window when ready
+  mainWindow.once('ready-to-show', () => {
+    mainWindow?.show();
+  });
 
   // Handle external links
   mainWindow.webContents.setWindowOpenHandler(({ url }: { url: string}) => {
@@ -245,30 +198,17 @@ VirtualScenario v0.1.0
 }
 
 // App lifecycle
-app.whenReady().then(async () => {
+app.whenReady().then(() => {
   console.log('[Electron] App is ready');
 
-  // Start Express server
+  // Start Express server in the same process
   startExpressServer();
 
-  // Wait for server to be ready
-  try {
-    await checkServerReady(BACKEND_PORT);
-    console.log('[Electron] Backend server is ready, creating window...');
+  // Wait a bit for server to initialize, then create window
+  setTimeout(() => {
     createWindow();
     createMenu();
-  } catch (error) {
-    console.error('[Electron] Failed to start backend server:', error);
-    const { dialog } = require('electron');
-    dialog.showErrorBox(
-      '서버 시작 실패',
-      'Express 서버를 시작할 수 없습니다.\n\n' +
-      '포트 ' + BACKEND_PORT + '이(가) 이미 사용 중이거나\n' +
-      '서버 파일을 찾을 수 없습니다.\n\n' +
-      '앱을 종료합니다.'
-    );
-    app.quit();
-  }
+  }, 2000);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -285,10 +225,4 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   console.log('[Electron] App is quitting');
-
-  // Kill Express server
-  if (serverProcess) {
-    console.log('[Electron] Stopping Express server...');
-    serverProcess.kill();
-  }
 });
