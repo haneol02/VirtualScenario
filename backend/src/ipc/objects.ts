@@ -95,5 +95,15 @@ export function registerObjectsHandlers(db: DatabaseManager) {
     }
   });
 
+  // REORDER scene objects
+  ipcMain.handle('reorder-scene-objects', async (_event: any, sceneId: string, orderedIds: string[]) => {
+    try {
+      db.reorderSceneObjects(sceneId, orderedIds);
+    } catch (error: any) {
+      console.error('[IPC] reorder-scene-objects error:', error);
+      throw new Error(error.message);
+    }
+  });
+
   console.log('[IPC] Objects handlers registered');
 }

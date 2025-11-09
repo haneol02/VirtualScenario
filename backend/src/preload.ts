@@ -24,12 +24,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   createSceneObject: (sceneId: string, data: any) => ipcRenderer.invoke('create-scene-object', sceneId, data),
   updateSceneObject: (sceneId: string, id: string, data: any) => ipcRenderer.invoke('update-scene-object', sceneId, id, data),
   deleteSceneObject: (sceneId: string, id: string) => ipcRenderer.invoke('delete-scene-object', sceneId, id),
+  reorderSceneObjects: (sceneId: string, orderedIds: string[]) => ipcRenderer.invoke('reorder-scene-objects', sceneId, orderedIds),
 
   // Dialogues
   getDialogues: (sceneId: string) => ipcRenderer.invoke('get-dialogues', sceneId),
   createDialogue: (sceneId: string, data: any) => ipcRenderer.invoke('create-dialogue', sceneId, data),
   updateDialogue: (sceneId: string, id: string, data: any) => ipcRenderer.invoke('update-dialogue', sceneId, id, data),
   deleteDialogue: (sceneId: string, id: string) => ipcRenderer.invoke('delete-dialogue', sceneId, id),
+  reorderDialogues: (sceneId: string, orderedIds: string[]) => ipcRenderer.invoke('reorder-dialogues', sceneId, orderedIds),
 
   // Background Maps
   getBackgroundMaps: () => ipcRenderer.invoke('get-background-maps'),
@@ -48,7 +50,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAssets: () => ipcRenderer.invoke('get-assets'),
   getAsset: (id: string) => ipcRenderer.invoke('get-asset', id),
   createAsset: (data: any) => ipcRenderer.invoke('create-asset', data),
+  updateAsset: (id: string, data: any) => ipcRenderer.invoke('update-asset', id, data),
   deleteAsset: (id: string) => ipcRenderer.invoke('delete-asset', id),
+  uploadModel: (fileBuffer: Buffer, fileName: string, name: string, category: string) =>
+    ipcRenderer.invoke('upload-model', fileBuffer, fileName, name, category),
+  uploadImage: (fileBuffer: Buffer, fileName: string, name: string, category: string) =>
+    ipcRenderer.invoke('upload-image', fileBuffer, fileName, name, category),
 });
 
 // Type declarations for TypeScript
@@ -75,12 +82,14 @@ declare global {
       createSceneObject: (sceneId: string, data: any) => Promise<any>;
       updateSceneObject: (sceneId: string, id: string, data: any) => Promise<void>;
       deleteSceneObject: (sceneId: string, id: string) => Promise<void>;
+      reorderSceneObjects: (sceneId: string, orderedIds: string[]) => Promise<void>;
 
       // Dialogues
       getDialogues: (sceneId: string) => Promise<any[]>;
       createDialogue: (sceneId: string, data: any) => Promise<any>;
       updateDialogue: (sceneId: string, id: string, data: any) => Promise<void>;
       deleteDialogue: (sceneId: string, id: string) => Promise<void>;
+      reorderDialogues: (sceneId: string, orderedIds: string[]) => Promise<void>;
 
       // Background Maps
       getBackgroundMaps: () => Promise<any[]>;
@@ -99,7 +108,10 @@ declare global {
       getAssets: () => Promise<any[]>;
       getAsset: (id: string) => Promise<any>;
       createAsset: (data: any) => Promise<any>;
+      updateAsset: (id: string, data: any) => Promise<any>;
       deleteAsset: (id: string) => Promise<void>;
+      uploadModel: (fileBuffer: Buffer, fileName: string, name: string, category: string) => Promise<any>;
+      uploadImage: (fileBuffer: Buffer, fileName: string, name: string, category: string) => Promise<any>;
     };
   }
 }

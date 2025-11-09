@@ -63,5 +63,15 @@ export function registerDialoguesHandlers(db: DatabaseManager) {
     }
   });
 
+  // REORDER dialogues
+  ipcMain.handle('reorder-dialogues', async (_event: any, sceneId: string, orderedIds: string[]) => {
+    try {
+      db.reorderDialogues(sceneId, orderedIds);
+    } catch (error: any) {
+      console.error('[IPC] reorder-dialogues error:', error);
+      throw new Error(error.message);
+    }
+  });
+
   console.log('[IPC] Dialogues handlers registered');
 }

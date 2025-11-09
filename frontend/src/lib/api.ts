@@ -263,12 +263,12 @@ export const scenesAPI = {
   deleteDialogue: (sceneId: string, dialogueId: string) =>
     window.electronAPI.deleteDialogue(sceneId, dialogueId),
 
-  // Reorder - Not implemented in IPC yet, return empty promises
-  reorderObjects: (_sceneId: string, _orderedIds: string[]) =>
-    Promise.resolve(),
+  // Reorder objects and dialogues
+  reorderObjects: (sceneId: string, orderedIds: string[]) =>
+    window.electronAPI.reorderSceneObjects(sceneId, orderedIds),
 
-  reorderDialogues: (_sceneId: string, _orderedIds: string[]) =>
-    Promise.resolve(),
+  reorderDialogues: (sceneId: string, orderedIds: string[]) =>
+    window.electronAPI.reorderDialogues(sceneId, orderedIds),
 };
 
 // Background Maps API
@@ -377,12 +377,18 @@ export const assetsAPI = {
       assets.filter((a) => a.category === category)
     ),
 
-  // File uploads not supported via IPC - would need separate implementation
-  uploadModel: (_file: File, _name: string, _category: string) =>
-    Promise.reject(new Error('File upload not implemented in IPC mode')),
+  // File uploads - Convert File to Uint8Array for IPC transmission
+  uploadModel: async (file: File, name: string, category: string) => {
+    const arrayBuffer = await file.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    return window.electronAPI.uploadModel(uint8Array, file.name, name, category);
+  },
 
-  uploadImage: (_file: File, _name: string, _category: string) =>
-    Promise.reject(new Error('File upload not implemented in IPC mode')),
+  uploadImage: async (file: File, name: string, category: string) => {
+    const arrayBuffer = await file.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    return window.electronAPI.uploadImage(uint8Array, file.name, name, category);
+  },
 
   createText: (name: string, category: string, text_content: string, text_font_size?: number, text_color?: string) =>
     window.electronAPI.createAsset({
@@ -395,7 +401,7 @@ export const assetsAPI = {
     }),
 
   update: (id: string, data: { name?: string; category?: string }) =>
-    window.electronAPI.updateAsset?.(id, data) ?? Promise.reject(new Error('Update not implemented')),
+    window.electronAPI.updateAsset(id, data),
 
   delete: (id: string) =>
     window.electronAPI.deleteAsset(id),
