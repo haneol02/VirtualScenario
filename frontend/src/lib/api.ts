@@ -427,10 +427,9 @@ export const assetsAPI = {
   },
 
   createText: (name: string, category: string, text_content: string, text_font_size?: number, text_color?: string) =>
-    axios.post(`${API_BASE_URL}/assets`, {
+    axios.post(`${API_BASE_URL}/assets/text`, {
       name,
       category,
-      type: 'text',
       text_content,
       text_font_size: text_font_size || 1.0,
       text_color: text_color || '#ffffff',
