@@ -44,6 +44,12 @@ logs/
 Thumbs.db
 .DS_Store
 
+# Electron
+release-builds/
+dist-electron/
+release/
+backend/frontend-dist/
+
 # TypeScript
 *.tsbuildinfo
 
