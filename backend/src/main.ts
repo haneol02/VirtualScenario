@@ -28,8 +28,14 @@ function createWindow() {
     mainWindow.webContents.openDevTools();
   } else {
     // Production mode: load from built files
-    const frontendPath = path.join(__dirname, '../../frontend/dist/index.html');
-    mainWindow.loadFile(frontendPath);
+    const frontendPath = path.join(__dirname, '../frontend-dist/index.html');
+    console.log('Loading frontend from:', frontendPath);
+    console.log('File exists:', require('fs').existsSync(frontendPath));
+    mainWindow.loadFile(frontendPath).catch(err => {
+      console.error('Failed to load frontend:', err);
+    });
+    // Always open DevTools in production to debug
+    mainWindow.webContents.openDevTools();
   }
 
   // Handle external links
