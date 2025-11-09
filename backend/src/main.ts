@@ -1,60 +1,52 @@
 // @ts-ignore - electron is in devDependencies for electron-builder
 import { app, BrowserWindow, Menu, shell } from 'electron';
 import * as path from 'path';
-import { DatabaseManager } from './database';
-import { registerProjectsHandlers } from './ipc/projects';
-import { registerScenesHandlers } from './ipc/scenes';
-import { registerObjectsHandlers } from './ipc/objects';
-import { registerDialoguesHandlers } from './ipc/dialogues';
-import { registerBackgroundMapsHandlers } from './ipc/background-maps';
-import { registerAssetsHandlers } from './ipc/assets';
+import { spawn, ChildProcess } from 'child_process';
 
 let mainWindow: BrowserWindow | null = null;
-let db: DatabaseManager | null = null;
+let serverProcess: ChildProcess | null = null;
 
 const isDev = process.env.NODE_ENV === 'development';
 const FRONTEND_PORT = 3000;
+const BACKEND_PORT = 3001;
 
-function initializeDatabase() {
-  try {
-    db = new DatabaseManager();
-    console.log('[Electron] Database initialized successfully');
-  } catch (error) {
-    console.error('[Electron] Failed to initialize database:', error);
-    throw error;
+function startExpressServer() {
+  console.log('[Electron] Starting Express server...');
+
+  if (isDev) {
+    // Development mode: use tsx to run TypeScript directly
+    serverProcess = spawn('npx', ['tsx', 'src/server.ts'], {
+      cwd: path.join(__dirname, '..'),
+      stdio: 'inherit',
+      shell: true,
+    });
+  } else {
+    // Production mode: run compiled JavaScript
+    serverProcess = spawn('node', ['dist/server.js'], {
+      cwd: path.join(__dirname, '..'),
+      stdio: 'inherit',
+      shell: true,
+    });
   }
-}
 
-function registerIpcHandlers() {
-  if (!db) {
-    throw new Error('Database not initialized');
-  }
+  serverProcess.on('error', (error) => {
+    console.error('[Electron] Failed to start Express server:', error);
+  });
 
-  registerProjectsHandlers(db);
-  registerScenesHandlers(db);
-  registerObjectsHandlers(db);
-  registerDialoguesHandlers(db);
-  registerBackgroundMapsHandlers(db);
-  registerAssetsHandlers(db);
+  serverProcess.on('exit', (code) => {
+    console.log('[Electron] Express server exited with code:', code);
+  });
 
-  console.log('[Electron] All IPC handlers registered');
+  console.log('[Electron] Express server started on port', BACKEND_PORT);
 }
 
 function createWindow() {
-  const preloadPath = isDev
-    ? path.join(__dirname, 'preload.js')
-    : path.join(__dirname, 'preload.js');
-
-  console.log('[Electron] Preload script path:', preloadPath);
-  console.log('[Electron] Preload exists:', require('fs').existsSync(preloadPath));
-
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: preloadPath,
     },
     title: 'VirtualScenario - 코레일 안전교육 시나리오 에디터',
     icon: path.join(__dirname, '../../assets/icon.png'),
@@ -83,8 +75,6 @@ function createWindow() {
     mainWindow.loadFile(frontendPath).catch((err: Error) => {
       console.error('[Electron] Failed to load frontend:', err);
     });
-    // Open DevTools in production to debug
-    mainWindow.webContents.openDevTools();
   }
 
   // Handle external links
@@ -213,13 +203,14 @@ VirtualScenario v0.1.0
 app.whenReady().then(() => {
   console.log('[Electron] App is ready');
 
-  // Initialize database and IPC handlers
-  initializeDatabase();
-  registerIpcHandlers();
+  // Start Express server
+  startExpressServer();
 
-  // Create window and menu
-  createWindow();
-  createMenu();
+  // Wait a bit for server to start, then create window
+  setTimeout(() => {
+    createWindow();
+    createMenu();
+  }, 2000);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -236,4 +227,10 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   console.log('[Electron] App is quitting');
+
+  // Kill Express server
+  if (serverProcess) {
+    console.log('[Electron] Stopping Express server...');
+    serverProcess.kill();
+  }
 });

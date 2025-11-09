@@ -127,7 +127,7 @@ export default function Simulator() {
       let maxTime = 10; // Minimum 10 seconds
 
       // Check dialogues
-      dialoguesData.forEach(dlg => {
+      dialoguesData.forEach((dlg: any) => {
         const endTime = dlg.start_time + dlg.duration;
         if (endTime > maxTime) {
           maxTime = endTime;
@@ -135,7 +135,7 @@ export default function Simulator() {
       });
 
       // Check keyframes in scene objects
-      objectsData.forEach(obj => {
+      objectsData.forEach((obj: any) => {
         if (obj.path_data) {
           try {
             const keyframes = JSON.parse(obj.path_data);
