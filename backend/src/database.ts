@@ -83,6 +83,22 @@ export class DatabaseManager {
       }
     }
 
+    // Check if text_content columns exist in asset_library
+    const assetTableInfo = this.db.pragma('table_info(asset_library)') as any[];
+    const hasTextContent = assetTableInfo.some((col: any) => col.name === 'text_content');
+
+    if (!hasTextContent) {
+      console.log('Running migration: add_text_asset_fields...');
+      try {
+        this.db.exec('ALTER TABLE asset_library ADD COLUMN text_content TEXT');
+        this.db.exec('ALTER TABLE asset_library ADD COLUMN text_font_size REAL DEFAULT 1.0');
+        this.db.exec('ALTER TABLE asset_library ADD COLUMN text_color TEXT DEFAULT "#ffffff"');
+        console.log('✅ Migration completed: text asset fields added');
+      } catch (error) {
+        console.error('Migration error:', error);
+      }
+    }
+
     // 에셋 클린업 로직 제거 - 업로드한 모델들이 서버 재시작 시 삭제되는 문제 해결
   }
 
