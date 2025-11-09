@@ -889,9 +889,14 @@ export default function SceneEditor() {
                     alert('장면을 먼저 선택하세요');
                     return;
                   }
-                  setNewObjectType('model');
                   const asset = assets.find(a => a.id === assetId);
                   if (asset) {
+                    // Set appropriate object type based on asset category
+                    // If asset has a standard category, use it; otherwise use 'other'
+                    const validTypes = ['person', 'train', 'facility', 'sign'];
+                    const objectType = validTypes.includes(asset.category) ? asset.category : 'other';
+
+                    setNewObjectType(objectType);
                     setNewObjectName(asset.name);
                     handleCreateObject(assetId);
                   }

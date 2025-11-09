@@ -54,7 +54,7 @@ export function createScenesRouter(db: DatabaseManager) {
   router.post('/:id/objects', (req, res) => {
     try {
       const sceneId = req.params.id;
-      const { type, name, assetId, metadata } = req.body;
+      const { type, name, assetId, model_id, metadata } = req.body;
 
       const objectId = uuidv4();
       const transform = req.body.transform || {
@@ -68,7 +68,7 @@ export function createScenesRouter(db: DatabaseManager) {
         sceneId,
         type,
         name,
-        assetId,
+        assetId: model_id || assetId,  // model_id를 우선 사용, fallback으로 assetId
         transform,
         pathData: null,
         metadata
