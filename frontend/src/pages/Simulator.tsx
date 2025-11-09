@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { projectsAPI, scenesAPI, backgroundMapsAPI, type Project, type Scene, type SceneObject, type Dialogue, type BackgroundObject, type PathKeyframe } from '../lib/api';
+import { projectsAPI, scenesAPI, backgroundMapsAPI, type Project, type Scene, type SceneObject, type Dialogue, type BackgroundObject } from '../lib/api';
 import ThreeViewer from '../components/ThreeViewer';
-import { getTransformAtTime } from '../utils/pathInterpolation';
 
 export default function Simulator() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -21,6 +20,8 @@ export default function Simulator() {
   const [currentTime, setCurrentTime] = useState(0);
   const [sceneDuration, setSceneDuration] = useState(0);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [selectedObjectId, setSelectedObjectId] = useState<string | undefined>();
+  const [manualTransforms, setManualTransforms] = useState<Map<string, { position: [number, number, number]; rotation: [number, number, number]; scale: [number, number, number] }>>(new Map());
 
   const animationFrameRef = useRef<number>();
   const lastTimeRef = useRef<number>(0);
@@ -36,6 +37,7 @@ export default function Simulator() {
   useEffect(() => {
     if (scenes.length > 0 && currentSceneIndex >= 0 && currentSceneIndex < scenes.length) {
       loadSceneData(scenes[currentSceneIndex]);
+      setCurrentTime(0); // Reset time when scene changes
     }
   }, [currentSceneIndex, scenes]);
 
@@ -118,25 +120,57 @@ export default function Simulator() {
         setBackgroundObjects([]);
       }
 
-      // Calculate scene duration based on dialogues
-      const maxDialogueTime = dialoguesData.reduce((max, dlg) => {
-        return Math.max(max, dlg.start_time + dlg.duration);
-      }, 10); // Minimum 10 seconds
+      // Calculate scene duration based on dialogues and keyframes
+      let maxTime = 10; // Minimum 10 seconds
 
-      setSceneDuration(maxDialogueTime);
+      // Check dialogues
+      dialoguesData.forEach(dlg => {
+        const endTime = dlg.start_time + dlg.duration;
+        if (endTime > maxTime) {
+          maxTime = endTime;
+        }
+      });
+
+      // Check keyframes in scene objects
+      objectsData.forEach(obj => {
+        if (obj.path_data) {
+          try {
+            const keyframes = JSON.parse(obj.path_data);
+            keyframes.forEach((kf: any) => {
+              if (kf.time > maxTime) {
+                maxTime = kf.time;
+              }
+            });
+          } catch (e) {
+            console.error('Failed to parse path_data for duration calculation:', e);
+          }
+        }
+      });
+
+      // Add 5 second buffer
+      setSceneDuration(Math.max(10, maxTime + 5));
     } catch (error) {
       console.error('Failed to load scene data:', error);
     }
   };
 
   const handlePlayPause = () => {
-    setIsPlaying(prev => !prev);
+    const newIsPlaying = !isPlaying;
+    setIsPlaying(newIsPlaying);
+
+    // 재생 시작 시 수동 변경사항 초기화
+    if (newIsPlaying) {
+      setManualTransforms(new Map());
+      setSelectedObjectId(undefined);
+    }
   };
 
   const handleStop = () => {
     setIsPlaying(false);
     setCurrentTime(0);
     setCurrentSceneIndex(0);
+    setManualTransforms(new Map());
+    setSelectedObjectId(undefined);
   };
 
   const handleSeek = (time: number) => {
@@ -147,6 +181,8 @@ export default function Simulator() {
     if (currentSceneIndex > 0) {
       setCurrentSceneIndex(prev => prev - 1);
       setCurrentTime(0);
+      setManualTransforms(new Map());
+      setSelectedObjectId(undefined);
     }
   };
 
@@ -154,6 +190,26 @@ export default function Simulator() {
     if (currentSceneIndex < scenes.length - 1) {
       setCurrentSceneIndex(prev => prev + 1);
       setCurrentTime(0);
+      setManualTransforms(new Map());
+      setSelectedObjectId(undefined);
+    }
+  };
+
+  const handleObjectSelect = (objectId: string) => {
+    // 일시정지 상태에서만 선택 가능
+    if (!isPlaying) {
+      setSelectedObjectId(objectId);
+    }
+  };
+
+  const handleObjectTransform = (objectId: string, transform: { position: [number, number, number]; rotation: [number, number, number]; scale: [number, number, number] }) => {
+    // 일시정지 상태에서만 변환 가능
+    if (!isPlaying) {
+      setManualTransforms(prev => {
+        const newMap = new Map(prev);
+        newMap.set(objectId, transform);
+        return newMap;
+      });
     }
   };
 
@@ -168,48 +224,27 @@ export default function Simulator() {
     currentTime >= dlg.start_time && currentTime < dlg.start_time + dlg.duration
   );
 
-  // Apply path animation to objects
-  const animatedObjects = useMemo(() => {
+  // Apply manual transforms to objects (일시정지 시 수동 변경사항)
+  const displayObjects = useMemo(() => {
     return objects.map(obj => {
-      // Skip if no path data
-      if (!obj.path_data) {
-        return obj;
-      }
-
-      try {
-        const keyframes: PathKeyframe[] = JSON.parse(obj.path_data);
-        if (keyframes.length === 0) {
-          return obj;
-        }
-
-        // Get interpolated transform at current time
-        const transform = getTransformAtTime(
-          keyframes,
-          currentTime,
-          [obj.position_x, obj.position_y, obj.position_z],
-          [obj.rotation_x, obj.rotation_y, obj.rotation_z],
-          [obj.scale_x, obj.scale_y, obj.scale_z]
-        );
-
-        // Return object with updated transform
+      const manualTransform = manualTransforms.get(obj.id);
+      if (manualTransform) {
         return {
           ...obj,
-          position_x: transform.position[0],
-          position_y: transform.position[1],
-          position_z: transform.position[2],
-          rotation_x: transform.rotation[0],
-          rotation_y: transform.rotation[1],
-          rotation_z: transform.rotation[2],
-          scale_x: transform.scale[0],
-          scale_y: transform.scale[1],
-          scale_z: transform.scale[2],
+          position_x: manualTransform.position[0],
+          position_y: manualTransform.position[1],
+          position_z: manualTransform.position[2],
+          rotation_x: manualTransform.rotation[0],
+          rotation_y: manualTransform.rotation[1],
+          rotation_z: manualTransform.rotation[2],
+          scale_x: manualTransform.scale[0],
+          scale_y: manualTransform.scale[1],
+          scale_z: manualTransform.scale[2],
         };
-      } catch (error) {
-        console.error('Failed to parse path data for object:', obj.id, error);
-        return obj;
       }
+      return obj;
     });
-  }, [objects, currentTime]);
+  }, [objects, manualTransforms]);
 
   if (loading) {
     return (
@@ -276,17 +311,27 @@ export default function Simulator() {
       {/* 3D Viewer */}
       <main className="flex-1 relative">
         <ThreeViewer
-          objects={[...backgroundObjects, ...animatedObjects]}
-          selectedObjectId={undefined}
-          onObjectSelect={() => {}}
-          onObjectTransform={() => {}}
+          objects={[...backgroundObjects, ...displayObjects]}
+          selectedObjectId={selectedObjectId}
+          onObjectSelect={handleObjectSelect}
+          onObjectTransform={handleObjectTransform}
+          currentTime={currentTime}
+          isPlaying={isPlaying}
         />
+
+        {/* Pause Instruction */}
+        {!isPlaying && (
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 bg-opacity-90 text-white px-6 py-3 rounded-lg shadow-2xl z-50 font-medium flex items-center gap-2 select-none pointer-events-none">
+            <span className="text-2xl">ℹ️</span>
+            <span>일시정지 중 - 오브젝트를 클릭하고 드래그하여 동선을 설명할 수 있습니다</span>
+          </div>
+        )}
 
         {/* Subtitles */}
         {activeDialogues.length > 0 && (
           <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 w-3/4 max-w-3xl">
             {activeDialogues.map(dlg => {
-              const speaker = objects.find(obj => obj.id === dlg.object_id);
+              const speaker = dlg.speaker_name || (dlg.object_id ? displayObjects.find(obj => obj.id === dlg.object_id)?.name : null);
               return (
                 <div
                   key={dlg.id}
@@ -294,7 +339,7 @@ export default function Simulator() {
                 >
                   {speaker && (
                     <div className="text-blue-400 font-semibold mb-1 text-sm">
-                      {speaker.name}
+                      {speaker}
                     </div>
                   )}
                   <div className="text-white text-lg">{dlg.text}</div>

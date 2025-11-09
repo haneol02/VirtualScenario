@@ -85,7 +85,7 @@ export default function InspectorPanel({
 
   if (!selectedObject && !selectedDialogue) {
     return (
-      <aside className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col items-center justify-center text-gray-500 select-none">
+      <aside className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col items-center justify-center text-gray-500 select-none relative z-[60]">
         <div className="text-6xl mb-4">🔍</div>
         <p className="text-sm">오브젝트 또는 대화를 선택하세요</p>
       </aside>
@@ -171,7 +171,7 @@ export default function InspectorPanel({
   };
 
   return (
-    <aside className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col overflow-y-auto">
+    <aside className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col overflow-y-auto relative z-[60]">
       {/* Header */}
       <div className="p-4 border-b border-gray-700 flex items-center justify-between select-none">
         <h3 className="text-lg font-semibold text-white">인스펙터</h3>

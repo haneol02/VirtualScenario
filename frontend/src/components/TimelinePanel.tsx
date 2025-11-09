@@ -414,7 +414,7 @@ export default function TimelinePanel({
         {/* Layer List (Left) */}
         <div className="w-48 bg-gray-800 border-r border-gray-700 flex-shrink-0 select-none">
           {/* Header matching Time Ruler */}
-          <div className="h-8 bg-gray-750 border-b border-gray-700 flex items-center justify-between px-3 sticky top-0 z-10">
+          <div className="h-8 bg-gray-800 border-b border-gray-700 flex items-center justify-between px-3 sticky top-0 z-10">
             <span className="text-xs font-semibold text-gray-400">속성</span>
           </div>
 

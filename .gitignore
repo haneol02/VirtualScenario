@@ -32,6 +32,8 @@ out/
 *.sqlite3
 backend/database/*.db
 backend/database/*.sqlite
+backend/data/
+backend/data/*.db
 
 # Logs
 logs/
@@ -61,3 +63,11 @@ temp/
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
+
+# Uploads (3D models, assets, etc.)
+backend/uploads/
+uploads/
+*.glb
+*.gltf
+*.obj
+*.fbx
