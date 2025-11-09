@@ -243,7 +243,7 @@ function SceneObjectMesh({
         >
           <ModelLoader
             filePath={asset.file_path!}
-            fileFormat={asset.file_format!}
+            fileFormat={asset.file_format as 'glb' | 'gltf' | 'obj' | 'fbx'}
             color={color}
           />
 

@@ -107,12 +107,15 @@ CREATE TABLE IF NOT EXISTS asset_library (
   id TEXT PRIMARY KEY,
   category TEXT NOT NULL,
   name TEXT NOT NULL,
-  type TEXT DEFAULT 'primitive',  -- 'primitive', 'model'
+  type TEXT DEFAULT 'primitive',  -- 'primitive', 'model', 'image', 'text'
   thumbnail_path TEXT,
   model_path TEXT,
   three_js_model_path TEXT,
-  file_path TEXT,  -- Uploaded 3D model file path (.glb, .gltf, .obj, .fbx)
-  file_format TEXT,  -- 'glb', 'gltf', 'obj', 'fbx'
+  file_path TEXT,  -- Uploaded file path (3D model: .glb/.gltf/.obj/.fbx, Image: .png/.jpg/.jpeg)
+  file_format TEXT,  -- 'glb', 'gltf', 'obj', 'fbx', 'png', 'jpg', 'jpeg'
+  text_content TEXT,  -- Text content for text type
+  text_font_size REAL DEFAULT 1.0,  -- Font size for text (3D scale)
+  text_color TEXT DEFAULT '#ffffff',  -- Text color
   metadata TEXT,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

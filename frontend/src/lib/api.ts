@@ -286,12 +286,15 @@ export interface Asset {
   id: string;
   category: string;
   name: string;
-  type: 'primitive' | 'model';
+  type: 'primitive' | 'model' | 'image' | 'text';
   thumbnail_path?: string;
   model_path?: string;
   three_js_model_path?: string;
   file_path?: string;
-  file_format?: 'glb' | 'gltf' | 'obj' | 'fbx';
+  file_format?: 'glb' | 'gltf' | 'obj' | 'fbx' | 'png' | 'jpg' | 'jpeg';
+  text_content?: string;
+  text_font_size?: number;
+  text_color?: string;
   metadata?: string;
   created_at: string;
 }
@@ -303,16 +306,39 @@ export const assetsAPI = {
   getByCategory: (category: string) =>
     api.get<Asset[]>(`/assets/category/${category}`).then(res => res.data),
 
-  upload: (file: File, name: string, category: string) => {
+  uploadModel: (file: File, name: string, category: string) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('name', name);
     formData.append('category', category);
 
-    return api.post<Asset>('/assets/upload', formData, {
+    return api.post<Asset>('/assets/upload/model', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+    }).then(res => res.data);
+  },
+
+  uploadImage: (file: File, name: string, category: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('name', name);
+    formData.append('category', category);
+
+    return api.post<Asset>('/assets/upload/image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }).then(res => res.data);
+  },
+
+  createText: (name: string, category: string, text_content: string, text_font_size?: number, text_color?: string) => {
+    return api.post<Asset>('/assets/text', {
+      name,
+      category,
+      text_content,
+      text_font_size: text_font_size || 1.0,
+      text_color: text_color || '#ffffff',
     }).then(res => res.data);
   },
 

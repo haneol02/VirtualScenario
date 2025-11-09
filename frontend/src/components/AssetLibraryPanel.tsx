@@ -67,7 +67,7 @@ export default function AssetLibraryPanel({ onAssetSelect, onAssetUpdated }: Ass
 
     setIsUploading(true);
     try {
-      await assetsAPI.upload(uploadFile, uploadName, uploadCategory);
+      await assetsAPI.uploadModel(uploadFile, uploadName, uploadCategory);
       alert('업로드 성공!');
       setShowUploadModal(false);
       setUploadFile(null);
