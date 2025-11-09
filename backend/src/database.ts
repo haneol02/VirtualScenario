@@ -39,8 +39,8 @@ export class DatabaseManager {
     }
 
     // Check if order_index column exists in scene_objects
-    const tableInfo: any[] = this.db.pragma('table_info(scene_objects)');
-    const hasOrderIndex = tableInfo.some(col => col.name === 'order_index');
+    const tableInfo = this.db.pragma('table_info(scene_objects)') as any[];
+    const hasOrderIndex = tableInfo.some((col: any) => col.name === 'order_index');
 
     if (!hasOrderIndex) {
       console.log('Running migration: add_order_fields...');

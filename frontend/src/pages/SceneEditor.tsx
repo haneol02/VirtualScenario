@@ -1140,7 +1140,7 @@ export default function SceneEditor() {
                   + 추가
                 </button>
               </div>
-              <p className="text-xs text-gray-400">{selectedScene.title}</p>
+              <p className="text-xs text-gray-400">{selectedScene?.title}</p>
             </div>
 
             <div className="max-h-64 overflow-auto p-4">
@@ -1205,6 +1205,7 @@ export default function SceneEditor() {
                                 type="checkbox"
                                 checked={obj.show_nametag === 1}
                                 onChange={async (e) => {
+                                  if (!selectedScene) return;
                                   await scenesAPI.updateObject(selectedScene.id, obj.id, {
                                     showNametag: e.target.checked
                                   });
