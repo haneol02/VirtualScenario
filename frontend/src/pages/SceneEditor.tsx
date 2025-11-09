@@ -929,6 +929,10 @@ export default function SceneEditor() {
                     }
                   }
                 }}
+                onAssetUpdated={() => {
+                  // 에셋이 업로드/수정/삭제되면 SceneEditor의 에셋 목록도 갱신
+                  loadAssets();
+                }}
               />
             </div>
           )}

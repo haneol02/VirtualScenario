@@ -53,17 +53,7 @@ export class DatabaseManager {
       }
     }
 
-    // Clean up non-primitive assets
-    try {
-      const assets: any[] = this.db.prepare('SELECT id FROM asset_library WHERE category != ?').all('primitive');
-      if (assets.length > 0) {
-        console.log('Cleaning up non-primitive assets...');
-        this.db.prepare('DELETE FROM asset_library WHERE category != ?').run('primitive');
-        console.log(`✅ Removed ${assets.length} non-primitive assets`);
-      }
-    } catch (error) {
-      console.error('Asset cleanup error:', error);
-    }
+    // 에셋 클린업 로직 제거 - 업로드한 모델들이 서버 재시작 시 삭제되는 문제 해결
   }
 
   // Projects
