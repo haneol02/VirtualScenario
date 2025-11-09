@@ -15,7 +15,7 @@ interface ModelLoaderProps {
 function LoadingFallback({ position = [0, 0, 0] }: { position?: [number, number, number] }) {
   return (
     <Html center position={position}>
-      <div className="bg-gray-900 bg-opacity-90 text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 pointer-events-none select-none">
+      <div className="bg-gray-900 bg-opacity-90 text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 pointer-events-none select-none whitespace-nowrap">
         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
         <div>
           <div className="font-semibold">모델 로딩 중...</div>
