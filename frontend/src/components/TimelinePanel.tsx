@@ -12,6 +12,7 @@ interface TimelinePanelProps {
   onTimeChange: (time: number) => void;
   onPlayPause: () => void;
   onAddKeyframe: (objectId: string, time: number) => void;
+  onUpdateKeyframe: (objectId: string, keyframeIndex: number, newTime: number) => void;
   onDeleteKeyframe: (objectId: string, keyframeIndex: number) => void;
   onSelectObject: (objectId: string) => void;
   onSelectDialogue: (dialogueId: string) => void;
@@ -34,6 +35,7 @@ export default function TimelinePanel({
   onTimeChange,
   onPlayPause,
   onAddKeyframe,
+  onUpdateKeyframe,
   onDeleteKeyframe,
   onSelectObject,
   onSelectDialogue,
@@ -52,6 +54,22 @@ export default function TimelinePanel({
     dialogueId?: string;
     keyframeIndex?: number;
     time: number;
+  } | null>(null);
+
+  // Keyframe drag state
+  const [keyframeDrag, setKeyframeDrag] = useState<{
+    objectId: string;
+    keyframeIndex: number;
+    initialTime: number;
+    startX: number;
+    previewTime?: number;
+  } | null>(null);
+
+  // Keyframe edit modal state
+  const [keyframeEditModal, setKeyframeEditModal] = useState<{
+    objectId: string;
+    keyframeIndex: number;
+    currentTime: number;
   } | null>(null);
 
   // Adjust context menu position to stay within viewport
@@ -235,6 +253,42 @@ export default function TimelinePanel({
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, [dialogueDrag, pixelsPerSecond, maxTime, onUpdateDialogue]);
+
+  // Keyframe drag effect
+  useEffect(() => {
+    if (!keyframeDrag) return;
+
+    const snapToTenth = (time: number) => {
+      return Math.round(time * 10) / 10;
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const deltaX = e.clientX - keyframeDrag.startX;
+      const deltaTime = deltaX / pixelsPerSecond;
+      const rawTime = keyframeDrag.initialTime + deltaTime;
+      const snappedTime = snapToTenth(rawTime);
+      const newTime = Math.max(0, Math.min(snappedTime, maxTime));
+
+      // Update preview state only
+      setKeyframeDrag(prev => prev ? { ...prev, previewTime: newTime } : null);
+    };
+
+    const handleMouseUp = () => {
+      // Apply changes to backend when drag ends
+      if (keyframeDrag.previewTime !== undefined && keyframeDrag.previewTime !== keyframeDrag.initialTime) {
+        onUpdateKeyframe(keyframeDrag.objectId, keyframeDrag.keyframeIndex, keyframeDrag.previewTime);
+      }
+      setKeyframeDrag(null);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [keyframeDrag, pixelsPerSecond, maxTime, onUpdateKeyframe]);
 
   // Context menu handlers
   const handleContextMenu = (e: React.MouseEvent, objectId?: string, dialogueId?: string) => {
@@ -547,40 +601,73 @@ export default function TimelinePanel({
                   onContextMenu={(e) => handleContextMenu(e, obj.id)}
                 >
                   {/* Keyframes */}
-                  {keyframes.map((kf, idx) => (
-                    <div
-                      key={idx}
-                      className={`absolute top-1/2 transform -translate-x-1/2 -translate-y-1/2 timeline-interactive ${
-                        isPlaying ? 'cursor-not-allowed pointer-events-none opacity-50' : 'cursor-pointer'
-                      }`}
-                      style={{ left: `${kf.time * pixelsPerSecond}px` }}
-                      onClick={(e) => {
-                        if (isPlaying) return;
-                        e.stopPropagation();
-                        onSelectObject(obj.id);
-                        onTimeChange(kf.time);
-                      }}
-                      onContextMenu={(e) => {
-                        if (isPlaying) return;
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const pos = adjustContextMenuPosition(e.clientX, e.clientY);
-                        setContextMenu({
-                          x: pos.x,
-                          y: pos.y,
-                          objectId: obj.id,
-                          keyframeIndex: idx,
-                          time: kf.time,
-                        });
-                      }}
-                      onMouseDown={(e) => !isPlaying && e.stopPropagation()}
-                      title={`키프레임 ${kf.time.toFixed(2)}s`}
-                    >
-                      <div className={`w-3 h-3 rotate-45 border-2 shadow-lg transition-all hover:scale-125 ${
-                        selectedObjectId === obj.id ? 'bg-blue-400 border-blue-200' : 'bg-blue-500 border-white'
-                      }`}></div>
-                    </div>
-                  ))}
+                  {keyframes.map((kf, idx) => {
+                    // Use preview time if this keyframe is being dragged
+                    const isDragging = keyframeDrag?.objectId === obj.id && keyframeDrag?.keyframeIndex === idx;
+                    const displayTime = isDragging && keyframeDrag.previewTime !== undefined
+                      ? keyframeDrag.previewTime
+                      : kf.time;
+
+                    return (
+                      <div
+                        key={idx}
+                        className={`absolute top-1/2 transform -translate-x-1/2 -translate-y-1/2 timeline-interactive ${
+                          isPlaying ? 'cursor-not-allowed pointer-events-none opacity-50' : 'cursor-move'
+                        } ${isDragging ? 'z-50' : 'z-10'}`}
+                        style={{ left: `${displayTime * pixelsPerSecond}px` }}
+                        onClick={(e) => {
+                          if (isPlaying) return;
+                          e.stopPropagation();
+                          onSelectObject(obj.id);
+                          onTimeChange(kf.time);
+                        }}
+                        onDoubleClick={(e) => {
+                          if (isPlaying) return;
+                          e.stopPropagation();
+                          setKeyframeEditModal({
+                            objectId: obj.id,
+                            keyframeIndex: idx,
+                            currentTime: kf.time,
+                          });
+                        }}
+                        onMouseDown={(e) => {
+                          if (isPlaying) return;
+                          e.stopPropagation();
+                          setKeyframeDrag({
+                            objectId: obj.id,
+                            keyframeIndex: idx,
+                            initialTime: kf.time,
+                            startX: e.clientX,
+                          });
+                        }}
+                        onContextMenu={(e) => {
+                          if (isPlaying) return;
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const pos = adjustContextMenuPosition(e.clientX, e.clientY);
+                          setContextMenu({
+                            x: pos.x,
+                            y: pos.y,
+                            objectId: obj.id,
+                            keyframeIndex: idx,
+                            time: kf.time,
+                          });
+                        }}
+                        title={`키프레임 ${displayTime.toFixed(2)}s`}
+                      >
+                        <div className={`w-3 h-3 rotate-45 border-2 shadow-lg transition-all hover:scale-125 ${
+                          selectedObjectId === obj.id ? 'bg-blue-400 border-blue-200' : 'bg-blue-500 border-white'
+                        } ${isDragging ? 'scale-150 bg-yellow-400 border-yellow-200' : ''}`}></div>
+
+                        {/* Time label when dragging */}
+                        {isDragging && (
+                          <div className="absolute top-6 left-1/2 transform -translate-x-1/2 bg-yellow-500 text-black text-xs px-2 py-1 rounded whitespace-nowrap font-semibold pointer-events-none">
+                            {displayTime.toFixed(1)}s
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}
@@ -807,6 +894,68 @@ export default function TimelinePanel({
               </button>
             </>
           )}
+        </div>
+      )}
+
+      {/* Keyframe Edit Modal */}
+      {keyframeEditModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setKeyframeEditModal(null)}
+        >
+          <div
+            className="bg-gray-800 border border-gray-600 rounded-lg shadow-2xl p-6 w-96"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold text-white mb-4">키프레임 시간 편집</h3>
+
+            <div className="mb-4">
+              <label className="block text-sm text-gray-400 mb-2">시간 (초)</label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                max={maxTime}
+                defaultValue={keyframeEditModal.currentTime.toFixed(1)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-blue-500"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const newTime = parseFloat((e.target as HTMLInputElement).value);
+                    if (!isNaN(newTime) && newTime >= 0 && newTime <= maxTime) {
+                      onUpdateKeyframe(keyframeEditModal.objectId, keyframeEditModal.keyframeIndex, newTime);
+                      setKeyframeEditModal(null);
+                    }
+                  } else if (e.key === 'Escape') {
+                    setKeyframeEditModal(null);
+                  }
+                }}
+                id="keyframe-time-input"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm text-white"
+                onClick={() => setKeyframeEditModal(null)}
+              >
+                취소
+              </button>
+              <button
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm text-white font-medium"
+                onClick={() => {
+                  const input = document.getElementById('keyframe-time-input') as HTMLInputElement;
+                  const newTime = parseFloat(input.value);
+                  if (!isNaN(newTime) && newTime >= 0 && newTime <= maxTime) {
+                    onUpdateKeyframe(keyframeEditModal.objectId, keyframeEditModal.keyframeIndex, newTime);
+                    setKeyframeEditModal(null);
+                  }
+                }}
+              >
+                적용
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

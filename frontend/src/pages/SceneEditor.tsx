@@ -518,6 +518,57 @@ export default function SceneEditor() {
     }
   };
 
+  const handleUpdateKeyframe = async (objectId: string, keyframeIndex: number, newTime: number) => {
+    if (!selectedScene) return;
+
+    const obj = objects.find(o => o.id === objectId);
+    if (!obj || !obj.path_data) return;
+
+    const keyframes: PathKeyframe[] = JSON.parse(obj.path_data);
+    if (keyframeIndex < 0 || keyframeIndex >= keyframes.length) return;
+
+    // Save previous state for undo
+    const previousPathData = obj.path_data;
+    const oldTime = keyframes[keyframeIndex].time;
+
+    // Update keyframe time
+    const updatedKeyframes = [...keyframes];
+    updatedKeyframes[keyframeIndex] = {
+      ...updatedKeyframes[keyframeIndex],
+      time: newTime
+    };
+
+    // Sort by time
+    updatedKeyframes.sort((a, b) => a.time - b.time);
+
+    try {
+      await scenesAPI.updateObject(selectedScene.id, objectId, {
+        pathData: updatedKeyframes
+      });
+      await handleSelectScene(selectedScene);
+
+      // Record undo action
+      pushAction({
+        type: 'update_keyframe',
+        undo: async () => {
+          await scenesAPI.updateObject(selectedScene.id, objectId, {
+            pathData: previousPathData ? JSON.parse(previousPathData) : null
+          });
+          await handleSelectScene(selectedScene);
+        },
+        redo: async () => {
+          await scenesAPI.updateObject(selectedScene.id, objectId, {
+            pathData: updatedKeyframes
+          });
+          await handleSelectScene(selectedScene);
+        },
+        data: { objectId, keyframeIndex, oldTime, newTime }
+      });
+    } catch (error) {
+      console.error('Failed to update keyframe:', error);
+    }
+  };
+
   const handleDeleteKeyframe = async (objectId: string, keyframeIndex: number) => {
     if (!selectedScene) return;
 
@@ -1087,6 +1138,7 @@ export default function SceneEditor() {
           onTimeChange={setCurrentTime}
           onPlayPause={handlePlayPause}
           onAddKeyframe={handleAddKeyframe}
+          onUpdateKeyframe={handleUpdateKeyframe}
           onDeleteKeyframe={handleDeleteKeyframe}
           onSelectObject={(id) => {
             setSelectedObjectId(id);

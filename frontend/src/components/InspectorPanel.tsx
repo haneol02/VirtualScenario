@@ -149,9 +149,15 @@ export default function InspectorPanel({
     if (!selectedObject) return;
 
     try {
-      await scenesAPI.updateObject(sceneId, selectedObject.id, {
-        modelId: modelId || null
-      });
+      if (objectType === 'background') {
+        await backgroundMapsAPI.updateObject(selectedObject.id, {
+          modelId: modelId || undefined
+        });
+      } else {
+        await scenesAPI.updateObject(sceneId, selectedObject.id, {
+          modelId: modelId || null
+        });
+      }
       onUpdate();
     } catch (error) {
       console.error('Failed to update model:', error);
@@ -239,6 +245,24 @@ export default function InspectorPanel({
                   {assets.filter(a => a.type === 'model').map(asset => (
                     <option key={asset.id} value={asset.id}>
                       {asset.name} {asset.file_format ? `(.${asset.file_format})` : ''}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {assets.some(a => a.type === 'image') && (
+                <optgroup label="🖼️ 이미지">
+                  {assets.filter(a => a.type === 'image').map(asset => (
+                    <option key={asset.id} value={asset.id}>
+                      {asset.name} {asset.file_format ? `(.${asset.file_format})` : ''}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {assets.some(a => a.type === 'text') && (
+                <optgroup label="✏️ 텍스트">
+                  {assets.filter(a => a.type === 'text').map(asset => (
+                    <option key={asset.id} value={asset.id}>
+                      {asset.name}
                     </option>
                   ))}
                 </optgroup>

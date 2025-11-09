@@ -574,12 +574,15 @@ export class DatabaseManager {
     type?: string;
     file_path?: string;
     file_format?: string;
+    text_content?: string;
+    text_font_size?: number;
+    text_color?: string;
     metadata?: string;
   }) {
     const id = `asset_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     const stmt = this.db.prepare(`
-      INSERT INTO asset_library (id, name, category, type, file_path, file_format, metadata)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO asset_library (id, name, category, type, file_path, file_format, text_content, text_font_size, text_color, metadata)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     stmt.run(
       id,
@@ -588,6 +591,9 @@ export class DatabaseManager {
       data.type || 'primitive',
       data.file_path || null,
       data.file_format || null,
+      data.text_content || null,
+      data.text_font_size || 1.0,
+      data.text_color || '#ffffff',
       data.metadata || null
     );
     return this.db.prepare('SELECT * FROM asset_library WHERE id = ?').get(id);
