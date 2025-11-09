@@ -1,0 +1,91 @@
+# VirtualScenario - 코레일 시나리오 에디터 & 3D 시뮬레이터
+
+> Frontend(React) + Backend(Express + SQLite) 통합 솔루션
+
+## 📋 프로젝트 개요
+
+코레일 안전교육 및 업무 시나리오를 **작성-시각화-재생**하는 웹/데스크톱 애플리케이션
+
+### 핵심 기능 (2025-11-08 기준)
+- ✅ **REST API Backend**: Express + SQLite (오프라인 DB)
+- ✅ **React Frontend**: Three.js 기반 3D 에디터 & 시뮬레이터
+- ✅ **배경 맵 시스템**: 재사용 가능한 3D 배경 환경
+- ✅ **시뮬레이터**: 실시간 재생, 타임라인, 자막
+- ✅ **Undo/Redo**: Ctrl+Z/Ctrl+Shift+Z 지원
+- ⏳ **Unity 연동**: JSON Export (예정)
+- ⏳ **문서 자동 생성**: PDF/HWP 교육 자료 (예정)
+
+---
+
+## 🚀 빠른 시작
+
+### Backend 실행 (필수)
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+서버가 실행됩니다:
+- 🌐 API: http://localhost:3001/api
+- 🗄️ Database: `backend/data/scenario.db`
+
+### API 테스트
+
+```bash
+# Health check
+curl http://localhost:3001/api/health
+
+# 프로젝트 생성
+curl -X POST http://localhost:3001/api/projects \
+  -H "Content-Type: application/json" \
+  -d '{"title":"테스트 프로젝트","version":"1.0"}'
+```
+
+---
+
+## 📡 API 엔드포인트
+
+```
+GET    /api/projects                  # 프로젝트 목록
+POST   /api/projects                  # 프로젝트 생성
+GET    /api/projects/:id              # 프로젝트 상세
+PUT    /api/projects/:id              # 프로젝트 수정
+DELETE /api/projects/:id              # 프로젝트 삭제
+GET    /api/projects/:id/scenes       # 씬 목록
+POST   /api/projects/:id/scenes       # 씬 생성
+GET    /api/projects/:id/export       # JSON Export
+```
+
+---
+
+## 🛠️ 기술 스택
+
+**Backend** ✅
+- Express 4 + TypeScript
+- SQLite (better-sqlite3)
+- Node.js 20
+
+**Frontend** 🔨 (예정)
+- React 18 + Vite
+- Three.js
+- TailwindCSS
+
+**Unity** 🔨 (예정)
+- Unity 2022.3 LTS
+- C# + Newtonsoft.Json
+
+---
+
+## 📚 문서
+
+- [claude.md](claude.md) - AI 작업 기록
+- [docs/PROJECT_PLANNING_V2.md](docs/PROJECT_PLANNING_V2.md) - 상세 기획서
+- [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) - 프로젝트 구조
+
+---
+
+**현재 상태**: Backend API 완성 ✅ | Frontend 개발 예정 🔨
+
+마지막 업데이트: 2025-11-07 20:50
