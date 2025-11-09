@@ -12,10 +12,10 @@
     "start": "node dist/server.js",
     "electron": "electron .",
     "electron:dev": "NODE_ENV=development electron .",
-    "package": "npm run build:all && electron-builder",
-    "package:win": "npm run build:all && electron-builder --win",
-    "package:mac": "npm run build:all && electron-builder --mac",
-    "package:linux": "npm run build:all && electron-builder --linux"
+    "package": "npm run build:all && npx electron-builder",
+    "package:win": "npm run build:all && npx electron-builder --win",
+    "package:mac": "npm run build:all && npx electron-builder --mac",
+    "package:linux": "npm run build:all && npx electron-builder --linux"
   },
   "dependencies": {
     "@types/multer": "^2.0.0",
