@@ -170,7 +170,11 @@ export const scenesAPI = {
     metadata?: any;
   }) =>
     window.electronAPI.createSceneObject(sceneId, {
-      ...data,
+      type: data.type,
+      name: data.name,
+      asset_id: data.model_id || data.assetId,  // Convert to snake_case for IPC
+      color: data.color,
+      metadata: data.metadata,
       position_x: data.transform?.position[0] ?? 0,
       position_y: data.transform?.position[1] ?? 0,
       position_z: data.transform?.position[2] ?? 0,
@@ -319,7 +323,11 @@ export const backgroundMapsAPI = {
     metadata?: any;
   }) =>
     window.electronAPI.createBackgroundObject(mapId, {
-      ...data,
+      type: data.type,
+      name: data.name,
+      asset_id: data.modelId,  // Convert to snake_case for IPC
+      color: data.color,
+      metadata: data.metadata,
       position_x: data.positionX ?? 0,
       position_y: data.positionY ?? 0,
       position_z: data.positionZ ?? 0,
