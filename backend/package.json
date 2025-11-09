@@ -67,7 +67,8 @@
       }
     ],
     "asarUnpack": [
-      "**/*.node"
+      "**/*.node",
+      "node_modules/better-sqlite3/**/*"
     ],
     "win": {
       "target": [
