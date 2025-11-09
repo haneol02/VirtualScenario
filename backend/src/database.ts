@@ -211,12 +211,12 @@ export class DatabaseManager {
 
     const stmt = this.db.prepare(`
       INSERT INTO scene_objects (
-        id, scene_id, type, name, model_id,
+        id, scene_id, type, name, model_id, color, show_nametag,
         position_x, position_y, position_z,
         rotation_x, rotation_y, rotation_z,
         scale_x, scale_y, scale_z,
         path_data, metadata, order_index
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     return stmt.run(
       data.id,
@@ -224,6 +224,8 @@ export class DatabaseManager {
       data.type,
       data.name,
       data.assetId || null,
+      data.color || '#6b7280',
+      data.showNametag !== undefined ? (data.showNametag ? 1 : 0) : 1,
       data.transform.position[0], data.transform.position[1], data.transform.position[2],
       data.transform.rotation[0], data.transform.rotation[1], data.transform.rotation[2],
       data.transform.scale[0], data.transform.scale[1], data.transform.scale[2],

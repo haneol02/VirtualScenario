@@ -26,13 +26,13 @@ export function registerDialoguesHandlers(db: DatabaseManager) {
 
       db.createDialogue({
         id,
-        scene_id: sceneId,
-        speaker,
+        sceneId: sceneId,
+        objectId: object_id,
+        speakerName: speaker,
         text,
-        start_time,
-        end_time,
-        object_id,
-        order_index,
+        startTime: start_time,
+        duration: end_time - start_time,
+        audioPath: null,
       });
 
       const dialogue = db.getDialogue(id);
