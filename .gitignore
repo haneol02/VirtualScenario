@@ -6,12 +6,13 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Production builds
-dist/
-build/
-out/
-*.exe
-*.dmg
-*.app
+backend/dist/
+backend/build/
+frontend/dist/
+frontend/build/
+.vite/
+.next/
+.nuxt/
 
 # Environment variables
 .env
@@ -46,6 +47,8 @@ Thumbs.db
 # Electron
 release-builds/
 dist-electron/
+release/
+backend/frontend-dist/
 
 # TypeScript
 *.tsbuildinfo
@@ -71,3 +74,11 @@ uploads/
 *.gltf
 *.obj
 *.fbx
+
+# Cache
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.claude/
+.claude

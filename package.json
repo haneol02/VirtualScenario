@@ -1,0 +1,30 @@
+{
+  "name": "virtualscenario",
+  "version": "0.1.0",
+  "description": "VirtualScenario - 코레일 안전교육 시나리오 에디터 & 3D 시뮬레이터",
+  "private": true,
+  "author": "Dong-A University AI Department",
+  "scripts": {
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "build:all": "npm run build:backend && npm run build:frontend && npm run copy:frontend",
+    "copy:frontend": "node -e \"require('fs').cpSync('frontend/dist', 'backend/frontend-dist', { recursive: true, force: true })\"",
+    "package": "npm run build:all && cd backend && npx electron-builder",
+    "package:win": "npm run build:all && cd backend && npx electron-builder --win",
+    "package:mac": "npm run build:all && cd backend && npx electron-builder --mac",
+    "package:linux": "npm run build:all && cd backend && npx electron-builder --linux",
+    "clean": "node -e \"const fs = require('fs'); const dirs = ['backend/dist', 'backend/frontend-dist', 'release', 'frontend/dist']; dirs.forEach(d => fs.existsSync(d) && fs.rmSync(d, {recursive: true, force: true}))\"",
+    "rebuild:sqlite": "cd backend && npm rebuild better-sqlite3"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

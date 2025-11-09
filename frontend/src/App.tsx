@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import SceneEditor from './pages/SceneEditor';
 import BackgroundMapEditor from './pages/BackgroundMapEditor';

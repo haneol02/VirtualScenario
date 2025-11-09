@@ -1,13 +1,9 @@
+// REST API for both Electron and Browser
+// All communication uses HTTP requests to Express server
+
 import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:3001/api';
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
 
 // Types
 export interface PathKeyframe {
@@ -105,183 +101,6 @@ export interface Dialogue {
   created_at: string;
 }
 
-// Projects API
-export const projectsAPI = {
-  getAll: () => api.get<Project[]>('/projects').then(res => res.data),
-
-  getById: (id: string) => api.get<Project>(`/projects/${id}`).then(res => res.data),
-
-  create: (data: { title: string; description?: string; version?: string }) =>
-    api.post<Project>('/projects', data).then(res => res.data),
-
-  update: (id: string, data: { title?: string; description?: string; version?: string }) =>
-    api.put<Project>(`/projects/${id}`, data).then(res => res.data),
-
-  delete: (id: string) =>
-    api.delete(`/projects/${id}`).then(res => res.data),
-
-  export: (id: string) =>
-    api.get(`/projects/${id}/export`).then(res => res.data),
-};
-
-// Scenes API
-export const scenesAPI = {
-  getAll: (projectId: string) =>
-    api.get<Scene[]>(`/projects/${projectId}/scenes`).then(res => res.data),
-
-  create: (projectId: string, data: {
-    title: string;
-    description?: string;
-    participantCount?: number;
-    order?: number;
-  }) =>
-    api.post<Scene>(`/projects/${projectId}/scenes`, data).then(res => res.data),
-
-  update: (id: string, data: any) =>
-    api.put<Scene>(`/scenes/${id}`, data).then(res => res.data),
-
-  delete: (id: string) =>
-    api.delete(`/scenes/${id}`).then(res => res.data),
-
-  // Scene Objects
-  getObjects: (sceneId: string) =>
-    api.get<SceneObject[]>(`/scenes/${sceneId}/objects`).then(res => res.data),
-
-  createObject: (sceneId: string, data: {
-    type: string;
-    name: string;
-    assetId?: string;
-    model_id?: string;
-    transform?: {
-      position: [number, number, number];
-      rotation: [number, number, number];
-      scale: [number, number, number];
-    };
-    metadata?: any;
-  }) =>
-    api.post<SceneObject>(`/scenes/${sceneId}/objects`, data).then(res => res.data),
-
-  updateObject: (sceneId: string, objectId: string, data: {
-    name?: string;
-    modelId?: string | null;
-    showNametag?: boolean;
-    transform?: {
-      position?: [number, number, number];
-      rotation?: [number, number, number];
-      scale?: [number, number, number];
-    };
-    pathData?: any;
-    metadata?: any;
-  }) =>
-    api.put<SceneObject>(`/scenes/${sceneId}/objects/${objectId}`, data).then(res => res.data),
-
-  deleteObject: (sceneId: string, objectId: string) =>
-    api.delete(`/scenes/${sceneId}/objects/${objectId}`).then(res => res.data),
-
-  // Scene Dialogues
-  getDialogues: (sceneId: string) =>
-    api.get<Dialogue[]>(`/scenes/${sceneId}/dialogues`).then(res => res.data),
-
-  createDialogue: (sceneId: string, data: {
-    objectId?: string;
-    speakerName?: string;
-    text: string;
-    startTime?: number;
-    duration?: number;
-    audioPath?: string;
-  }) =>
-    api.post<Dialogue>(`/scenes/${sceneId}/dialogues`, data).then(res => res.data),
-
-  updateDialogue: (sceneId: string, dialogueId: string, data: {
-    objectId?: string;
-    speakerName?: string;
-    text?: string;
-    startTime?: number;
-    duration?: number;
-    audioPath?: string;
-  }) =>
-    api.put<Dialogue>(`/scenes/${sceneId}/dialogues/${dialogueId}`, data).then(res => res.data),
-
-  deleteDialogue: (sceneId: string, dialogueId: string) =>
-    api.delete(`/scenes/${sceneId}/dialogues/${dialogueId}`).then(res => res.data),
-
-  // Reorder
-  reorderObjects: (sceneId: string, orderedIds: string[]) =>
-    api.post(`/scenes/${sceneId}/objects/reorder`, { orderedIds }).then(res => res.data),
-
-  reorderDialogues: (sceneId: string, orderedIds: string[]) =>
-    api.post(`/scenes/${sceneId}/dialogues/reorder`, { orderedIds }).then(res => res.data),
-};
-
-// Background Maps API
-export const backgroundMapsAPI = {
-  getAll: () =>
-    api.get<BackgroundMap[]>('/background-maps').then(res => res.data),
-
-  getById: (id: string) =>
-    api.get<BackgroundMap>(`/background-maps/${id}`).then(res => res.data),
-
-  create: (data: {
-    name: string;
-    description?: string;
-    icon?: string;
-    backgroundImagePath?: string;
-  }) =>
-    api.post<BackgroundMap>('/background-maps', data).then(res => res.data),
-
-  update: (id: string, data: {
-    name?: string;
-    description?: string;
-    icon?: string;
-    backgroundImagePath?: string;
-  }) =>
-    api.put<BackgroundMap>(`/background-maps/${id}`, data).then(res => res.data),
-
-  delete: (id: string) =>
-    api.delete(`/background-maps/${id}`).then(res => res.data),
-
-  // Background Objects
-  getObjects: (mapId: string) =>
-    api.get<BackgroundObject[]>(`/background-maps/${mapId}/objects`).then(res => res.data),
-
-  createObject: (mapId: string, data: {
-    type: string;
-    name: string;
-    modelId?: string;
-    color?: string;
-    positionX?: number;
-    positionY?: number;
-    positionZ?: number;
-    rotationX?: number;
-    rotationY?: number;
-    rotationZ?: number;
-    scaleX?: number;
-    scaleY?: number;
-    scaleZ?: number;
-    metadata?: any;
-  }) =>
-    api.post<BackgroundObject>(`/background-maps/${mapId}/objects`, data).then(res => res.data),
-
-  updateObject: (objectId: string, data: {
-    name?: string;
-    type?: string;
-    modelId?: string;
-    color?: string;
-    showNametag?: boolean;
-    transform?: {
-      position?: [number, number, number];
-      rotation?: [number, number, number];
-      scale?: [number, number, number];
-    };
-    metadata?: any;
-  }) =>
-    api.put<BackgroundObject>(`/background-maps/objects/${objectId}`, data).then(res => res.data),
-
-  deleteObject: (objectId: string) =>
-    api.delete(`/background-maps/objects/${objectId}`).then(res => res.data),
-};
-
-// Asset Library Types
 export interface Asset {
   id: string;
   category: string;
@@ -299,54 +118,325 @@ export interface Asset {
   created_at: string;
 }
 
+console.log('[API] Using REST API mode (HTTP)');
+
+// Projects API
+export const projectsAPI = {
+  getAll: () => axios.get(`${API_BASE_URL}/projects`).then(res => res.data),
+
+  getById: (id: string) => axios.get(`${API_BASE_URL}/projects/${id}`).then(res => res.data),
+
+  create: (data: { title: string; description?: string; version?: string }) =>
+    axios.post(`${API_BASE_URL}/projects`, data).then(res => res.data),
+
+  update: (id: string, data: { title?: string; description?: string; version?: string }) =>
+    axios.put(`${API_BASE_URL}/projects/${id}`, data).then(res => res.data),
+
+  delete: (id: string) => axios.delete(`${API_BASE_URL}/projects/${id}`).then(res => res.data),
+
+  export: (id: string) => axios.get(`${API_BASE_URL}/projects/${id}/export`).then(res => res.data),
+};
+
+// Scenes API
+export const scenesAPI = {
+  getAll: (projectId: string) =>
+    axios.get(`${API_BASE_URL}/projects/${projectId}/scenes`).then(res => res.data),
+
+  create: (projectId: string, data: {
+    title: string;
+    description?: string;
+    participantCount?: number;
+    order?: number;
+    backgroundMapId?: string;
+  }) =>
+    axios.post(`${API_BASE_URL}/projects/${projectId}/scenes`, {
+      title: data.title,
+      description: data.description,
+      participant_count: data.participantCount,
+      order_index: data.order,
+      background_map_id: data.backgroundMapId,
+    }).then(res => res.data),
+
+  update: (id: string, data: any) =>
+    axios.put(`${API_BASE_URL}/scenes/${id}`, data).then(res => res.data),
+
+  delete: (id: string) => axios.delete(`${API_BASE_URL}/scenes/${id}`).then(res => res.data),
+
+  // Scene Objects
+  getObjects: (sceneId: string) =>
+    axios.get(`${API_BASE_URL}/scenes/${sceneId}/objects`).then(res => res.data),
+
+  createObject: (sceneId: string, data: {
+    type: string;
+    name: string;
+    assetId?: string;
+    model_id?: string;
+    color?: string;
+    transform?: {
+      position: [number, number, number];
+      rotation: [number, number, number];
+      scale: [number, number, number];
+    };
+    metadata?: any;
+  }) =>
+    axios.post(`${API_BASE_URL}/scenes/${sceneId}/objects`, {
+      type: data.type,
+      name: data.name,
+      model_id: data.model_id || data.assetId,
+      color: data.color,
+      position_x: data.transform?.position[0] ?? 0,
+      position_y: data.transform?.position[1] ?? 0,
+      position_z: data.transform?.position[2] ?? 0,
+      rotation_x: data.transform?.rotation[0] ?? 0,
+      rotation_y: data.transform?.rotation[1] ?? 0,
+      rotation_z: data.transform?.rotation[2] ?? 0,
+      scale_x: data.transform?.scale[0] ?? 1,
+      scale_y: data.transform?.scale[1] ?? 1,
+      scale_z: data.transform?.scale[2] ?? 1,
+      metadata: data.metadata,
+    }).then(res => res.data),
+
+  updateObject: (sceneId: string, objectId: string, data: {
+    name?: string;
+    modelId?: string | null;
+    showNametag?: boolean;
+    transform?: {
+      position?: [number, number, number];
+      rotation?: [number, number, number];
+      scale?: [number, number, number];
+    };
+    pathData?: any;
+    metadata?: any;
+  }) => {
+    const updateData: any = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.modelId !== undefined) updateData.model_id = data.modelId;
+    if (data.showNametag !== undefined) updateData.show_nametag = data.showNametag ? 1 : 0;
+    if (data.transform?.position) {
+      updateData.position_x = data.transform.position[0];
+      updateData.position_y = data.transform.position[1];
+      updateData.position_z = data.transform.position[2];
+    }
+    if (data.transform?.rotation) {
+      updateData.rotation_x = data.transform.rotation[0];
+      updateData.rotation_y = data.transform.rotation[1];
+      updateData.rotation_z = data.transform.rotation[2];
+    }
+    if (data.transform?.scale) {
+      updateData.scale_x = data.transform.scale[0];
+      updateData.scale_y = data.transform.scale[1];
+      updateData.scale_z = data.transform.scale[2];
+    }
+    if (data.pathData !== undefined) updateData.path_data = data.pathData;
+    if (data.metadata !== undefined) updateData.metadata = data.metadata;
+    return axios.put(`${API_BASE_URL}/scenes/${sceneId}/objects/${objectId}`, updateData).then(res => res.data);
+  },
+
+  deleteObject: (sceneId: string, objectId: string) =>
+    axios.delete(`${API_BASE_URL}/scenes/${sceneId}/objects/${objectId}`).then(res => res.data),
+
+  // Scene Dialogues
+  getDialogues: (sceneId: string) =>
+    axios.get(`${API_BASE_URL}/scenes/${sceneId}/dialogues`).then(res => res.data),
+
+  createDialogue: (sceneId: string, data: {
+    objectId?: string;
+    speakerName?: string;
+    text: string;
+    startTime?: number;
+    duration?: number;
+    audioPath?: string;
+  }) =>
+    axios.post(`${API_BASE_URL}/scenes/${sceneId}/dialogues`, {
+      object_id: data.objectId,
+      speaker_name: data.speakerName,
+      text: data.text,
+      start_time: data.startTime ?? 0,
+      duration: data.duration ?? 5,
+      audio_path: data.audioPath,
+    }).then(res => res.data),
+
+  updateDialogue: (sceneId: string, dialogueId: string, data: {
+    objectId?: string;
+    speakerName?: string;
+    text?: string;
+    startTime?: number;
+    duration?: number;
+    audioPath?: string;
+  }) => {
+    const updateData: any = {};
+    if (data.objectId !== undefined) updateData.object_id = data.objectId;
+    if (data.speakerName !== undefined) updateData.speaker_name = data.speakerName;
+    if (data.text !== undefined) updateData.text = data.text;
+    if (data.startTime !== undefined) updateData.start_time = data.startTime;
+    if (data.duration !== undefined) updateData.duration = data.duration;
+    if (data.audioPath !== undefined) updateData.audio_path = data.audioPath;
+    return axios.put(`${API_BASE_URL}/scenes/${sceneId}/dialogues/${dialogueId}`, updateData).then(res => res.data);
+  },
+
+  deleteDialogue: (sceneId: string, dialogueId: string) =>
+    axios.delete(`${API_BASE_URL}/scenes/${sceneId}/dialogues/${dialogueId}`).then(res => res.data),
+
+  // Reorder objects and dialogues
+  reorderObjects: (sceneId: string, orderedIds: string[]) =>
+    axios.post(`${API_BASE_URL}/scenes/${sceneId}/objects/reorder`, { orderedIds }).then(res => res.data),
+
+  reorderDialogues: (sceneId: string, orderedIds: string[]) =>
+    axios.post(`${API_BASE_URL}/scenes/${sceneId}/dialogues/reorder`, { orderedIds }).then(res => res.data),
+};
+
+// Background Maps API
+export const backgroundMapsAPI = {
+  getAll: () => axios.get(`${API_BASE_URL}/background-maps`).then(res => res.data),
+
+  getById: (id: string) => axios.get(`${API_BASE_URL}/background-maps/${id}`).then(res => res.data),
+
+  create: (data: {
+    name: string;
+    description?: string;
+    icon?: string;
+    backgroundImagePath?: string;
+  }) =>
+    axios.post(`${API_BASE_URL}/background-maps`, {
+      name: data.name,
+      description: data.description,
+      icon: data.icon,
+      background_image_path: data.backgroundImagePath,
+    }).then(res => res.data),
+
+  update: (id: string, data: {
+    name?: string;
+    description?: string;
+    icon?: string;
+    backgroundImagePath?: string;
+  }) =>
+    axios.put(`${API_BASE_URL}/background-maps/${id}`, {
+      name: data.name,
+      description: data.description,
+      icon: data.icon,
+      background_image_path: data.backgroundImagePath,
+    }).then(res => res.data),
+
+  delete: (id: string) => axios.delete(`${API_BASE_URL}/background-maps/${id}`).then(res => res.data),
+
+  // Background Objects
+  getObjects: (mapId: string) =>
+    axios.get(`${API_BASE_URL}/background-maps/${mapId}/objects`).then(res => res.data),
+
+  createObject: (mapId: string, data: {
+    type: string;
+    name: string;
+    modelId?: string;
+    color?: string;
+    positionX?: number;
+    positionY?: number;
+    positionZ?: number;
+    rotationX?: number;
+    rotationY?: number;
+    rotationZ?: number;
+    scaleX?: number;
+    scaleY?: number;
+    scaleZ?: number;
+    metadata?: any;
+  }) =>
+    axios.post(`${API_BASE_URL}/background-maps/${mapId}/objects`, {
+      type: data.type,
+      name: data.name,
+      model_id: data.modelId,
+      color: data.color,
+      position_x: data.positionX ?? 0,
+      position_y: data.positionY ?? 0,
+      position_z: data.positionZ ?? 0,
+      rotation_x: data.rotationX ?? 0,
+      rotation_y: data.rotationY ?? 0,
+      rotation_z: data.rotationZ ?? 0,
+      scale_x: data.scaleX ?? 1,
+      scale_y: data.scaleY ?? 1,
+      scale_z: data.scaleZ ?? 1,
+      metadata: data.metadata,
+    }).then(res => res.data),
+
+  updateObject: (objectId: string, data: {
+    name?: string;
+    type?: string;
+    modelId?: string;
+    color?: string;
+    showNametag?: boolean;
+    transform?: {
+      position?: [number, number, number];
+      rotation?: [number, number, number];
+      scale?: [number, number, number];
+    };
+    metadata?: any;
+  }) => {
+    const updateData: any = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.type !== undefined) updateData.type = data.type;
+    if (data.modelId !== undefined) updateData.model_id = data.modelId;
+    if (data.color !== undefined) updateData.color = data.color;
+    if (data.showNametag !== undefined) updateData.show_nametag = data.showNametag ? 1 : 0;
+    if (data.transform?.position) {
+      updateData.position_x = data.transform.position[0];
+      updateData.position_y = data.transform.position[1];
+      updateData.position_z = data.transform.position[2];
+    }
+    if (data.transform?.rotation) {
+      updateData.rotation_x = data.transform.rotation[0];
+      updateData.rotation_y = data.transform.rotation[1];
+      updateData.rotation_z = data.transform.rotation[2];
+    }
+    if (data.transform?.scale) {
+      updateData.scale_x = data.transform.scale[0];
+      updateData.scale_y = data.transform.scale[1];
+      updateData.scale_z = data.transform.scale[2];
+    }
+    if (data.metadata !== undefined) updateData.metadata = data.metadata;
+    return axios.put(`${API_BASE_URL}/background-maps/objects/${objectId}`, updateData).then(res => res.data);
+  },
+
+  deleteObject: (objectId: string) =>
+    axios.delete(`${API_BASE_URL}/background-maps/objects/${objectId}`).then(res => res.data),
+};
+
 // Asset Library API
 export const assetsAPI = {
-  getAll: () => api.get<Asset[]>('/assets').then(res => res.data),
+  getAll: () => axios.get(`${API_BASE_URL}/assets`).then(res => res.data),
 
   getByCategory: (category: string) =>
-    api.get<Asset[]>(`/assets/category/${category}`).then(res => res.data),
+    axios.get(`${API_BASE_URL}/assets?category=${category}`).then(res => res.data),
 
-  uploadModel: (file: File, name: string, category: string) => {
+  // File uploads
+  uploadModel: async (file: File, name: string, category: string) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('name', name);
     formData.append('category', category);
-
-    return api.post<Asset>('/assets/upload/model', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+    return axios.post(`${API_BASE_URL}/assets/upload/model`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
     }).then(res => res.data);
   },
 
-  uploadImage: (file: File, name: string, category: string) => {
+  uploadImage: async (file: File, name: string, category: string) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('name', name);
     formData.append('category', category);
-
-    return api.post<Asset>('/assets/upload/image', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+    return axios.post(`${API_BASE_URL}/assets/upload/image`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
     }).then(res => res.data);
   },
 
-  createText: (name: string, category: string, text_content: string, text_font_size?: number, text_color?: string) => {
-    return api.post<Asset>('/assets/text', {
+  createText: (name: string, category: string, text_content: string, text_font_size?: number, text_color?: string) =>
+    axios.post(`${API_BASE_URL}/assets/text`, {
       name,
       category,
       text_content,
       text_font_size: text_font_size || 1.0,
       text_color: text_color || '#ffffff',
-    }).then(res => res.data);
-  },
+    }).then(res => res.data),
 
   update: (id: string, data: { name?: string; category?: string }) =>
-    api.put<Asset>(`/assets/${id}`, data).then(res => res.data),
+    axios.put(`${API_BASE_URL}/assets/${id}`, data).then(res => res.data),
 
-  delete: (id: string) =>
-    api.delete(`/assets/${id}`).then(res => res.data),
+  delete: (id: string) => axios.delete(`${API_BASE_URL}/assets/${id}`).then(res => res.data),
 };
-
-export default api;

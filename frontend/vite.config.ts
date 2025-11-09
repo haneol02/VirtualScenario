@@ -4,6 +4,7 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  base: './', // Electron에서 상대 경로로 asset 로드
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

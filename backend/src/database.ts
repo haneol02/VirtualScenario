@@ -7,8 +7,27 @@ export class DatabaseManager {
   private dbPath: string;
 
   constructor(dbPath?: string) {
-    // Use provided path or default to ./data/scenario.db
-    this.dbPath = dbPath || path.join(__dirname, '../data/scenario.db');
+    // Detect if running in packaged Electron app
+    const isPackaged = (process as any).resourcesPath !== undefined;
+
+    if (dbPath) {
+      this.dbPath = dbPath;
+    } else if (isPackaged) {
+      // Production: use app data directory (writable)
+      const userDataPath = process.env.APPDATA ||
+                          process.env.HOME ||
+                          process.cwd();
+      const appDataDir = path.join(userDataPath, 'VirtualScenario');
+      if (!fs.existsSync(appDataDir)) {
+        fs.mkdirSync(appDataDir, { recursive: true });
+      }
+      this.dbPath = path.join(appDataDir, 'scenario.db');
+      console.log('[Database] Production mode - Database path:', this.dbPath);
+    } else {
+      // Development: use local data directory
+      this.dbPath = path.join(__dirname, '../data/scenario.db');
+      console.log('[Database] Development mode - Database path:', this.dbPath);
+    }
 
     // Ensure data directory exists
     const dataDir = path.dirname(this.dbPath);
@@ -22,7 +41,18 @@ export class DatabaseManager {
   }
 
   private initialize() {
-    const schemaPath = path.join(__dirname, '../database/schema.sql');
+    const isPackaged = (process as any).resourcesPath !== undefined;
+
+    let schemaPath: string;
+    if (isPackaged) {
+      // Production: schema.sql is in extraResources/database/
+      schemaPath = path.join((process as any).resourcesPath, 'database', 'schema.sql');
+      console.log('[Database] Loading schema from:', schemaPath);
+    } else {
+      // Development
+      schemaPath = path.join(__dirname, '../database/schema.sql');
+    }
+
     const schema = fs.readFileSync(schemaPath, 'utf-8');
     this.db.exec(schema);
 
@@ -48,6 +78,22 @@ export class DatabaseManager {
         this.db.exec('ALTER TABLE scene_objects ADD COLUMN order_index INTEGER DEFAULT 0');
         this.db.exec('ALTER TABLE dialogues ADD COLUMN order_index INTEGER DEFAULT 0');
         console.log('✅ Migration completed: order_index fields added');
+      } catch (error) {
+        console.error('Migration error:', error);
+      }
+    }
+
+    // Check if text_content columns exist in asset_library
+    const assetTableInfo = this.db.pragma('table_info(asset_library)') as any[];
+    const hasTextContent = assetTableInfo.some((col: any) => col.name === 'text_content');
+
+    if (!hasTextContent) {
+      console.log('Running migration: add_text_asset_fields...');
+      try {
+        this.db.exec('ALTER TABLE asset_library ADD COLUMN text_content TEXT');
+        this.db.exec('ALTER TABLE asset_library ADD COLUMN text_font_size REAL DEFAULT 1.0');
+        this.db.exec('ALTER TABLE asset_library ADD COLUMN text_color TEXT DEFAULT "#ffffff"');
+        console.log('✅ Migration completed: text asset fields added');
       } catch (error) {
         console.error('Migration error:', error);
       }
@@ -117,8 +163,8 @@ export class DatabaseManager {
 
   createScene(data: any) {
     const stmt = this.db.prepare(`
-      INSERT INTO scenes (id, project_id, order_index, title, description, participant_count)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO scenes (id, project_id, order_index, title, description, participant_count, background_map_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
     return stmt.run(
       data.id,
@@ -126,7 +172,8 @@ export class DatabaseManager {
       data.order,
       data.title,
       data.description || null,
-      data.participantCount || null
+      data.participantCount || null,
+      data.backgroundMapId || null
     );
   }
 
@@ -181,12 +228,12 @@ export class DatabaseManager {
 
     const stmt = this.db.prepare(`
       INSERT INTO scene_objects (
-        id, scene_id, type, name, model_id,
+        id, scene_id, type, name, model_id, color, show_nametag,
         position_x, position_y, position_z,
         rotation_x, rotation_y, rotation_z,
         scale_x, scale_y, scale_z,
         path_data, metadata, order_index
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     return stmt.run(
       data.id,
@@ -194,6 +241,8 @@ export class DatabaseManager {
       data.type,
       data.name,
       data.assetId || null,
+      data.color || '#6b7280',
+      data.showNametag !== undefined ? (data.showNametag ? 1 : 0) : 1,
       data.transform.position[0], data.transform.position[1], data.transform.position[2],
       data.transform.rotation[0], data.transform.rotation[1], data.transform.rotation[2],
       data.transform.scale[0], data.transform.scale[1], data.transform.scale[2],
@@ -422,11 +471,11 @@ export class DatabaseManager {
   createBackgroundObject(data: any) {
     const stmt = this.db.prepare(`
       INSERT INTO background_objects (
-        id, background_map_id, name, type, model_id, color,
+        id, background_map_id, name, type, model_id, color, show_nametag,
         position_x, position_y, position_z,
         rotation_x, rotation_y, rotation_z,
         scale_x, scale_y, scale_z, metadata
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     return stmt.run(
       data.id,
@@ -435,6 +484,7 @@ export class DatabaseManager {
       data.type,
       data.modelId || null,
       data.color || '#6b7280',
+      data.showNametag !== undefined ? (data.showNametag ? 1 : 0) : 1,
       data.positionX || 0,
       data.positionY || 0,
       data.positionZ || 0,
