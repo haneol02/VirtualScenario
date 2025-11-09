@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
-import { OrbitControls, Grid, GizmoHelper, GizmoViewport, TransformControls, Html } from '@react-three/drei';
+import { Canvas, useThree, useLoader } from '@react-three/fiber';
+import { OrbitControls, Grid, GizmoHelper, GizmoViewport, TransformControls, Html, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { SceneObject, BackgroundObject, Asset } from '../lib/api';
 import ModelLoader from './ModelLoader';
@@ -192,8 +192,10 @@ function SceneObjectMesh({
 
   const color = getColor();
 
-  // Check if this is a 3D model asset
+  // Check asset types
   const is3DModel = asset?.type === 'model' && asset.file_path && asset.file_format;
+  const isImage = asset?.type === 'image' && asset.file_path;
+  const isText = asset?.type === 'text' && asset.text_content;
 
   // Get initial transform (use first keyframe if exists, otherwise DB values)
   const getInitialTransform = () => {
@@ -274,6 +276,28 @@ function SceneObjectMesh({
             </Html>
           )}
         </group>
+      ) : isImage ? (
+        // Render Image
+        <ImagePlane
+          meshRef={meshRef}
+          imagePath={`http://localhost:3001${asset.file_path}`}
+          initialTransform={initialTransform}
+          isSelected={isSelected}
+          onSelect={onSelect}
+          obj={obj}
+        />
+      ) : isText ? (
+        // Render 3D Text
+        <Text3DObject
+          meshRef={meshRef}
+          textContent={asset.text_content!}
+          textColor={asset.text_color || '#ffffff'}
+          textSize={asset.text_font_size || 1.0}
+          initialTransform={initialTransform}
+          isSelected={isSelected}
+          onSelect={onSelect}
+          obj={obj}
+        />
       ) : (
         // Render Primitive
         <mesh
@@ -355,6 +379,154 @@ function SceneObjectMesh({
         />
       )}
     </>
+  );
+}
+
+// Image Plane Component
+function ImagePlane({
+  meshRef,
+  imagePath,
+  initialTransform,
+  isSelected,
+  onSelect,
+  obj
+}: {
+  meshRef: any;
+  imagePath: string;
+  initialTransform: any;
+  isSelected: boolean;
+  onSelect: () => void;
+  obj: SceneObject | BackgroundObject;
+}) {
+  const texture = useLoader(THREE.TextureLoader, imagePath);
+
+  return (
+    <mesh
+      ref={meshRef}
+      position={initialTransform.position as [number, number, number]}
+      rotation={[
+        (initialTransform.rotation[0] * Math.PI) / 180,
+        (initialTransform.rotation[1] * Math.PI) / 180,
+        (initialTransform.rotation[2] * Math.PI) / 180,
+      ]}
+      scale={initialTransform.scale as [number, number, number]}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect();
+      }}
+    >
+      <planeGeometry args={[2, 2]} />
+      <meshStandardMaterial
+        map={texture}
+        transparent
+        side={THREE.DoubleSide}
+        emissive={isSelected ? '#ffffff' : '#000000'}
+        emissiveIntensity={isSelected ? 0.3 : 0}
+      />
+
+      {/* Nametag */}
+      {obj.show_nametag === 1 && (
+        <Html
+          position={[0, 'scale_y' in obj ? obj.scale_y * 1.2 : 1, 0]}
+          center
+          distanceFactor={10}
+          style={{
+            pointerEvents: 'none',
+            userSelect: 'none',
+          }}
+        >
+          <div
+            style={{
+              background: 'rgba(0, 0, 0, 0.7)',
+              color: 'white',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              fontSize: '12px',
+              whiteSpace: 'nowrap',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+            }}
+          >
+            {obj.name}
+          </div>
+        </Html>
+      )}
+    </mesh>
+  );
+}
+
+// 3D Text Component
+function Text3DObject({
+  meshRef,
+  textContent,
+  textColor,
+  textSize,
+  initialTransform,
+  isSelected,
+  onSelect,
+  obj
+}: {
+  meshRef: any;
+  textContent: string;
+  textColor: string;
+  textSize: number;
+  initialTransform: any;
+  isSelected: boolean;
+  onSelect: () => void;
+  obj: SceneObject | BackgroundObject;
+}) {
+  return (
+    <group
+      ref={meshRef}
+      position={initialTransform.position as [number, number, number]}
+      rotation={[
+        (initialTransform.rotation[0] * Math.PI) / 180,
+        (initialTransform.rotation[1] * Math.PI) / 180,
+        (initialTransform.rotation[2] * Math.PI) / 180,
+      ]}
+      scale={initialTransform.scale as [number, number, number]}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect();
+      }}
+    >
+      <Text
+        fontSize={textSize}
+        color={textColor}
+        anchorX="center"
+        anchorY="middle"
+        outlineWidth={0.02}
+        outlineColor={isSelected ? '#ffff00' : '#000000'}
+      >
+        {textContent}
+      </Text>
+
+      {/* Nametag */}
+      {obj.show_nametag === 1 && (
+        <Html
+          position={[0, textSize * 0.7, 0]}
+          center
+          distanceFactor={10}
+          style={{
+            pointerEvents: 'none',
+            userSelect: 'none',
+          }}
+        >
+          <div
+            style={{
+              background: 'rgba(0, 0, 0, 0.7)',
+              color: 'white',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              fontSize: '12px',
+              whiteSpace: 'nowrap',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+            }}
+          >
+            {obj.name}
+          </div>
+        </Html>
+      )}
+    </group>
   );
 }
 
