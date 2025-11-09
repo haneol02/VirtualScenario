@@ -411,7 +411,7 @@ export const assetsAPI = {
     formData.append('file', file);
     formData.append('name', name);
     formData.append('category', category);
-    return axios.post(`${API_BASE_URL}/assets/upload-model`, formData, {
+    return axios.post(`${API_BASE_URL}/assets/upload/model`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     }).then(res => res.data);
   },
@@ -421,7 +421,7 @@ export const assetsAPI = {
     formData.append('file', file);
     formData.append('name', name);
     formData.append('category', category);
-    return axios.post(`${API_BASE_URL}/assets/upload-image`, formData, {
+    return axios.post(`${API_BASE_URL}/assets/upload/image`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     }).then(res => res.data);
   },
