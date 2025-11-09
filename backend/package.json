@@ -8,7 +8,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "build:all": "npm run build && cd ../frontend && npm run build && cd ../backend && npm run copy-frontend",
-    "copy-frontend": "node -e \"require('fs-extra').copySync('../frontend/dist', 'frontend-dist')\"",
+    "copy-frontend": "node -e \"require('fs').cpSync('../frontend/dist', 'frontend-dist', { recursive: true, force: true })\"",
     "start": "node dist/server.js",
     "electron": "electron .",
     "electron:dev": "NODE_ENV=development electron .",
