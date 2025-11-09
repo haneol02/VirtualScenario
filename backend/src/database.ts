@@ -454,11 +454,11 @@ export class DatabaseManager {
   createBackgroundObject(data: any) {
     const stmt = this.db.prepare(`
       INSERT INTO background_objects (
-        id, background_map_id, name, type, model_id, color,
+        id, background_map_id, name, type, model_id, color, show_nametag,
         position_x, position_y, position_z,
         rotation_x, rotation_y, rotation_z,
         scale_x, scale_y, scale_z, metadata
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     return stmt.run(
       data.id,
@@ -467,6 +467,7 @@ export class DatabaseManager {
       data.type,
       data.modelId || null,
       data.color || '#6b7280',
+      data.showNametag !== undefined ? (data.showNametag ? 1 : 0) : 1,
       data.positionX || 0,
       data.positionY || 0,
       data.positionZ || 0,

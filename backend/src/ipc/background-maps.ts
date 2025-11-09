@@ -109,6 +109,7 @@ export function registerBackgroundMapsHandlers(db: DatabaseManager) {
         type,
         modelId: asset_id,
         color,
+        showNametag: show_nametag,
         positionX: position_x,
         positionY: position_y,
         positionZ: position_z,
