@@ -71,3 +71,38 @@ uploads/
 *.gltf
 *.obj
 *.fbx
+
+# Frontend build artifacts
+frontend/dist/
+frontend/.vite/
+frontend/.turbo/
+
+# Backend build artifacts
+backend/dist/
+backend/.turbo/
+
+# Shared module builds
+shared/dist/
+
+# Electron builder output
+electron-editor/dist/
+electron-editor/release/
+electron-editor/out/
+
+# Unity (if added later)
+unity-simulator/Library/
+unity-simulator/Temp/
+unity-simulator/Obj/
+unity-simulator/Build/
+unity-simulator/Builds/
+unity-simulator/*.csproj
+unity-simulator/*.unityproj
+unity-simulator/*.sln
+
+# Exported files
+exports/
+*.export.json
+
+# Documentation builds
+docs/.vitepress/dist/
+docs/.vitepress/cache/
