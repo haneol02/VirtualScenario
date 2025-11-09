@@ -17,7 +17,7 @@
     "package:win": "npm run build:all && cd backend && electron-builder --win",
     "package:mac": "npm run build:all && cd backend && electron-builder --mac",
     "package:linux": "npm run build:all && cd backend && electron-builder --linux",
-    "clean": "node -e \"const fs = require('fs'); const dirs = ['backend/dist', 'backend/frontend-dist', 'backend/release', 'frontend/dist']; dirs.forEach(d => fs.existsSync(d) && fs.rmSync(d, {recursive: true, force: true}))\"",
+    "clean": "node -e \"const fs = require('fs'); const dirs = ['backend/dist', 'backend/frontend-dist', 'release', 'frontend/dist']; dirs.forEach(d => fs.existsSync(d) && fs.rmSync(d, {recursive: true, force: true}))\"",
     "rebuild:sqlite": "cd backend && npm rebuild better-sqlite3"
   },
   "devDependencies": {

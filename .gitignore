@@ -46,7 +46,7 @@ Thumbs.db
 # Electron
 release-builds/
 dist-electron/
-backend/release/
+release/
 backend/frontend-dist/
 
 # TypeScript

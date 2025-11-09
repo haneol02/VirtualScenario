@@ -68,8 +68,9 @@ npm run package
 
 #### 빌드 산출물 위치
 ```
-backend/release/
+release/                              # 메인 폴더에 생성됩니다!
 ├── VirtualScenario Setup 0.1.0.exe  (Windows)
+├── win-unpacked/                     (압축 해제된 앱)
 └── ...
 ```
 
@@ -84,7 +85,7 @@ npm run clean
 다음 폴더들이 삭제됩니다:
 - `backend/dist/`
 - `backend/frontend-dist/`
-- `backend/release/`
+- `release/`
 - `frontend/dist/`
 
 ---
@@ -94,6 +95,9 @@ npm run clean
 ```
 VirtualScenario/
 ├── package.json           # 루트 빌드 스크립트
+├── release/               # Electron 패키징 결과 ⭐
+│   ├── VirtualScenario Setup 0.1.0.exe
+│   └── win-unpacked/
 ├── backend/
 │   ├── src/
 │   │   ├── main.ts       # Electron 메인 프로세스
@@ -102,7 +106,6 @@ VirtualScenario/
 │   │   └── routes/       # API 라우트
 │   ├── dist/             # TypeScript 컴파일 결과
 │   ├── frontend-dist/    # Frontend 빌드 복사본
-│   ├── release/          # Electron 패키징 결과
 │   └── package.json
 ├── frontend/
 │   ├── src/
