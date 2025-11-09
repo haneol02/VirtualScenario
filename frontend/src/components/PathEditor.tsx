@@ -12,6 +12,9 @@ interface PathEditorProps {
     rotation_x: number;
     rotation_y: number;
     rotation_z: number;
+    scale_x: number;
+    scale_y: number;
+    scale_z: number;
   } | null;
   onSaveKeyframe: (keyframes: PathKeyframe[]) => void;
   onClose: () => void;
@@ -40,6 +43,7 @@ export default function PathEditor({ sceneObject, onSaveKeyframe, onClose }: Pat
       time: currentTime,
       position: [sceneObject.position_x, sceneObject.position_y, sceneObject.position_z],
       rotation: [sceneObject.rotation_x, sceneObject.rotation_y, sceneObject.rotation_z],
+      scale: [sceneObject.scale_x, sceneObject.scale_y, sceneObject.scale_z],
     };
 
     const updatedKeyframes = [...keyframes, newKeyframe].sort((a, b) => a.time - b.time);

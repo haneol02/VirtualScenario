@@ -9,7 +9,7 @@ console.log('🔄 Running migration: Add columns to asset_library table');
 
 try {
   // Check if type column exists
-  const tableInfo = db.pragma("table_info(asset_library)");
+  const tableInfo = db.pragma("table_info(asset_library)") as any[];
   const hasTypeColumn = tableInfo.some((col: any) => col.name === 'type');
 
   if (!hasTypeColumn) {

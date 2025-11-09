@@ -163,6 +163,7 @@ export const scenesAPI = {
 
   updateObject: (sceneId: string, objectId: string, data: {
     name?: string;
+    modelId?: string | null;
     showNametag?: boolean;
     transform?: {
       position?: [number, number, number];
@@ -183,6 +184,7 @@ export const scenesAPI = {
 
   createDialogue: (sceneId: string, data: {
     objectId?: string;
+    speakerName?: string;
     text: string;
     startTime?: number;
     duration?: number;
@@ -192,6 +194,7 @@ export const scenesAPI = {
 
   updateDialogue: (sceneId: string, dialogueId: string, data: {
     objectId?: string;
+    speakerName?: string;
     text?: string;
     startTime?: number;
     duration?: number;

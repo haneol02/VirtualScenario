@@ -302,7 +302,7 @@ export default function InspectorPanel({
                   <label className="text-xs text-gray-500 block mb-1">{axis.toUpperCase()}</label>
                   <input
                     type="number"
-                    value={selectedObject[`position_${axis}` as keyof SceneObject] as number}
+                    value={selectedObject[`position_${axis}` as keyof typeof selectedObject] as number}
                     onChange={(e) => {
                       // 빈 문자열이면 업데이트하지 않음 (입력 중 허용)
                       if (e.target.value !== '') {
@@ -335,7 +335,7 @@ export default function InspectorPanel({
                   <label className="text-xs text-gray-500 block mb-1">{axis.toUpperCase()}</label>
                   <input
                     type="number"
-                    value={selectedObject[`rotation_${axis}` as keyof SceneObject] as number}
+                    value={selectedObject[`rotation_${axis}` as keyof typeof selectedObject] as number}
                     onChange={(e) => {
                       // 빈 문자열이면 업데이트하지 않음 (입력 중 허용)
                       if (e.target.value !== '') {
@@ -368,7 +368,7 @@ export default function InspectorPanel({
                   <label className="text-xs text-gray-500 block mb-1">{axis.toUpperCase()}</label>
                   <input
                     type="number"
-                    value={selectedObject[`scale_${axis}` as keyof SceneObject] as number}
+                    value={selectedObject[`scale_${axis}` as keyof typeof selectedObject] as number}
                     onChange={(e) => {
                       // 빈 문자열이면 업데이트하지 않음 (입력 중 허용)
                       if (e.target.value !== '') {
@@ -396,7 +396,7 @@ export default function InspectorPanel({
           <hr className="border-gray-700" />
 
           {/* Keyframes Section */}
-          {selectedObject.path_data && (() => {
+          {'path_data' in selectedObject && selectedObject.path_data && (() => {
             const keyframes: PathKeyframe[] = JSON.parse(selectedObject.path_data);
             return keyframes.length > 0 && (
               <div>

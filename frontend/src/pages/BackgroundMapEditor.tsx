@@ -17,6 +17,7 @@ export default function BackgroundMapEditor() {
   const [assets, setAssets] = useState<Asset[]>([]);
 
   const [showCreateMapDialog, setShowCreateMapDialog] = useState(false);
+  const [showAddObjectDialog, setShowAddObjectDialog] = useState(false);
   const [leftSidebarTab, setLeftSidebarTab] = useState<'objects' | 'assets'>('objects');
 
   const [newMapName, setNewMapName] = useState('');
