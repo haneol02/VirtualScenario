@@ -43,7 +43,7 @@
     "appId": "com.dongauniv.virtualscenario",
     "productName": "VirtualScenario",
     "directories": {
-      "output": "release",
+      "output": "../release",
       "buildResources": "assets"
     },
     "files": [
