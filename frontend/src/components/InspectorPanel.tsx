@@ -301,7 +301,21 @@ export default function InspectorPanel({
                   <input
                     type="number"
                     value={selectedObject[`position_${axis}` as keyof SceneObject] as number}
-                    onChange={(e) => handleTransformChange(`position_${axis}`, parseFloat(e.target.value) || 0)}
+                    onChange={(e) => {
+                      // 빈 문자열이면 업데이트하지 않음 (입력 중 허용)
+                      if (e.target.value !== '') {
+                        const val = parseFloat(e.target.value);
+                        if (!isNaN(val)) {
+                          handleTransformChange(`position_${axis}`, val);
+                        }
+                      }
+                    }}
+                    onBlur={(e) => {
+                      // 포커스 해제 시 빈 문자열이면 0으로 설정
+                      if (e.target.value === '') {
+                        handleTransformChange(`position_${axis}`, 0);
+                      }
+                    }}
                     step="0.1"
                     className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
                   />
@@ -320,7 +334,21 @@ export default function InspectorPanel({
                   <input
                     type="number"
                     value={selectedObject[`rotation_${axis}` as keyof SceneObject] as number}
-                    onChange={(e) => handleTransformChange(`rotation_${axis}`, parseFloat(e.target.value) || 0)}
+                    onChange={(e) => {
+                      // 빈 문자열이면 업데이트하지 않음 (입력 중 허용)
+                      if (e.target.value !== '') {
+                        const val = parseFloat(e.target.value);
+                        if (!isNaN(val)) {
+                          handleTransformChange(`rotation_${axis}`, val);
+                        }
+                      }
+                    }}
+                    onBlur={(e) => {
+                      // 포커스 해제 시 빈 문자열이면 0으로 설정
+                      if (e.target.value === '') {
+                        handleTransformChange(`rotation_${axis}`, 0);
+                      }
+                    }}
                     step="1"
                     className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
                   />
@@ -339,7 +367,21 @@ export default function InspectorPanel({
                   <input
                     type="number"
                     value={selectedObject[`scale_${axis}` as keyof SceneObject] as number}
-                    onChange={(e) => handleTransformChange(`scale_${axis}`, parseFloat(e.target.value) || 0)}
+                    onChange={(e) => {
+                      // 빈 문자열이면 업데이트하지 않음 (입력 중 허용)
+                      if (e.target.value !== '') {
+                        const val = parseFloat(e.target.value);
+                        if (!isNaN(val)) {
+                          handleTransformChange(`scale_${axis}`, val);
+                        }
+                      }
+                    }}
+                    onBlur={(e) => {
+                      // 포커스 해제 시 빈 문자열이거나 0.1 미만이면 0.1로 설정
+                      if (e.target.value === '' || parseFloat(e.target.value) < 0.1) {
+                        handleTransformChange(`scale_${axis}`, 0.1);
+                      }
+                    }}
                     step="0.1"
                     min="0.1"
                     className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
