@@ -1,19 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BackgroundMap, BackgroundObject, backgroundMapsAPI } from '../lib/api';
-import ThreeViewer from '../components/ThreeViewer';
+import { BackgroundMap, BackgroundObject, backgroundMapsAPI, Asset, assetsAPI } from '../lib/api';
+import ThreeViewer, { ThreeViewerHandle } from '../components/ThreeViewer';
 import { useUndoRedo } from '../hooks/useUndoRedo';
+import AssetLibraryPanel from '../components/AssetLibraryPanel';
+import InspectorPanel from '../components/InspectorPanel';
 
 export default function BackgroundMapEditor() {
   const navigate = useNavigate();
+  const threeViewerRef = useRef<ThreeViewerHandle>(null);
 
   const [backgroundMaps, setBackgroundMaps] = useState<BackgroundMap[]>([]);
   const [selectedMap, setSelectedMap] = useState<BackgroundMap | null>(null);
   const [objects, setObjects] = useState<BackgroundObject[]>([]);
   const [selectedObjectId, setSelectedObjectId] = useState<string | undefined>();
+  const [assets, setAssets] = useState<Asset[]>([]);
 
   const [showCreateMapDialog, setShowCreateMapDialog] = useState(false);
-  const [showAddObjectDialog, setShowAddObjectDialog] = useState(false);
+  const [leftSidebarTab, setLeftSidebarTab] = useState<'objects' | 'assets'>('objects');
 
   const [newMapName, setNewMapName] = useState('');
   const [newMapDescription, setNewMapDescription] = useState('');
@@ -38,9 +42,10 @@ export default function BackgroundMapEditor() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [undo, redo]);
 
-  // Load background maps
+  // Load background maps and assets
   useEffect(() => {
     loadBackgroundMaps();
+    loadAssets();
   }, []);
 
   // Load objects when map is selected
@@ -66,6 +71,15 @@ export default function BackgroundMapEditor() {
       setObjects(objs);
     } catch (error) {
       console.error('Failed to load objects:', error);
+    }
+  };
+
+  const loadAssets = async () => {
+    try {
+      const data = await assetsAPI.getAll();
+      setAssets(data);
+    } catch (error) {
+      console.error('Failed to load assets:', error);
     }
   };
 
