@@ -1,19 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BackgroundMap, BackgroundObject, backgroundMapsAPI } from '../lib/api';
-import ThreeViewer from '../components/ThreeViewer';
+import { BackgroundMap, BackgroundObject, backgroundMapsAPI, Asset, assetsAPI } from '../lib/api';
+import ThreeViewer, { ThreeViewerHandle } from '../components/ThreeViewer';
 import { useUndoRedo } from '../hooks/useUndoRedo';
+import AssetLibraryPanel from '../components/AssetLibraryPanel';
+import InspectorPanel from '../components/InspectorPanel';
 
 export default function BackgroundMapEditor() {
   const navigate = useNavigate();
+  const threeViewerRef = useRef<ThreeViewerHandle>(null);
 
   const [backgroundMaps, setBackgroundMaps] = useState<BackgroundMap[]>([]);
   const [selectedMap, setSelectedMap] = useState<BackgroundMap | null>(null);
   const [objects, setObjects] = useState<BackgroundObject[]>([]);
   const [selectedObjectId, setSelectedObjectId] = useState<string | undefined>();
+  const [assets, setAssets] = useState<Asset[]>([]);
 
   const [showCreateMapDialog, setShowCreateMapDialog] = useState(false);
-  const [showAddObjectDialog, setShowAddObjectDialog] = useState(false);
+  const [leftSidebarTab, setLeftSidebarTab] = useState<'objects' | 'assets'>('objects');
 
   const [newMapName, setNewMapName] = useState('');
   const [newMapDescription, setNewMapDescription] = useState('');
@@ -38,9 +42,10 @@ export default function BackgroundMapEditor() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [undo, redo]);
 
-  // Load background maps
+  // Load background maps and assets
   useEffect(() => {
     loadBackgroundMaps();
+    loadAssets();
   }, []);
 
   // Load objects when map is selected
@@ -66,6 +71,15 @@ export default function BackgroundMapEditor() {
       setObjects(objs);
     } catch (error) {
       console.error('Failed to load objects:', error);
+    }
+  };
+
+  const loadAssets = async () => {
+    try {
+      const data = await assetsAPI.getAll();
+      setAssets(data);
+    } catch (error) {
+      console.error('Failed to load assets:', error);
     }
   };
 
@@ -229,7 +243,7 @@ export default function BackgroundMapEditor() {
 
   return (
     <div className="h-screen bg-gray-900 text-white flex">
-      {/* Left Sidebar - Background Maps List */}
+      {/* Left Sidebar - Background Maps & Objects/Assets */}
       <aside className="w-80 bg-gray-800 border-r border-gray-700 flex flex-col">
         <div className="p-4 border-b border-gray-700">
           <button
@@ -241,58 +255,152 @@ export default function BackgroundMapEditor() {
           <h2 className="text-xl font-bold">배경 맵 관리</h2>
         </div>
 
-        <div className="flex-1 overflow-auto p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-semibold">배경 맵 목록</h3>
+        {/* Background Map Selection */}
+        <div className="p-4 border-b border-gray-700">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold">배경 맵</h3>
             <button
               onClick={() => setShowCreateMapDialog(true)}
-              className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm"
+              className="bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded text-xs"
             >
               + 추가
             </button>
           </div>
-
-          {backgroundMaps.length === 0 ? (
-            <div className="text-center text-gray-400 py-8">
-              <p className="text-4xl mb-2">🗺️</p>
-              <p className="text-sm">배경 맵이 없습니다</p>
-              <p className="text-xs">배경 맵을 추가하세요</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {backgroundMaps.map((map) => (
-                <div
-                  key={map.id}
-                  onClick={() => handleSelectMap(map)}
-                  className={`rounded-lg p-3 cursor-pointer transition-colors border ${
-                    selectedMap?.id === map.id
-                      ? 'bg-blue-700 border-blue-500'
-                      : 'bg-gray-700 border-gray-600 hover:bg-gray-650'
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">{map.icon}</span>
-                      <span className="font-medium">{map.name}</span>
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteMap(map.id);
-                      }}
-                      className="text-gray-400 hover:text-red-500 text-sm"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                  {map.description && (
-                    <p className="text-xs text-gray-400 ml-8">{map.description}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+          <select
+            value={selectedMap?.id || ''}
+            onChange={(e) => {
+              const map = backgroundMaps.find(m => m.id === e.target.value);
+              if (map) handleSelectMap(map);
+            }}
+            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+          >
+            <option value="">배경 맵을 선택하세요</option>
+            {backgroundMaps.map((map) => (
+              <option key={map.id} value={map.id}>
+                {map.icon} {map.name}
+              </option>
+            ))}
+          </select>
         </div>
+
+        {/* Tabs */}
+        {selectedMap && (
+          <>
+            <div className="flex border-b border-gray-700">
+              <button
+                onClick={() => setLeftSidebarTab('objects')}
+                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                  leftSidebarTab === 'objects'
+                    ? 'bg-gray-700 text-white border-b-2 border-blue-500'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-750'
+                }`}
+              >
+                📦 오브젝트
+              </button>
+              <button
+                onClick={() => setLeftSidebarTab('assets')}
+                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                  leftSidebarTab === 'assets'
+                    ? 'bg-gray-700 text-white border-b-2 border-blue-500'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-750'
+                }`}
+              >
+                🎨 에셋
+              </button>
+            </div>
+
+            {/* Objects Tab */}
+            {leftSidebarTab === 'objects' && (
+              <div className="flex-1 overflow-auto p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold">오브젝트 목록</h3>
+                  <button
+                    onClick={() => setShowAddObjectDialog(true)}
+                    className="bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded text-xs"
+                  >
+                    + 추가
+                  </button>
+                </div>
+
+                {objects.length === 0 ? (
+                  <div className="text-center text-gray-400 py-8">
+                    <p className="text-4xl mb-2">📦</p>
+                    <p className="text-sm">오브젝트가 없습니다</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {objects.map((obj) => {
+                      const isSelected = selectedObjectId === obj.id;
+                      return (
+                        <div
+                          key={obj.id}
+                          onClick={() => setSelectedObjectId(isSelected ? undefined : obj.id)}
+                          className={`rounded-lg p-3 border cursor-pointer transition-colors ${
+                            isSelected
+                              ? 'bg-blue-700 border-blue-500'
+                              : 'bg-gray-700 border-gray-600 hover:bg-gray-650'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-4 h-4 rounded"
+                                style={{ backgroundColor: obj.color }}
+                              />
+                              <span className="font-medium text-sm">{obj.name}</span>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteObject(obj.id);
+                              }}
+                              className="text-gray-400 hover:text-red-500 text-sm"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                          <div className="text-xs text-gray-400">{obj.type}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Assets Tab */}
+            {leftSidebarTab === 'assets' && (
+              <div className="h-full -m-4">
+                <AssetLibraryPanel
+                  onAssetSelect={async (assetId) => {
+                    if (!selectedMap) {
+                      alert('배경 맵을 먼저 선택하세요');
+                      return;
+                    }
+                    const asset = assets.find(a => a.id === assetId);
+                    if (asset) {
+                      try {
+                        await backgroundMapsAPI.createObject(selectedMap.id, {
+                          type: 'primitive',
+                          name: asset.name,
+                          modelId: assetId,
+                          color: '#6b7280',
+                        });
+                        await loadObjects();
+                      } catch (error) {
+                        console.error('Failed to create object:', error);
+                        alert('오브젝트 생성 실패');
+                      }
+                    }
+                  }}
+                  onAssetUpdated={() => {
+                    loadAssets();
+                  }}
+                />
+              </div>
+            )}
+          </>
+        )}
       </aside>
 
       {/* Main Area - 3D Editor */}
@@ -301,8 +409,10 @@ export default function BackgroundMapEditor() {
           <>
             <div className="flex-1 w-full">
               <ThreeViewer
+                ref={threeViewerRef}
                 objects={objects}
                 selectedObjectId={selectedObjectId}
+                assets={assets}
                 onObjectSelect={(id) => setSelectedObjectId(id)}
                 onObjectTransform={handleObjectTransform}
               />
