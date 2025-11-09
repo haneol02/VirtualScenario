@@ -518,6 +518,57 @@ export default function SceneEditor() {
     }
   };
 
+  const handleUpdateKeyframe = async (objectId: string, keyframeIndex: number, newTime: number) => {
+    if (!selectedScene) return;
+
+    const obj = objects.find(o => o.id === objectId);
+    if (!obj || !obj.path_data) return;
+
+    const keyframes: PathKeyframe[] = JSON.parse(obj.path_data);
+    if (keyframeIndex < 0 || keyframeIndex >= keyframes.length) return;
+
+    // Save previous state for undo
+    const previousPathData = obj.path_data;
+    const oldTime = keyframes[keyframeIndex].time;
+
+    // Update keyframe time
+    const updatedKeyframes = [...keyframes];
+    updatedKeyframes[keyframeIndex] = {
+      ...updatedKeyframes[keyframeIndex],
+      time: newTime
+    };
+
+    // Sort by time
+    updatedKeyframes.sort((a, b) => a.time - b.time);
+
+    try {
+      await scenesAPI.updateObject(selectedScene.id, objectId, {
+        pathData: updatedKeyframes
+      });
+      await handleSelectScene(selectedScene);
+
+      // Record undo action
+      pushAction({
+        type: 'update_keyframe',
+        undo: async () => {
+          await scenesAPI.updateObject(selectedScene.id, objectId, {
+            pathData: previousPathData ? JSON.parse(previousPathData) : null
+          });
+          await handleSelectScene(selectedScene);
+        },
+        redo: async () => {
+          await scenesAPI.updateObject(selectedScene.id, objectId, {
+            pathData: updatedKeyframes
+          });
+          await handleSelectScene(selectedScene);
+        },
+        data: { objectId, keyframeIndex, oldTime, newTime }
+      });
+    } catch (error) {
+      console.error('Failed to update keyframe:', error);
+    }
+  };
+
   const handleDeleteKeyframe = async (objectId: string, keyframeIndex: number) => {
     if (!selectedScene) return;
 
@@ -571,7 +622,7 @@ export default function SceneEditor() {
       await scenesAPI.update(selectedScene.id, { backgroundMapId });
       const updatedScenes = await scenesAPI.getAll(projectId!);
       setScenes(updatedScenes);
-      const currentScene = updatedScenes.find(s => s.id === selectedScene.id);
+      const currentScene = updatedScenes.find((s: any) => s.id === selectedScene.id);
       if (currentScene) {
         setSelectedScene(currentScene);
       }
@@ -883,7 +934,7 @@ export default function SceneEditor() {
           {leftSidebarTab === 'assets' && (
             <div className="h-full -m-4">
               <AssetLibraryPanel
-                onAssetSelect={(assetId) => {
+                onAssetSelect={async (assetId) => {
                   // Handle asset selection - create new object with selected asset
                   if (!selectedScene) {
                     alert('장면을 먼저 선택하세요');
@@ -892,14 +943,46 @@ export default function SceneEditor() {
                   const asset = assets.find(a => a.id === assetId);
                   if (asset) {
                     // Set appropriate object type based on asset category
-                    // If asset has a standard category, use it; otherwise use 'other'
                     const validTypes = ['person', 'train', 'facility', 'sign'];
                     const objectType = validTypes.includes(asset.category) ? asset.category : 'other';
 
-                    setNewObjectType(objectType);
-                    setNewObjectName(asset.name);
-                    handleCreateObject(assetId);
+                    try {
+                      // Create object directly with asset info
+                      const createdObject = await scenesAPI.createObject(selectedScene.id, {
+                        type: objectType,
+                        name: asset.name,
+                        model_id: assetId,
+                      });
+
+                      // Reload scene to show new object
+                      await handleSelectScene(selectedScene);
+                      loadAssets();
+
+                      // Record undo action
+                      pushAction({
+                        type: 'create_object',
+                        undo: async () => {
+                          await scenesAPI.deleteObject(selectedScene.id, createdObject.id);
+                          await handleSelectScene(selectedScene);
+                        },
+                        redo: async () => {
+                          const recreated = await scenesAPI.createObject(selectedScene.id, {
+                            type: objectType,
+                            name: asset.name,
+                            model_id: assetId,
+                          });
+                          await handleSelectScene(selectedScene);
+                        },
+                      });
+                    } catch (error) {
+                      console.error('Failed to create object:', error);
+                      alert('오브젝트 생성 실패');
+                    }
                   }
+                }}
+                onAssetUpdated={() => {
+                  // 에셋이 업로드/수정/삭제되면 SceneEditor의 에셋 목록도 갱신
+                  loadAssets();
                 }}
               />
             </div>
@@ -1055,6 +1138,7 @@ export default function SceneEditor() {
           onTimeChange={setCurrentTime}
           onPlayPause={handlePlayPause}
           onAddKeyframe={handleAddKeyframe}
+          onUpdateKeyframe={handleUpdateKeyframe}
           onDeleteKeyframe={handleDeleteKeyframe}
           onSelectObject={(id) => {
             setSelectedObjectId(id);
@@ -1108,7 +1192,7 @@ export default function SceneEditor() {
                   + 추가
                 </button>
               </div>
-              <p className="text-xs text-gray-400">{selectedScene.title}</p>
+              <p className="text-xs text-gray-400">{selectedScene?.title}</p>
             </div>
 
             <div className="max-h-64 overflow-auto p-4">
@@ -1173,6 +1257,7 @@ export default function SceneEditor() {
                                 type="checkbox"
                                 checked={obj.show_nametag === 1}
                                 onChange={async (e) => {
+                                  if (!selectedScene) return;
                                   await scenesAPI.updateObject(selectedScene.id, obj.id, {
                                     showNametag: e.target.checked
                                   });

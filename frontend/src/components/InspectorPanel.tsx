@@ -1,13 +1,14 @@
-import { SceneObject, Dialogue, scenesAPI, PathKeyframe, Asset } from '../lib/api';
+import { SceneObject, BackgroundObject, Dialogue, scenesAPI, backgroundMapsAPI, PathKeyframe, Asset } from '../lib/api';
 import { useState, useEffect } from 'react';
 
 interface InspectorPanelProps {
-  selectedObject?: SceneObject;
+  selectedObject?: SceneObject | BackgroundObject;
   selectedDialogue?: Dialogue;
-  sceneId: string;
+  sceneId: string;  // For SceneObject, this is scene_id; for BackgroundObject, this is background_map_id
   assets: Asset[];
   onUpdate: () => void;
   onDelete: (id: string, type: 'object' | 'dialogue') => void;
+  objectType?: 'scene' | 'background';  // 'scene' for SceneObject, 'background' for BackgroundObject
 }
 
 export default function InspectorPanel({
@@ -17,6 +18,7 @@ export default function InspectorPanel({
   assets,
   onUpdate,
   onDelete,
+  objectType = 'scene',  // Default to 'scene' for backward compatibility
 }: InspectorPanelProps) {
   // Local state for Korean input handling
   const [localObjectName, setLocalObjectName] = useState('');
@@ -147,9 +149,15 @@ export default function InspectorPanel({
     if (!selectedObject) return;
 
     try {
-      await scenesAPI.updateObject(sceneId, selectedObject.id, {
-        modelId: modelId || null
-      });
+      if (objectType === 'background') {
+        await backgroundMapsAPI.updateObject(selectedObject.id, {
+          modelId: modelId || undefined
+        });
+      } else {
+        await scenesAPI.updateObject(sceneId, selectedObject.id, {
+          modelId: modelId || null
+        });
+      }
       onUpdate();
     } catch (error) {
       console.error('Failed to update model:', error);
@@ -217,24 +225,42 @@ export default function InspectorPanel({
           </div>
 
           {/* Model Selection */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-1">모델</label>
+          <div className="bg-gray-750 rounded-lg p-3 border border-gray-600">
+            <label className="block text-xs font-semibold text-blue-400 mb-2">🎨 3D 모델 / 에셋</label>
             <select
               value={selectedObject.model_id || ''}
               onChange={(e) => handleModelChange(e.target.value)}
               className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
             >
-              <option value="">선택하세요...</option>
-              <optgroup label="기본 도형">
+              <option value="">기본 박스</option>
+              <optgroup label="🔷 기본 프리미티브">
                 {assets.filter(a => a.category === 'primitive').map(asset => (
                   <option key={asset.id} value={asset.id}>
                     {asset.name}
                   </option>
                 ))}
               </optgroup>
-              {assets.some(a => a.category === 'model') && (
-                <optgroup label="업로드된 모델">
-                  {assets.filter(a => a.category === 'model').map(asset => (
+              {assets.some(a => a.type === 'model') && (
+                <optgroup label="📦 업로드된 3D 모델">
+                  {assets.filter(a => a.type === 'model').map(asset => (
+                    <option key={asset.id} value={asset.id}>
+                      {asset.name} {asset.file_format ? `(.${asset.file_format})` : ''}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {assets.some(a => a.type === 'image') && (
+                <optgroup label="🖼️ 이미지">
+                  {assets.filter(a => a.type === 'image').map(asset => (
+                    <option key={asset.id} value={asset.id}>
+                      {asset.name} {asset.file_format ? `(.${asset.file_format})` : ''}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {assets.some(a => a.type === 'text') && (
+                <optgroup label="✏️ 텍스트">
+                  {assets.filter(a => a.type === 'text').map(asset => (
                     <option key={asset.id} value={asset.id}>
                       {asset.name}
                     </option>
@@ -242,7 +268,37 @@ export default function InspectorPanel({
                 </optgroup>
               )}
             </select>
-            <div className="text-xs text-gray-500 mt-1">현재: {selectedObject.model_id || '없음'}</div>
+            {selectedObject.model_id && (() => {
+              const currentAsset = assets.find(a => a.id === selectedObject.model_id);
+              return currentAsset && (
+                <div className="mt-2 p-2 bg-gray-800 rounded text-xs">
+                  <div className="text-gray-400">현재 모델:</div>
+                  <div className="text-white font-semibold">{currentAsset.name}</div>
+                  {currentAsset.type === 'model' && currentAsset.file_format && (
+                    <div className="text-blue-400 mt-1">
+                      포맷: {currentAsset.file_format.toUpperCase()}
+                    </div>
+                  )}
+                  {currentAsset.type === 'primitive' && currentAsset.metadata && (() => {
+                    try {
+                      const meta = JSON.parse(currentAsset.metadata);
+                      return (
+                        <div className="text-green-400 mt-1">
+                          타입: {meta.geometry || 'primitive'}
+                        </div>
+                      );
+                    } catch (e) {
+                      return null;
+                    }
+                  })()}
+                </div>
+              );
+            })()}
+            {!selectedObject.model_id && (
+              <div className="mt-2 p-2 bg-gray-800 rounded text-xs text-gray-400">
+                기본 박스 사용 중. 위에서 다른 모델을 선택하세요.
+              </div>
+            )}
           </div>
 
           {/* Nametag Toggle */}
@@ -270,8 +326,22 @@ export default function InspectorPanel({
                   <label className="text-xs text-gray-500 block mb-1">{axis.toUpperCase()}</label>
                   <input
                     type="number"
-                    value={selectedObject[`position_${axis}` as keyof SceneObject] as number}
-                    onChange={(e) => handleTransformChange(`position_${axis}`, parseFloat(e.target.value) || 0)}
+                    value={selectedObject[`position_${axis}` as keyof typeof selectedObject] as number}
+                    onChange={(e) => {
+                      // 빈 문자열이면 업데이트하지 않음 (입력 중 허용)
+                      if (e.target.value !== '') {
+                        const val = parseFloat(e.target.value);
+                        if (!isNaN(val)) {
+                          handleTransformChange(`position_${axis}`, val);
+                        }
+                      }
+                    }}
+                    onBlur={(e) => {
+                      // 포커스 해제 시 빈 문자열이면 0으로 설정
+                      if (e.target.value === '') {
+                        handleTransformChange(`position_${axis}`, 0);
+                      }
+                    }}
                     step="0.1"
                     className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
                   />
@@ -289,8 +359,22 @@ export default function InspectorPanel({
                   <label className="text-xs text-gray-500 block mb-1">{axis.toUpperCase()}</label>
                   <input
                     type="number"
-                    value={selectedObject[`rotation_${axis}` as keyof SceneObject] as number}
-                    onChange={(e) => handleTransformChange(`rotation_${axis}`, parseFloat(e.target.value) || 0)}
+                    value={selectedObject[`rotation_${axis}` as keyof typeof selectedObject] as number}
+                    onChange={(e) => {
+                      // 빈 문자열이면 업데이트하지 않음 (입력 중 허용)
+                      if (e.target.value !== '') {
+                        const val = parseFloat(e.target.value);
+                        if (!isNaN(val)) {
+                          handleTransformChange(`rotation_${axis}`, val);
+                        }
+                      }
+                    }}
+                    onBlur={(e) => {
+                      // 포커스 해제 시 빈 문자열이면 0으로 설정
+                      if (e.target.value === '') {
+                        handleTransformChange(`rotation_${axis}`, 0);
+                      }
+                    }}
                     step="1"
                     className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
                   />
@@ -308,8 +392,22 @@ export default function InspectorPanel({
                   <label className="text-xs text-gray-500 block mb-1">{axis.toUpperCase()}</label>
                   <input
                     type="number"
-                    value={selectedObject[`scale_${axis}` as keyof SceneObject] as number}
-                    onChange={(e) => handleTransformChange(`scale_${axis}`, parseFloat(e.target.value) || 0)}
+                    value={selectedObject[`scale_${axis}` as keyof typeof selectedObject] as number}
+                    onChange={(e) => {
+                      // 빈 문자열이면 업데이트하지 않음 (입력 중 허용)
+                      if (e.target.value !== '') {
+                        const val = parseFloat(e.target.value);
+                        if (!isNaN(val)) {
+                          handleTransformChange(`scale_${axis}`, val);
+                        }
+                      }
+                    }}
+                    onBlur={(e) => {
+                      // 포커스 해제 시 빈 문자열이거나 0.1 미만이면 0.1로 설정
+                      if (e.target.value === '' || parseFloat(e.target.value) < 0.1) {
+                        handleTransformChange(`scale_${axis}`, 0.1);
+                      }
+                    }}
                     step="0.1"
                     min="0.1"
                     className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
@@ -322,7 +420,7 @@ export default function InspectorPanel({
           <hr className="border-gray-700" />
 
           {/* Keyframes Section */}
-          {selectedObject.path_data && (() => {
+          {'path_data' in selectedObject && selectedObject.path_data && (() => {
             const keyframes: PathKeyframe[] = JSON.parse(selectedObject.path_data);
             return keyframes.length > 0 && (
               <div>

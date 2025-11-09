@@ -1,5 +1,5 @@
-import { useRef, useEffect } from 'react';
-import { useGLTF } from '@react-three/drei';
+import { useRef, useEffect, Suspense } from 'react';
+import { useGLTF, Html } from '@react-three/drei';
 import { useLoader } from '@react-three/fiber';
 import { OBJLoader } from 'three-stdlib';
 import { FBXLoader } from 'three-stdlib';
@@ -11,9 +11,24 @@ interface ModelLoaderProps {
   color?: string;
 }
 
+// Loading Fallback Component
+function LoadingFallback({ position = [0, 0, 0] }: { position?: [number, number, number] }) {
+  return (
+    <Html center position={position}>
+      <div className="bg-gray-900 bg-opacity-90 text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 pointer-events-none select-none whitespace-nowrap">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+        <div>
+          <div className="font-semibold">모델 로딩 중...</div>
+          <div className="text-xs text-gray-400">대용량 파일은 시간이 걸릴 수 있습니다</div>
+        </div>
+      </div>
+    </Html>
+  );
+}
+
 // GLB/GLTF Loader Component
 function GLTFModelLoader({ filePath, color }: { filePath: string; color?: string }) {
-  const { scene } = useGLTF(`http://localhost:3001${filePath}`);
+  const { scene } = useGLTF(`http://localhost:3001${filePath}`, true); // Enable Draco compression support
   const clonedScene = scene.clone();
 
   // Apply color if provided
@@ -77,18 +92,45 @@ function FBXModelLoader({ filePath, color }: { filePath: string; color?: string 
   return <primitive object={clonedFbx} />;
 }
 
-// Main Model Loader Component
+// Error Fallback Component
+function ErrorFallback({ error, position = [0, 0, 0] }: { error: Error; position?: [number, number, number] }) {
+  return (
+    <Html center position={position}>
+      <div className="bg-red-900 bg-opacity-90 text-white px-6 py-4 rounded-lg shadow-2xl max-w-md pointer-events-none select-none">
+        <div className="font-semibold mb-2">⚠️ 모델 로딩 실패</div>
+        <div className="text-xs text-gray-300">{error.message}</div>
+        <div className="text-xs text-gray-400 mt-2">파일 경로나 포맷을 확인하세요</div>
+      </div>
+    </Html>
+  );
+}
+
+// Main Model Loader Component with Suspense
 export default function ModelLoader({ filePath, fileFormat, color }: ModelLoaderProps) {
-  switch (fileFormat) {
-    case 'glb':
-    case 'gltf':
-      return <GLTFModelLoader filePath={filePath} color={color} />;
-    case 'obj':
-      return <OBJModelLoader filePath={filePath} color={color} />;
-    case 'fbx':
-      return <FBXModelLoader filePath={filePath} color={color} />;
-    default:
-      console.warn(`Unsupported file format: ${fileFormat}`);
-      return null;
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <ModelLoaderInner filePath={filePath} fileFormat={fileFormat} color={color} />
+    </Suspense>
+  );
+}
+
+// Inner loader component
+function ModelLoaderInner({ filePath, fileFormat, color }: ModelLoaderProps) {
+  try {
+    switch (fileFormat) {
+      case 'glb':
+      case 'gltf':
+        return <GLTFModelLoader filePath={filePath} color={color} />;
+      case 'obj':
+        return <OBJModelLoader filePath={filePath} color={color} />;
+      case 'fbx':
+        return <FBXModelLoader filePath={filePath} color={color} />;
+      default:
+        console.warn(`Unsupported file format: ${fileFormat}`);
+        return null;
+    }
+  } catch (error) {
+    console.error('Model loading error:', error);
+    return <ErrorFallback error={error as Error} />;
   }
 }

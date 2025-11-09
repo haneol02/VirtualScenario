@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { projectsAPI, scenesAPI, backgroundMapsAPI, type Project, type Scene, type SceneObject, type Dialogue, type BackgroundObject } from '../lib/api';
+import { projectsAPI, scenesAPI, backgroundMapsAPI, assetsAPI, type Project, type Scene, type SceneObject, type Dialogue, type BackgroundObject, type Asset } from '../lib/api';
 import ThreeViewer from '../components/ThreeViewer';
 
 export default function Simulator() {
@@ -13,6 +13,7 @@ export default function Simulator() {
   const [objects, setObjects] = useState<SceneObject[]>([]);
   const [backgroundObjects, setBackgroundObjects] = useState<BackgroundObject[]>([]);
   const [dialogues, setDialogues] = useState<Dialogue[]>([]);
+  const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Playback state
@@ -89,12 +90,14 @@ export default function Simulator() {
 
   const loadProjectData = async () => {
     try {
-      const [projectData, scenesData] = await Promise.all([
+      const [projectData, scenesData, assetsData] = await Promise.all([
         projectsAPI.getById(projectId!),
         scenesAPI.getAll(projectId!),
+        assetsAPI.getAll(),
       ]);
       setProject(projectData);
       setScenes(scenesData);
+      setAssets(assetsData);
     } catch (error) {
       console.error('Failed to load project data:', error);
     } finally {
@@ -124,7 +127,7 @@ export default function Simulator() {
       let maxTime = 10; // Minimum 10 seconds
 
       // Check dialogues
-      dialoguesData.forEach(dlg => {
+      dialoguesData.forEach((dlg: any) => {
         const endTime = dlg.start_time + dlg.duration;
         if (endTime > maxTime) {
           maxTime = endTime;
@@ -132,7 +135,7 @@ export default function Simulator() {
       });
 
       // Check keyframes in scene objects
-      objectsData.forEach(obj => {
+      objectsData.forEach((obj: any) => {
         if (obj.path_data) {
           try {
             const keyframes = JSON.parse(obj.path_data);
@@ -317,6 +320,7 @@ export default function Simulator() {
           onObjectTransform={handleObjectTransform}
           currentTime={currentTime}
           isPlaying={isPlaying}
+          assets={assets}
         />
 
         {/* Pause Instruction */}

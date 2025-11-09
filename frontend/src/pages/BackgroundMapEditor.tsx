@@ -1,19 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BackgroundMap, BackgroundObject, backgroundMapsAPI } from '../lib/api';
-import ThreeViewer from '../components/ThreeViewer';
+import { BackgroundMap, BackgroundObject, backgroundMapsAPI, Asset, assetsAPI } from '../lib/api';
+import ThreeViewer, { ThreeViewerHandle } from '../components/ThreeViewer';
 import { useUndoRedo } from '../hooks/useUndoRedo';
+import AssetLibraryPanel from '../components/AssetLibraryPanel';
+import InspectorPanel from '../components/InspectorPanel';
 
 export default function BackgroundMapEditor() {
   const navigate = useNavigate();
+  const threeViewerRef = useRef<ThreeViewerHandle>(null);
 
   const [backgroundMaps, setBackgroundMaps] = useState<BackgroundMap[]>([]);
   const [selectedMap, setSelectedMap] = useState<BackgroundMap | null>(null);
   const [objects, setObjects] = useState<BackgroundObject[]>([]);
   const [selectedObjectId, setSelectedObjectId] = useState<string | undefined>();
+  const [assets, setAssets] = useState<Asset[]>([]);
 
   const [showCreateMapDialog, setShowCreateMapDialog] = useState(false);
   const [showAddObjectDialog, setShowAddObjectDialog] = useState(false);
+  const [leftSidebarTab, setLeftSidebarTab] = useState<'objects' | 'assets'>('objects');
 
   const [newMapName, setNewMapName] = useState('');
   const [newMapDescription, setNewMapDescription] = useState('');
@@ -22,9 +27,16 @@ export default function BackgroundMapEditor() {
   // Undo/Redo system
   const { pushAction, undo, redo, canUndo, canRedo } = useUndoRedo();
 
-  // Keyboard shortcuts for undo/redo
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't handle keyboard shortcuts when typing in input fields
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
+        return;
+      }
+
+      // Undo/Redo
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Z') {
         e.preventDefault();
         redo();
@@ -32,15 +44,38 @@ export default function BackgroundMapEditor() {
         e.preventDefault();
         undo();
       }
+      // Delete selected object
+      else if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        if (selectedObjectId) {
+          handleDeleteObject(selectedObjectId);
+        }
+      }
+      // Deselect (Escape)
+      else if (e.key === 'Escape') {
+        e.preventDefault();
+        setSelectedObjectId(undefined);
+      }
+      // Duplicate (Ctrl+D)
+      else if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault();
+        if (selectedObjectId && selectedMap) {
+          const obj = objects.find(o => o.id === selectedObjectId);
+          if (obj) {
+            handleDuplicateObject(obj);
+          }
+        }
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo]);
+  }, [undo, redo, selectedObjectId, objects, selectedMap]);
 
-  // Load background maps
+  // Load background maps and assets
   useEffect(() => {
     loadBackgroundMaps();
+    loadAssets();
   }, []);
 
   // Load objects when map is selected
@@ -66,6 +101,15 @@ export default function BackgroundMapEditor() {
       setObjects(objs);
     } catch (error) {
       console.error('Failed to load objects:', error);
+    }
+  };
+
+  const loadAssets = async () => {
+    try {
+      const data = await assetsAPI.getAll();
+      setAssets(data);
+    } catch (error) {
+      console.error('Failed to load assets:', error);
     }
   };
 
@@ -188,6 +232,45 @@ export default function BackgroundMapEditor() {
     }
   };
 
+  const handleDuplicateObject = async (obj: BackgroundObject) => {
+    if (!selectedMap) return;
+
+    try {
+      const createdObject = await backgroundMapsAPI.createObject(selectedMap.id, {
+        type: obj.type,
+        name: obj.name + ' (복사본)',
+        modelId: obj.model_id,
+        color: obj.color,
+        positionX: obj.position_x + 0.5, // Offset slightly
+        positionY: obj.position_y,
+        positionZ: obj.position_z + 0.5,
+        rotationX: obj.rotation_x,
+        rotationY: obj.rotation_y,
+        rotationZ: obj.rotation_z,
+        scaleX: obj.scale_x,
+        scaleY: obj.scale_y,
+        scaleZ: obj.scale_z,
+      });
+      await loadObjects();
+      setSelectedObjectId(createdObject.id);
+
+      // Record undo action
+      pushAction({
+        type: 'create_object',
+        undo: async () => {
+          await backgroundMapsAPI.deleteObject(createdObject.id);
+          await loadObjects();
+        },
+        redo: async () => {
+          await loadObjects();
+        },
+        data: { objectId: createdObject.id }
+      });
+    } catch (error) {
+      console.error('Failed to duplicate object:', error);
+    }
+  };
+
   const handleObjectTransform = async (objectId: string, transform: {
     position: [number, number, number];
     rotation: [number, number, number];
@@ -229,7 +312,7 @@ export default function BackgroundMapEditor() {
 
   return (
     <div className="h-screen bg-gray-900 text-white flex">
-      {/* Left Sidebar - Background Maps List */}
+      {/* Left Sidebar - Background Maps & Objects/Assets */}
       <aside className="w-80 bg-gray-800 border-r border-gray-700 flex flex-col">
         <div className="p-4 border-b border-gray-700">
           <button
@@ -241,58 +324,152 @@ export default function BackgroundMapEditor() {
           <h2 className="text-xl font-bold">배경 맵 관리</h2>
         </div>
 
-        <div className="flex-1 overflow-auto p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-semibold">배경 맵 목록</h3>
+        {/* Background Map Selection */}
+        <div className="p-4 border-b border-gray-700">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold">배경 맵</h3>
             <button
               onClick={() => setShowCreateMapDialog(true)}
-              className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm"
+              className="bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded text-xs"
             >
               + 추가
             </button>
           </div>
-
-          {backgroundMaps.length === 0 ? (
-            <div className="text-center text-gray-400 py-8">
-              <p className="text-4xl mb-2">🗺️</p>
-              <p className="text-sm">배경 맵이 없습니다</p>
-              <p className="text-xs">배경 맵을 추가하세요</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {backgroundMaps.map((map) => (
-                <div
-                  key={map.id}
-                  onClick={() => handleSelectMap(map)}
-                  className={`rounded-lg p-3 cursor-pointer transition-colors border ${
-                    selectedMap?.id === map.id
-                      ? 'bg-blue-700 border-blue-500'
-                      : 'bg-gray-700 border-gray-600 hover:bg-gray-650'
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">{map.icon}</span>
-                      <span className="font-medium">{map.name}</span>
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteMap(map.id);
-                      }}
-                      className="text-gray-400 hover:text-red-500 text-sm"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                  {map.description && (
-                    <p className="text-xs text-gray-400 ml-8">{map.description}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+          <select
+            value={selectedMap?.id || ''}
+            onChange={(e) => {
+              const map = backgroundMaps.find(m => m.id === e.target.value);
+              if (map) handleSelectMap(map);
+            }}
+            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+          >
+            <option value="">배경 맵을 선택하세요</option>
+            {backgroundMaps.map((map) => (
+              <option key={map.id} value={map.id}>
+                {map.icon} {map.name}
+              </option>
+            ))}
+          </select>
         </div>
+
+        {/* Tabs */}
+        {selectedMap && (
+          <>
+            <div className="flex border-b border-gray-700">
+              <button
+                onClick={() => setLeftSidebarTab('objects')}
+                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                  leftSidebarTab === 'objects'
+                    ? 'bg-gray-700 text-white border-b-2 border-blue-500'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-750'
+                }`}
+              >
+                📦 오브젝트
+              </button>
+              <button
+                onClick={() => setLeftSidebarTab('assets')}
+                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                  leftSidebarTab === 'assets'
+                    ? 'bg-gray-700 text-white border-b-2 border-blue-500'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-750'
+                }`}
+              >
+                🎨 에셋
+              </button>
+            </div>
+
+            {/* Objects Tab */}
+            {leftSidebarTab === 'objects' && (
+              <div className="flex-1 overflow-auto p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold">오브젝트 목록</h3>
+                  <button
+                    onClick={() => setShowAddObjectDialog(true)}
+                    className="bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded text-xs"
+                  >
+                    + 추가
+                  </button>
+                </div>
+
+                {objects.length === 0 ? (
+                  <div className="text-center text-gray-400 py-8">
+                    <p className="text-4xl mb-2">📦</p>
+                    <p className="text-sm">오브젝트가 없습니다</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {objects.map((obj) => {
+                      const isSelected = selectedObjectId === obj.id;
+                      return (
+                        <div
+                          key={obj.id}
+                          onClick={() => setSelectedObjectId(isSelected ? undefined : obj.id)}
+                          className={`rounded-lg p-3 border cursor-pointer transition-colors ${
+                            isSelected
+                              ? 'bg-blue-700 border-blue-500'
+                              : 'bg-gray-700 border-gray-600 hover:bg-gray-650'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-4 h-4 rounded"
+                                style={{ backgroundColor: obj.color }}
+                              />
+                              <span className="font-medium text-sm">{obj.name}</span>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteObject(obj.id);
+                              }}
+                              className="text-gray-400 hover:text-red-500 text-sm"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                          <div className="text-xs text-gray-400">{obj.type}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Assets Tab */}
+            {leftSidebarTab === 'assets' && (
+              <div className="h-full -m-4">
+                <AssetLibraryPanel
+                  onAssetSelect={async (assetId) => {
+                    if (!selectedMap) {
+                      alert('배경 맵을 먼저 선택하세요');
+                      return;
+                    }
+                    const asset = assets.find(a => a.id === assetId);
+                    if (asset) {
+                      try {
+                        await backgroundMapsAPI.createObject(selectedMap.id, {
+                          type: 'primitive',
+                          name: asset.name,
+                          modelId: assetId,
+                          color: '#6b7280',
+                        });
+                        await loadObjects();
+                      } catch (error) {
+                        console.error('Failed to create object:', error);
+                        alert('오브젝트 생성 실패');
+                      }
+                    }
+                  }}
+                  onAssetUpdated={() => {
+                    loadAssets();
+                  }}
+                />
+              </div>
+            )}
+          </>
+        )}
       </aside>
 
       {/* Main Area - 3D Editor */}
@@ -301,8 +478,10 @@ export default function BackgroundMapEditor() {
           <>
             <div className="flex-1 w-full">
               <ThreeViewer
+                ref={threeViewerRef}
                 objects={objects}
                 selectedObjectId={selectedObjectId}
+                assets={assets}
                 onObjectSelect={(id) => setSelectedObjectId(id)}
                 onObjectTransform={handleObjectTransform}
               />
@@ -344,322 +523,20 @@ export default function BackgroundMapEditor() {
         )}
       </main>
 
-      {/* Right Sidebar - Objects Panel */}
+      {/* Right Sidebar - Inspector Panel */}
       {selectedMap && (
-        <aside className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col">
-          <div className="p-4 border-b border-gray-700">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-lg font-semibold">오브젝트</h3>
-              <button
-                onClick={() => setShowAddObjectDialog(true)}
-                className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm"
-              >
-                + 추가
-              </button>
-            </div>
-            <p className="text-xs text-gray-400">{selectedMap.name}</p>
-          </div>
-
-          <div className="flex-1 overflow-auto p-4">
-            {objects.length === 0 ? (
-              <div className="text-center text-gray-400 py-8">
-                <p className="text-4xl mb-2">📦</p>
-                <p className="text-sm">오브젝트가 없습니다</p>
-                <p className="text-xs">오브젝트를 추가하세요</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {objects.map((obj) => {
-                  const isSelected = selectedObjectId === obj.id;
-                  return (
-                  <div
-                    key={obj.id}
-                    onClick={() => setSelectedObjectId(isSelected ? undefined : obj.id)}
-                    className={`rounded-lg p-3 border cursor-pointer transition-colors ${
-                      isSelected
-                        ? 'bg-blue-700 border-blue-500'
-                        : 'bg-gray-700 border-gray-600 hover:bg-gray-650'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-4 h-4 rounded"
-                          style={{ backgroundColor: obj.color }}
-                        />
-                        <span className="font-medium">{obj.name}</span>
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteObject(obj.id);
-                        }}
-                        className="text-gray-400 hover:text-red-500 text-sm"
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      <div className="text-gray-500">{obj.type}</div>
-                    </div>
-                  </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Properties Panel */}
-          {selectedObject && (
-            <div className="border-t border-gray-700 p-4">
-              <h4 className="text-sm font-semibold mb-3">속성</h4>
-              <div className="space-y-3 text-sm">
-                <div>
-                  <label className="block text-gray-400 mb-1">이름</label>
-                  <input
-                    type="text"
-                    value={selectedObject.name}
-                    onChange={async (e) => {
-                      await backgroundMapsAPI.updateObject(selectedObject.id, {
-                        name: e.target.value
-                      });
-                      await loadObjects();
-                    }}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-400 mb-1">색상</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="color"
-                      value={selectedObject.color}
-                      onChange={async (e) => {
-                        await backgroundMapsAPI.updateObject(selectedObject.id, {
-                          color: e.target.value
-                        });
-                        await loadObjects();
-                      }}
-                      className="w-12 h-8 rounded cursor-pointer"
-                    />
-                    <input
-                      type="text"
-                      value={selectedObject.color}
-                      onChange={async (e) => {
-                        await backgroundMapsAPI.updateObject(selectedObject.id, {
-                          color: e.target.value
-                        });
-                        await loadObjects();
-                      }}
-                      className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white font-mono text-xs"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="flex items-center gap-2 text-sm cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedObject.show_nametag === 1}
-                      onChange={async (e) => {
-                        await backgroundMapsAPI.updateObject(selectedObject.id, {
-                          showNametag: e.target.checked
-                        });
-                        await loadObjects();
-                      }}
-                      className="w-4 h-4"
-                    />
-                    <span className="text-gray-300">네임태그 표시</span>
-                  </label>
-                </div>
-
-                {/* Transform Controls */}
-                <div className="pt-2 border-t border-gray-700 space-y-3">
-                  <div>
-                    <label className="block text-gray-400 mb-2 text-xs font-semibold">위치 (Position)</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">X</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={selectedObject.position_x.toFixed(2)}
-                          onChange={async (e) => {
-                            const val = parseFloat(e.target.value) || 0;
-                            await backgroundMapsAPI.updateObject(selectedObject.id, {
-                              transform: {
-                                position: [val, selectedObject.position_y, selectedObject.position_z]
-                              }
-                            });
-                            await loadObjects();
-                          }}
-                          className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-xs"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Y</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={selectedObject.position_y.toFixed(2)}
-                          onChange={async (e) => {
-                            const val = parseFloat(e.target.value) || 0;
-                            await backgroundMapsAPI.updateObject(selectedObject.id, {
-                              transform: {
-                                position: [selectedObject.position_x, val, selectedObject.position_z]
-                              }
-                            });
-                            await loadObjects();
-                          }}
-                          className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-xs"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Z</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={selectedObject.position_z.toFixed(2)}
-                          onChange={async (e) => {
-                            const val = parseFloat(e.target.value) || 0;
-                            await backgroundMapsAPI.updateObject(selectedObject.id, {
-                              transform: {
-                                position: [selectedObject.position_x, selectedObject.position_y, val]
-                              }
-                            });
-                            await loadObjects();
-                          }}
-                          className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-xs"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-400 mb-2 text-xs font-semibold">회전 (Rotation °)</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">X</label>
-                        <input
-                          type="number"
-                          step="1"
-                          value={selectedObject.rotation_x.toFixed(0)}
-                          onChange={async (e) => {
-                            const val = parseFloat(e.target.value) || 0;
-                            await backgroundMapsAPI.updateObject(selectedObject.id, {
-                              transform: {
-                                rotation: [val, selectedObject.rotation_y, selectedObject.rotation_z]
-                              }
-                            });
-                            await loadObjects();
-                          }}
-                          className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-xs"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Y</label>
-                        <input
-                          type="number"
-                          step="1"
-                          value={selectedObject.rotation_y.toFixed(0)}
-                          onChange={async (e) => {
-                            const val = parseFloat(e.target.value) || 0;
-                            await backgroundMapsAPI.updateObject(selectedObject.id, {
-                              transform: {
-                                rotation: [selectedObject.rotation_x, val, selectedObject.rotation_z]
-                              }
-                            });
-                            await loadObjects();
-                          }}
-                          className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-xs"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Z</label>
-                        <input
-                          type="number"
-                          step="1"
-                          value={selectedObject.rotation_z.toFixed(0)}
-                          onChange={async (e) => {
-                            const val = parseFloat(e.target.value) || 0;
-                            await backgroundMapsAPI.updateObject(selectedObject.id, {
-                              transform: {
-                                rotation: [selectedObject.rotation_x, selectedObject.rotation_y, val]
-                              }
-                            });
-                            await loadObjects();
-                          }}
-                          className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-xs"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-400 mb-2 text-xs font-semibold">크기 (Scale)</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">X</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={selectedObject.scale_x.toFixed(2)}
-                          onChange={async (e) => {
-                            const val = parseFloat(e.target.value) || 1;
-                            await backgroundMapsAPI.updateObject(selectedObject.id, {
-                              transform: {
-                                scale: [val, selectedObject.scale_y, selectedObject.scale_z]
-                              }
-                            });
-                            await loadObjects();
-                          }}
-                          className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-xs"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Y</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={selectedObject.scale_y.toFixed(2)}
-                          onChange={async (e) => {
-                            const val = parseFloat(e.target.value) || 1;
-                            await backgroundMapsAPI.updateObject(selectedObject.id, {
-                              transform: {
-                                scale: [selectedObject.scale_x, val, selectedObject.scale_z]
-                              }
-                            });
-                            await loadObjects();
-                          }}
-                          className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-xs"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Z</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={selectedObject.scale_z.toFixed(2)}
-                          onChange={async (e) => {
-                            const val = parseFloat(e.target.value) || 1;
-                            await backgroundMapsAPI.updateObject(selectedObject.id, {
-                              transform: {
-                                scale: [selectedObject.scale_x, selectedObject.scale_y, val]
-                              }
-                            });
-                            await loadObjects();
-                          }}
-                          className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-white text-xs"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </aside>
+        <InspectorPanel
+          selectedObject={selectedObject}
+          sceneId={selectedMap.id}
+          assets={assets}
+          onUpdate={loadObjects}
+          onDelete={(id, type) => {
+            if (type === 'object') {
+              handleDeleteObject(id);
+            }
+          }}
+          objectType="background"
+        />
       )}
 
       {/* Create Map Dialog */}

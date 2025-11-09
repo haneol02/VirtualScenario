@@ -7,8 +7,27 @@ export class DatabaseManager {
   private dbPath: string;
 
   constructor(dbPath?: string) {
-    // Use provided path or default to ./data/scenario.db
-    this.dbPath = dbPath || path.join(__dirname, '../data/scenario.db');
+    // Detect if running in packaged Electron app
+    const isPackaged = (process as any).resourcesPath !== undefined;
+
+    if (dbPath) {
+      this.dbPath = dbPath;
+    } else if (isPackaged) {
+      // Production: use app data directory (writable)
+      const userDataPath = process.env.APPDATA ||
+                          process.env.HOME ||
+                          process.cwd();
+      const appDataDir = path.join(userDataPath, 'VirtualScenario');
+      if (!fs.existsSync(appDataDir)) {
+        fs.mkdirSync(appDataDir, { recursive: true });
+      }
+      this.dbPath = path.join(appDataDir, 'scenario.db');
+      console.log('[Database] Production mode - Database path:', this.dbPath);
+    } else {
+      // Development: use local data directory
+      this.dbPath = path.join(__dirname, '../data/scenario.db');
+      console.log('[Database] Development mode - Database path:', this.dbPath);
+    }
 
     // Ensure data directory exists
     const dataDir = path.dirname(this.dbPath);
@@ -22,7 +41,18 @@ export class DatabaseManager {
   }
 
   private initialize() {
-    const schemaPath = path.join(__dirname, '../database/schema.sql');
+    const isPackaged = (process as any).resourcesPath !== undefined;
+
+    let schemaPath: string;
+    if (isPackaged) {
+      // Production: schema.sql is in extraResources/database/
+      schemaPath = path.join((process as any).resourcesPath, 'database', 'schema.sql');
+      console.log('[Database] Loading schema from:', schemaPath);
+    } else {
+      // Development
+      schemaPath = path.join(__dirname, '../database/schema.sql');
+    }
+
     const schema = fs.readFileSync(schemaPath, 'utf-8');
     this.db.exec(schema);
 
@@ -39,8 +69,8 @@ export class DatabaseManager {
     }
 
     // Check if order_index column exists in scene_objects
-    const tableInfo: any[] = this.db.pragma('table_info(scene_objects)');
-    const hasOrderIndex = tableInfo.some(col => col.name === 'order_index');
+    const tableInfo = this.db.pragma('table_info(scene_objects)') as any[];
+    const hasOrderIndex = tableInfo.some((col: any) => col.name === 'order_index');
 
     if (!hasOrderIndex) {
       console.log('Running migration: add_order_fields...');
@@ -53,17 +83,7 @@ export class DatabaseManager {
       }
     }
 
-    // Clean up non-primitive assets
-    try {
-      const assets: any[] = this.db.prepare('SELECT id FROM asset_library WHERE category != ?').all('primitive');
-      if (assets.length > 0) {
-        console.log('Cleaning up non-primitive assets...');
-        this.db.prepare('DELETE FROM asset_library WHERE category != ?').run('primitive');
-        console.log(`✅ Removed ${assets.length} non-primitive assets`);
-      }
-    } catch (error) {
-      console.error('Asset cleanup error:', error);
-    }
+    // 에셋 클린업 로직 제거 - 업로드한 모델들이 서버 재시작 시 삭제되는 문제 해결
   }
 
   // Projects
@@ -127,8 +147,8 @@ export class DatabaseManager {
 
   createScene(data: any) {
     const stmt = this.db.prepare(`
-      INSERT INTO scenes (id, project_id, order_index, title, description, participant_count)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO scenes (id, project_id, order_index, title, description, participant_count, background_map_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
     return stmt.run(
       data.id,
@@ -136,7 +156,8 @@ export class DatabaseManager {
       data.order,
       data.title,
       data.description || null,
-      data.participantCount || null
+      data.participantCount || null,
+      data.backgroundMapId || null
     );
   }
 
@@ -191,12 +212,12 @@ export class DatabaseManager {
 
     const stmt = this.db.prepare(`
       INSERT INTO scene_objects (
-        id, scene_id, type, name, model_id,
+        id, scene_id, type, name, model_id, color, show_nametag,
         position_x, position_y, position_z,
         rotation_x, rotation_y, rotation_z,
         scale_x, scale_y, scale_z,
         path_data, metadata, order_index
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     return stmt.run(
       data.id,
@@ -204,6 +225,8 @@ export class DatabaseManager {
       data.type,
       data.name,
       data.assetId || null,
+      data.color || '#6b7280',
+      data.showNametag !== undefined ? (data.showNametag ? 1 : 0) : 1,
       data.transform.position[0], data.transform.position[1], data.transform.position[2],
       data.transform.rotation[0], data.transform.rotation[1], data.transform.rotation[2],
       data.transform.scale[0], data.transform.scale[1], data.transform.scale[2],
@@ -432,11 +455,11 @@ export class DatabaseManager {
   createBackgroundObject(data: any) {
     const stmt = this.db.prepare(`
       INSERT INTO background_objects (
-        id, background_map_id, name, type, model_id, color,
+        id, background_map_id, name, type, model_id, color, show_nametag,
         position_x, position_y, position_z,
         rotation_x, rotation_y, rotation_z,
         scale_x, scale_y, scale_z, metadata
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     return stmt.run(
       data.id,
@@ -445,6 +468,7 @@ export class DatabaseManager {
       data.type,
       data.modelId || null,
       data.color || '#6b7280',
+      data.showNametag !== undefined ? (data.showNametag ? 1 : 0) : 1,
       data.positionX || 0,
       data.positionY || 0,
       data.positionZ || 0,
@@ -584,12 +608,15 @@ export class DatabaseManager {
     type?: string;
     file_path?: string;
     file_format?: string;
+    text_content?: string;
+    text_font_size?: number;
+    text_color?: string;
     metadata?: string;
   }) {
     const id = `asset_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     const stmt = this.db.prepare(`
-      INSERT INTO asset_library (id, name, category, type, file_path, file_format, metadata)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO asset_library (id, name, category, type, file_path, file_format, text_content, text_font_size, text_color, metadata)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     stmt.run(
       id,
@@ -598,8 +625,38 @@ export class DatabaseManager {
       data.type || 'primitive',
       data.file_path || null,
       data.file_format || null,
+      data.text_content || null,
+      data.text_font_size || 1.0,
+      data.text_color || '#ffffff',
       data.metadata || null
     );
+    return this.db.prepare('SELECT * FROM asset_library WHERE id = ?').get(id);
+  }
+
+  updateAsset(id: string, data: {
+    name?: string;
+    category?: string;
+  }) {
+    const fields: string[] = [];
+    const values: any[] = [];
+
+    if (data.name !== undefined) {
+      fields.push('name = ?');
+      values.push(data.name);
+    }
+    if (data.category !== undefined) {
+      fields.push('category = ?');
+      values.push(data.category);
+    }
+
+    if (fields.length === 0) return;
+
+    fields.push('updated_at = CURRENT_TIMESTAMP');
+    values.push(id);
+
+    const sql = `UPDATE asset_library SET ${fields.join(', ')} WHERE id = ?`;
+    const stmt = this.db.prepare(sql);
+    stmt.run(...values);
     return this.db.prepare('SELECT * FROM asset_library WHERE id = ?').get(id);
   }
 
