@@ -92,9 +92,8 @@ function SceneObjectMesh({
   useEffect(() => {
     if (!meshRef.current || currentTime === undefined || !('path_data' in obj) || !obj.path_data) return;
 
-    // When playing: don't apply animation to selected object (allow manual editing)
-    // When not playing: always apply keyframe position for timeline scrubbing
-    if (isPlaying && isSelected) return;
+    // 재생 중에는 선택 여부와 관계없이 모든 오브젝트에 애니메이션 적용
+    // TransformControls는 isPlaying 시 비활성화되어 있으므로 충돌 없음
 
     try {
       const keyframes = JSON.parse(obj.path_data);

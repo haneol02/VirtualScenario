@@ -3,9 +3,10 @@ import { Asset, assetsAPI } from '../lib/api';
 
 interface AssetLibraryPanelProps {
   onAssetSelect: (assetId: string) => void;
+  onAssetUpdated?: () => void;  // 에셋이 업로드/수정/삭제되었을 때 호출
 }
 
-export default function AssetLibraryPanel({ onAssetSelect }: AssetLibraryPanelProps) {
+export default function AssetLibraryPanel({ onAssetSelect, onAssetUpdated }: AssetLibraryPanelProps) {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -72,6 +73,8 @@ export default function AssetLibraryPanel({ onAssetSelect }: AssetLibraryPanelPr
       setUploadFile(null);
       setUploadName('');
       loadAssets();
+      // 부모 컴포넌트에 에셋 업데이트 알림
+      if (onAssetUpdated) onAssetUpdated();
     } catch (error) {
       console.error('Upload failed:', error);
       alert('업로드 실패');
@@ -86,6 +89,8 @@ export default function AssetLibraryPanel({ onAssetSelect }: AssetLibraryPanelPr
     try {
       await assetsAPI.delete(id);
       loadAssets();
+      // 부모 컴포넌트에 에셋 업데이트 알림
+      if (onAssetUpdated) onAssetUpdated();
     } catch (error) {
       console.error('Failed to delete asset:', error);
     }
@@ -127,6 +132,8 @@ export default function AssetLibraryPanel({ onAssetSelect }: AssetLibraryPanelPr
       await assetsAPI.update(editModal.asset.id, { name: editName });
       setEditModal(null);
       loadAssets();
+      // 부모 컴포넌트에 에셋 업데이트 알림
+      if (onAssetUpdated) onAssetUpdated();
     } catch (error) {
       console.error('Failed to update asset:', error);
       alert('수정 실패');

@@ -883,7 +883,7 @@ export default function SceneEditor() {
           {leftSidebarTab === 'assets' && (
             <div className="h-full -m-4">
               <AssetLibraryPanel
-                onAssetSelect={(assetId) => {
+                onAssetSelect={async (assetId) => {
                   // Handle asset selection - create new object with selected asset
                   if (!selectedScene) {
                     alert('장면을 먼저 선택하세요');
@@ -892,14 +892,46 @@ export default function SceneEditor() {
                   const asset = assets.find(a => a.id === assetId);
                   if (asset) {
                     // Set appropriate object type based on asset category
-                    // If asset has a standard category, use it; otherwise use 'other'
                     const validTypes = ['person', 'train', 'facility', 'sign'];
                     const objectType = validTypes.includes(asset.category) ? asset.category : 'other';
 
-                    setNewObjectType(objectType);
-                    setNewObjectName(asset.name);
-                    handleCreateObject(assetId);
+                    try {
+                      // Create object directly with asset info
+                      const createdObject = await scenesAPI.createObject(selectedScene.id, {
+                        type: objectType,
+                        name: asset.name,
+                        model_id: assetId,
+                      });
+
+                      // Reload scene to show new object
+                      await handleSelectScene(selectedScene);
+                      loadAssets();
+
+                      // Record undo action
+                      pushAction({
+                        type: 'create_object',
+                        undo: async () => {
+                          await scenesAPI.deleteObject(selectedScene.id, createdObject.id);
+                          await handleSelectScene(selectedScene);
+                        },
+                        redo: async () => {
+                          const recreated = await scenesAPI.createObject(selectedScene.id, {
+                            type: objectType,
+                            name: asset.name,
+                            model_id: assetId,
+                          });
+                          await handleSelectScene(selectedScene);
+                        },
+                      });
+                    } catch (error) {
+                      console.error('Failed to create object:', error);
+                      alert('오브젝트 생성 실패');
+                    }
                   }
+                }}
+                onAssetUpdated={() => {
+                  // 에셋이 업로드/수정/삭제되면 SceneEditor의 에셋 목록도 갱신
+                  loadAssets();
                 }}
               />
             </div>
