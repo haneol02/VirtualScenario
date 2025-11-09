@@ -217,32 +217,62 @@ export default function InspectorPanel({
           </div>
 
           {/* Model Selection */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-1">모델</label>
+          <div className="bg-gray-750 rounded-lg p-3 border border-gray-600">
+            <label className="block text-xs font-semibold text-blue-400 mb-2">🎨 3D 모델 / 에셋</label>
             <select
               value={selectedObject.model_id || ''}
               onChange={(e) => handleModelChange(e.target.value)}
               className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
             >
-              <option value="">선택하세요...</option>
-              <optgroup label="기본 도형">
+              <option value="">기본 박스</option>
+              <optgroup label="🔷 기본 프리미티브">
                 {assets.filter(a => a.category === 'primitive').map(asset => (
                   <option key={asset.id} value={asset.id}>
                     {asset.name}
                   </option>
                 ))}
               </optgroup>
-              {assets.some(a => a.category === 'model') && (
-                <optgroup label="업로드된 모델">
-                  {assets.filter(a => a.category === 'model').map(asset => (
+              {assets.some(a => a.type === 'model') && (
+                <optgroup label="📦 업로드된 3D 모델">
+                  {assets.filter(a => a.type === 'model').map(asset => (
                     <option key={asset.id} value={asset.id}>
-                      {asset.name}
+                      {asset.name} {asset.file_format ? `(.${asset.file_format})` : ''}
                     </option>
                   ))}
                 </optgroup>
               )}
             </select>
-            <div className="text-xs text-gray-500 mt-1">현재: {selectedObject.model_id || '없음'}</div>
+            {selectedObject.model_id && (() => {
+              const currentAsset = assets.find(a => a.id === selectedObject.model_id);
+              return currentAsset && (
+                <div className="mt-2 p-2 bg-gray-800 rounded text-xs">
+                  <div className="text-gray-400">현재 모델:</div>
+                  <div className="text-white font-semibold">{currentAsset.name}</div>
+                  {currentAsset.type === 'model' && currentAsset.file_format && (
+                    <div className="text-blue-400 mt-1">
+                      포맷: {currentAsset.file_format.toUpperCase()}
+                    </div>
+                  )}
+                  {currentAsset.type === 'primitive' && currentAsset.metadata && (() => {
+                    try {
+                      const meta = JSON.parse(currentAsset.metadata);
+                      return (
+                        <div className="text-green-400 mt-1">
+                          타입: {meta.geometry || 'primitive'}
+                        </div>
+                      );
+                    } catch (e) {
+                      return null;
+                    }
+                  })()}
+                </div>
+              );
+            })()}
+            {!selectedObject.model_id && (
+              <div className="mt-2 p-2 bg-gray-800 rounded text-xs text-gray-400">
+                기본 박스 사용 중. 위에서 다른 모델을 선택하세요.
+              </div>
+            )}
           </div>
 
           {/* Nametag Toggle */}
