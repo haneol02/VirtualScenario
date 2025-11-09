@@ -147,8 +147,8 @@ export class DatabaseManager {
 
   createScene(data: any) {
     const stmt = this.db.prepare(`
-      INSERT INTO scenes (id, project_id, order_index, title, description, participant_count)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO scenes (id, project_id, order_index, title, description, participant_count, background_map_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
     return stmt.run(
       data.id,
@@ -156,7 +156,8 @@ export class DatabaseManager {
       data.order,
       data.title,
       data.description || null,
-      data.participantCount || null
+      data.participantCount || null,
+      data.backgroundMapId || null
     );
   }
 
@@ -211,12 +212,12 @@ export class DatabaseManager {
 
     const stmt = this.db.prepare(`
       INSERT INTO scene_objects (
-        id, scene_id, type, name, model_id,
+        id, scene_id, type, name, model_id, color, show_nametag,
         position_x, position_y, position_z,
         rotation_x, rotation_y, rotation_z,
         scale_x, scale_y, scale_z,
         path_data, metadata, order_index
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     return stmt.run(
       data.id,
@@ -224,6 +225,8 @@ export class DatabaseManager {
       data.type,
       data.name,
       data.assetId || null,
+      data.color || '#6b7280',
+      data.showNametag !== undefined ? (data.showNametag ? 1 : 0) : 1,
       data.transform.position[0], data.transform.position[1], data.transform.position[2],
       data.transform.rotation[0], data.transform.rotation[1], data.transform.rotation[2],
       data.transform.scale[0], data.transform.scale[1], data.transform.scale[2],
@@ -452,11 +455,11 @@ export class DatabaseManager {
   createBackgroundObject(data: any) {
     const stmt = this.db.prepare(`
       INSERT INTO background_objects (
-        id, background_map_id, name, type, model_id, color,
+        id, background_map_id, name, type, model_id, color, show_nametag,
         position_x, position_y, position_z,
         rotation_x, rotation_y, rotation_z,
         scale_x, scale_y, scale_z, metadata
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     return stmt.run(
       data.id,
@@ -465,6 +468,7 @@ export class DatabaseManager {
       data.type,
       data.modelId || null,
       data.color || '#6b7280',
+      data.showNametag !== undefined ? (data.showNametag ? 1 : 0) : 1,
       data.positionX || 0,
       data.positionY || 0,
       data.positionZ || 0,

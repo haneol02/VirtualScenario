@@ -1,13 +1,5 @@
-import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:3001/api';
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+// IPC-based API for Electron
+// Using window.electronAPI exposed by preload script
 
 // Types
 export interface PathKeyframe {
@@ -105,183 +97,6 @@ export interface Dialogue {
   created_at: string;
 }
 
-// Projects API
-export const projectsAPI = {
-  getAll: () => api.get<Project[]>('/projects').then(res => res.data),
-
-  getById: (id: string) => api.get<Project>(`/projects/${id}`).then(res => res.data),
-
-  create: (data: { title: string; description?: string; version?: string }) =>
-    api.post<Project>('/projects', data).then(res => res.data),
-
-  update: (id: string, data: { title?: string; description?: string; version?: string }) =>
-    api.put<Project>(`/projects/${id}`, data).then(res => res.data),
-
-  delete: (id: string) =>
-    api.delete(`/projects/${id}`).then(res => res.data),
-
-  export: (id: string) =>
-    api.get(`/projects/${id}/export`).then(res => res.data),
-};
-
-// Scenes API
-export const scenesAPI = {
-  getAll: (projectId: string) =>
-    api.get<Scene[]>(`/projects/${projectId}/scenes`).then(res => res.data),
-
-  create: (projectId: string, data: {
-    title: string;
-    description?: string;
-    participantCount?: number;
-    order?: number;
-  }) =>
-    api.post<Scene>(`/projects/${projectId}/scenes`, data).then(res => res.data),
-
-  update: (id: string, data: any) =>
-    api.put<Scene>(`/scenes/${id}`, data).then(res => res.data),
-
-  delete: (id: string) =>
-    api.delete(`/scenes/${id}`).then(res => res.data),
-
-  // Scene Objects
-  getObjects: (sceneId: string) =>
-    api.get<SceneObject[]>(`/scenes/${sceneId}/objects`).then(res => res.data),
-
-  createObject: (sceneId: string, data: {
-    type: string;
-    name: string;
-    assetId?: string;
-    model_id?: string;
-    transform?: {
-      position: [number, number, number];
-      rotation: [number, number, number];
-      scale: [number, number, number];
-    };
-    metadata?: any;
-  }) =>
-    api.post<SceneObject>(`/scenes/${sceneId}/objects`, data).then(res => res.data),
-
-  updateObject: (sceneId: string, objectId: string, data: {
-    name?: string;
-    modelId?: string | null;
-    showNametag?: boolean;
-    transform?: {
-      position?: [number, number, number];
-      rotation?: [number, number, number];
-      scale?: [number, number, number];
-    };
-    pathData?: any;
-    metadata?: any;
-  }) =>
-    api.put<SceneObject>(`/scenes/${sceneId}/objects/${objectId}`, data).then(res => res.data),
-
-  deleteObject: (sceneId: string, objectId: string) =>
-    api.delete(`/scenes/${sceneId}/objects/${objectId}`).then(res => res.data),
-
-  // Scene Dialogues
-  getDialogues: (sceneId: string) =>
-    api.get<Dialogue[]>(`/scenes/${sceneId}/dialogues`).then(res => res.data),
-
-  createDialogue: (sceneId: string, data: {
-    objectId?: string;
-    speakerName?: string;
-    text: string;
-    startTime?: number;
-    duration?: number;
-    audioPath?: string;
-  }) =>
-    api.post<Dialogue>(`/scenes/${sceneId}/dialogues`, data).then(res => res.data),
-
-  updateDialogue: (sceneId: string, dialogueId: string, data: {
-    objectId?: string;
-    speakerName?: string;
-    text?: string;
-    startTime?: number;
-    duration?: number;
-    audioPath?: string;
-  }) =>
-    api.put<Dialogue>(`/scenes/${sceneId}/dialogues/${dialogueId}`, data).then(res => res.data),
-
-  deleteDialogue: (sceneId: string, dialogueId: string) =>
-    api.delete(`/scenes/${sceneId}/dialogues/${dialogueId}`).then(res => res.data),
-
-  // Reorder
-  reorderObjects: (sceneId: string, orderedIds: string[]) =>
-    api.post(`/scenes/${sceneId}/objects/reorder`, { orderedIds }).then(res => res.data),
-
-  reorderDialogues: (sceneId: string, orderedIds: string[]) =>
-    api.post(`/scenes/${sceneId}/dialogues/reorder`, { orderedIds }).then(res => res.data),
-};
-
-// Background Maps API
-export const backgroundMapsAPI = {
-  getAll: () =>
-    api.get<BackgroundMap[]>('/background-maps').then(res => res.data),
-
-  getById: (id: string) =>
-    api.get<BackgroundMap>(`/background-maps/${id}`).then(res => res.data),
-
-  create: (data: {
-    name: string;
-    description?: string;
-    icon?: string;
-    backgroundImagePath?: string;
-  }) =>
-    api.post<BackgroundMap>('/background-maps', data).then(res => res.data),
-
-  update: (id: string, data: {
-    name?: string;
-    description?: string;
-    icon?: string;
-    backgroundImagePath?: string;
-  }) =>
-    api.put<BackgroundMap>(`/background-maps/${id}`, data).then(res => res.data),
-
-  delete: (id: string) =>
-    api.delete(`/background-maps/${id}`).then(res => res.data),
-
-  // Background Objects
-  getObjects: (mapId: string) =>
-    api.get<BackgroundObject[]>(`/background-maps/${mapId}/objects`).then(res => res.data),
-
-  createObject: (mapId: string, data: {
-    type: string;
-    name: string;
-    modelId?: string;
-    color?: string;
-    positionX?: number;
-    positionY?: number;
-    positionZ?: number;
-    rotationX?: number;
-    rotationY?: number;
-    rotationZ?: number;
-    scaleX?: number;
-    scaleY?: number;
-    scaleZ?: number;
-    metadata?: any;
-  }) =>
-    api.post<BackgroundObject>(`/background-maps/${mapId}/objects`, data).then(res => res.data),
-
-  updateObject: (objectId: string, data: {
-    name?: string;
-    type?: string;
-    modelId?: string;
-    color?: string;
-    showNametag?: boolean;
-    transform?: {
-      position?: [number, number, number];
-      rotation?: [number, number, number];
-      scale?: [number, number, number];
-    };
-    metadata?: any;
-  }) =>
-    api.put<BackgroundObject>(`/background-maps/objects/${objectId}`, data).then(res => res.data),
-
-  deleteObject: (objectId: string) =>
-    api.delete(`/background-maps/objects/${objectId}`).then(res => res.data),
-};
-
-// Asset Library Types
 export interface Asset {
   id: string;
   category: string;
@@ -299,54 +114,309 @@ export interface Asset {
   created_at: string;
 }
 
+// Projects API
+export const projectsAPI = {
+  getAll: () => window.electronAPI.getProjects(),
+
+  getById: (id: string) => window.electronAPI.getProject(id),
+
+  create: (data: { title: string; description?: string; version?: string }) =>
+    window.electronAPI.createProject(data),
+
+  update: (id: string, data: { title?: string; description?: string; version?: string }) =>
+    window.electronAPI.updateProject(id, data),
+
+  delete: (id: string) =>
+    window.electronAPI.deleteProject(id),
+
+  export: (id: string) =>
+    window.electronAPI.exportProject(id),
+};
+
+// Scenes API
+export const scenesAPI = {
+  getAll: (projectId: string) =>
+    window.electronAPI.getScenes(projectId),
+
+  create: (projectId: string, data: {
+    title: string;
+    description?: string;
+    participantCount?: number;
+    order?: number;
+  }) =>
+    window.electronAPI.createScene(projectId, data),
+
+  update: (id: string, data: any) =>
+    window.electronAPI.updateScene(id, data),
+
+  delete: (id: string) =>
+    window.electronAPI.deleteScene(id),
+
+  // Scene Objects
+  getObjects: (sceneId: string) =>
+    window.electronAPI.getSceneObjects(sceneId),
+
+  createObject: (sceneId: string, data: {
+    type: string;
+    name: string;
+    assetId?: string;
+    model_id?: string;
+    color?: string;
+    transform?: {
+      position: [number, number, number];
+      rotation: [number, number, number];
+      scale: [number, number, number];
+    };
+    metadata?: any;
+  }) =>
+    window.electronAPI.createSceneObject(sceneId, {
+      type: data.type,
+      name: data.name,
+      asset_id: data.model_id || data.assetId,  // Convert to snake_case for IPC
+      color: data.color,
+      metadata: data.metadata,
+      position_x: data.transform?.position[0] ?? 0,
+      position_y: data.transform?.position[1] ?? 0,
+      position_z: data.transform?.position[2] ?? 0,
+      rotation_x: data.transform?.rotation[0] ?? 0,
+      rotation_y: data.transform?.rotation[1] ?? 0,
+      rotation_z: data.transform?.rotation[2] ?? 0,
+      scale_x: data.transform?.scale[0] ?? 1,
+      scale_y: data.transform?.scale[1] ?? 1,
+      scale_z: data.transform?.scale[2] ?? 1,
+    }),
+
+  updateObject: (sceneId: string, objectId: string, data: {
+    name?: string;
+    modelId?: string | null;
+    showNametag?: boolean;
+    transform?: {
+      position?: [number, number, number];
+      rotation?: [number, number, number];
+      scale?: [number, number, number];
+    };
+    pathData?: any;
+    metadata?: any;
+  }) => {
+    const updateData: any = { ...data };
+    if (data.transform?.position) {
+      updateData.position_x = data.transform.position[0];
+      updateData.position_y = data.transform.position[1];
+      updateData.position_z = data.transform.position[2];
+    }
+    if (data.transform?.rotation) {
+      updateData.rotation_x = data.transform.rotation[0];
+      updateData.rotation_y = data.transform.rotation[1];
+      updateData.rotation_z = data.transform.rotation[2];
+    }
+    if (data.transform?.scale) {
+      updateData.scale_x = data.transform.scale[0];
+      updateData.scale_y = data.transform.scale[1];
+      updateData.scale_z = data.transform.scale[2];
+    }
+    delete updateData.transform;
+    return window.electronAPI.updateSceneObject(sceneId, objectId, updateData);
+  },
+
+  deleteObject: (sceneId: string, objectId: string) =>
+    window.electronAPI.deleteSceneObject(sceneId, objectId),
+
+  // Scene Dialogues
+  getDialogues: (sceneId: string) =>
+    window.electronAPI.getDialogues(sceneId),
+
+  createDialogue: (sceneId: string, data: {
+    objectId?: string;
+    speakerName?: string;
+    text: string;
+    startTime?: number;
+    duration?: number;
+    audioPath?: string;
+  }) =>
+    window.electronAPI.createDialogue(sceneId, {
+      object_id: data.objectId,
+      speaker: data.speakerName,
+      text: data.text,
+      start_time: data.startTime ?? 0,
+      end_time: (data.startTime ?? 0) + (data.duration ?? 5),
+      audio_path: data.audioPath,
+    }),
+
+  updateDialogue: (sceneId: string, dialogueId: string, data: {
+    objectId?: string;
+    speakerName?: string;
+    text?: string;
+    startTime?: number;
+    duration?: number;
+    audioPath?: string;
+  }) => {
+    const updateData: any = {};
+    if (data.objectId !== undefined) updateData.object_id = data.objectId;
+    if (data.speakerName !== undefined) updateData.speaker = data.speakerName;
+    if (data.text !== undefined) updateData.text = data.text;
+    if (data.startTime !== undefined) {
+      updateData.start_time = data.startTime;
+      if (data.duration !== undefined) {
+        updateData.end_time = data.startTime + data.duration;
+      }
+    }
+    if (data.audioPath !== undefined) updateData.audio_path = data.audioPath;
+    return window.electronAPI.updateDialogue(sceneId, dialogueId, updateData);
+  },
+
+  deleteDialogue: (sceneId: string, dialogueId: string) =>
+    window.electronAPI.deleteDialogue(sceneId, dialogueId),
+
+  // Reorder objects and dialogues
+  reorderObjects: (sceneId: string, orderedIds: string[]) =>
+    window.electronAPI.reorderSceneObjects(sceneId, orderedIds),
+
+  reorderDialogues: (sceneId: string, orderedIds: string[]) =>
+    window.electronAPI.reorderDialogues(sceneId, orderedIds),
+};
+
+// Background Maps API
+export const backgroundMapsAPI = {
+  getAll: () =>
+    window.electronAPI.getBackgroundMaps(),
+
+  getById: (id: string) =>
+    window.electronAPI.getBackgroundMap(id),
+
+  create: (data: {
+    name: string;
+    description?: string;
+    icon?: string;
+    backgroundImagePath?: string;
+  }) =>
+    window.electronAPI.createBackgroundMap(data),
+
+  update: (id: string, data: {
+    name?: string;
+    description?: string;
+    icon?: string;
+    backgroundImagePath?: string;
+  }) =>
+    window.electronAPI.updateBackgroundMap(id, data),
+
+  delete: (id: string) =>
+    window.electronAPI.deleteBackgroundMap(id),
+
+  // Background Objects
+  getObjects: (mapId: string) =>
+    window.electronAPI.getBackgroundObjects(mapId),
+
+  createObject: (mapId: string, data: {
+    type: string;
+    name: string;
+    modelId?: string;
+    color?: string;
+    positionX?: number;
+    positionY?: number;
+    positionZ?: number;
+    rotationX?: number;
+    rotationY?: number;
+    rotationZ?: number;
+    scaleX?: number;
+    scaleY?: number;
+    scaleZ?: number;
+    metadata?: any;
+  }) =>
+    window.electronAPI.createBackgroundObject(mapId, {
+      type: data.type,
+      name: data.name,
+      asset_id: data.modelId,  // Convert to snake_case for IPC
+      color: data.color,
+      metadata: data.metadata,
+      position_x: data.positionX ?? 0,
+      position_y: data.positionY ?? 0,
+      position_z: data.positionZ ?? 0,
+      rotation_x: data.rotationX ?? 0,
+      rotation_y: data.rotationY ?? 0,
+      rotation_z: data.rotationZ ?? 0,
+      scale_x: data.scaleX ?? 1,
+      scale_y: data.scaleY ?? 1,
+      scale_z: data.scaleZ ?? 1,
+    }),
+
+  updateObject: (objectId: string, data: {
+    name?: string;
+    type?: string;
+    modelId?: string;
+    color?: string;
+    showNametag?: boolean;
+    transform?: {
+      position?: [number, number, number];
+      rotation?: [number, number, number];
+      scale?: [number, number, number];
+    };
+    metadata?: any;
+  }) => {
+    const updateData: any = { ...data };
+    if (data.transform?.position) {
+      updateData.position_x = data.transform.position[0];
+      updateData.position_y = data.transform.position[1];
+      updateData.position_z = data.transform.position[2];
+    }
+    if (data.transform?.rotation) {
+      updateData.rotation_x = data.transform.rotation[0];
+      updateData.rotation_y = data.transform.rotation[1];
+      updateData.rotation_z = data.transform.rotation[2];
+    }
+    if (data.transform?.scale) {
+      updateData.scale_x = data.transform.scale[0];
+      updateData.scale_y = data.transform.scale[1];
+      updateData.scale_z = data.transform.scale[2];
+    }
+    delete updateData.transform;
+    return window.electronAPI.updateBackgroundObject(objectId, updateData);
+  },
+
+  deleteObject: (objectId: string) =>
+    window.electronAPI.deleteBackgroundObject(objectId),
+};
+
 // Asset Library API
 export const assetsAPI = {
-  getAll: () => api.get<Asset[]>('/assets').then(res => res.data),
+  getAll: () => window.electronAPI.getAssets(),
 
   getByCategory: (category: string) =>
-    api.get<Asset[]>(`/assets/category/${category}`).then(res => res.data),
+    window.electronAPI.getAssets().then((assets: Asset[]) =>
+      assets.filter((a) => a.category === category)
+    ),
 
-  uploadModel: (file: File, name: string, category: string) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('name', name);
-    formData.append('category', category);
-
-    return api.post<Asset>('/assets/upload/model', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    }).then(res => res.data);
+  // File uploads - Convert File to Uint8Array for IPC transmission
+  uploadModel: async (file: File, name: string, category: string) => {
+    const arrayBuffer = await file.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    return window.electronAPI.uploadModel(uint8Array, file.name, name, category);
   },
 
-  uploadImage: (file: File, name: string, category: string) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('name', name);
-    formData.append('category', category);
-
-    return api.post<Asset>('/assets/upload/image', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    }).then(res => res.data);
+  uploadImage: async (file: File, name: string, category: string) => {
+    const arrayBuffer = await file.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    return window.electronAPI.uploadImage(uint8Array, file.name, name, category);
   },
 
-  createText: (name: string, category: string, text_content: string, text_font_size?: number, text_color?: string) => {
-    return api.post<Asset>('/assets/text', {
+  createText: (name: string, category: string, text_content: string, text_font_size?: number, text_color?: string) =>
+    window.electronAPI.createAsset({
       name,
       category,
+      type: 'text',
       text_content,
       text_font_size: text_font_size || 1.0,
       text_color: text_color || '#ffffff',
-    }).then(res => res.data);
-  },
+    }),
 
   update: (id: string, data: { name?: string; category?: string }) =>
-    api.put<Asset>(`/assets/${id}`, data).then(res => res.data),
+    window.electronAPI.updateAsset(id, data),
 
   delete: (id: string) =>
-    api.delete(`/assets/${id}`).then(res => res.data),
+    window.electronAPI.deleteAsset(id),
 };
 
-export default api;
+// Fallback for development mode (when window.electronAPI is not available)
+if (typeof window !== 'undefined' && !window.electronAPI) {
+  console.warn('[API] Running without Electron IPC - API calls will fail');
+  console.warn('[API] Please run: npm run dev in both backend and frontend folders');
+}

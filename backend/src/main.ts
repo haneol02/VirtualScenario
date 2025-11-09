@@ -1,25 +1,63 @@
 // @ts-ignore - electron is in devDependencies for electron-builder
 import { app, BrowserWindow, Menu, shell } from 'electron';
 import * as path from 'path';
-import { spawn, ChildProcess } from 'child_process';
+import { DatabaseManager } from './database';
+import { registerProjectsHandlers } from './ipc/projects';
+import { registerScenesHandlers } from './ipc/scenes';
+import { registerObjectsHandlers } from './ipc/objects';
+import { registerDialoguesHandlers } from './ipc/dialogues';
+import { registerBackgroundMapsHandlers } from './ipc/background-maps';
+import { registerAssetsHandlers } from './ipc/assets';
 
 let mainWindow: BrowserWindow | null = null;
-let serverProcess: ChildProcess | null = null;
+let db: DatabaseManager | null = null;
 
 const isDev = process.env.NODE_ENV === 'development';
-const SERVER_PORT = 3001;
 const FRONTEND_PORT = 3000;
 
+function initializeDatabase() {
+  try {
+    db = new DatabaseManager();
+    console.log('[Electron] Database initialized successfully');
+  } catch (error) {
+    console.error('[Electron] Failed to initialize database:', error);
+    throw error;
+  }
+}
+
+function registerIpcHandlers() {
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
+
+  registerProjectsHandlers(db);
+  registerScenesHandlers(db);
+  registerObjectsHandlers(db);
+  registerDialoguesHandlers(db);
+  registerBackgroundMapsHandlers(db);
+  registerAssetsHandlers(db);
+
+  console.log('[Electron] All IPC handlers registered');
+}
+
 function createWindow() {
+  const preloadPath = isDev
+    ? path.join(__dirname, 'preload.js')
+    : path.join(__dirname, 'preload.js');
+
+  console.log('[Electron] Preload script path:', preloadPath);
+  console.log('[Electron] Preload exists:', require('fs').existsSync(preloadPath));
+
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      preload: preloadPath,
     },
     title: 'VirtualScenario - 코레일 안전교육 시나리오 에디터',
-    icon: path.join(__dirname, '../../assets/icon.png'), // Optional: add app icon
+    icon: path.join(__dirname, '../../assets/icon.png'),
   });
 
   // Load frontend
@@ -27,6 +65,7 @@ function createWindow() {
     // Development mode: load from Vite dev server
     mainWindow.loadURL(`http://localhost:${FRONTEND_PORT}`);
     mainWindow.webContents.openDevTools();
+    console.log('[Electron] Development mode: Loading from http://localhost:' + FRONTEND_PORT);
   } else {
     // Production mode: load from built files in extraResources
     const resourcesPath = (process as any).resourcesPath || path.join(__dirname, '..');
@@ -44,12 +83,12 @@ function createWindow() {
     mainWindow.loadFile(frontendPath).catch((err: Error) => {
       console.error('[Electron] Failed to load frontend:', err);
     });
-    // Always open DevTools in production to debug
+    // Open DevTools in production to debug
     mainWindow.webContents.openDevTools();
   }
 
   // Handle external links
-  mainWindow.webContents.setWindowOpenHandler(({ url }: { url: string }) => {
+  mainWindow.webContents.setWindowOpenHandler(({ url }: { url: string}) => {
     shell.openExternal(url);
     return { action: 'deny' };
   });
@@ -57,51 +96,6 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
-}
-
-function startBackendServer() {
-  if (isDev) {
-    // In development, assume backend is already running separately
-    console.log('[Electron] Development mode: Backend server should be running separately on port', SERVER_PORT);
-    return;
-  }
-
-  // Production mode: start backend server as child process
-  // server.js is in app.asar/dist/server.js
-  const serverScript = path.join(__dirname, 'server.js');
-  console.log('[Electron] Starting backend server from:', serverScript);
-  console.log('[Electron] __dirname:', __dirname);
-  console.log('[Electron] Server script exists:', require('fs').existsSync(serverScript));
-
-  serverProcess = spawn('node', [serverScript], {
-    env: { ...process.env, PORT: SERVER_PORT.toString(), NODE_ENV: 'production' },
-    stdio: 'pipe', // Changed from 'inherit' to capture output
-  });
-
-  // Capture and log stdout
-  serverProcess.stdout?.on('data', (data) => {
-    console.log('[Backend Server]', data.toString());
-  });
-
-  // Capture and log stderr
-  serverProcess.stderr?.on('data', (data) => {
-    console.error('[Backend Server Error]', data.toString());
-  });
-
-  serverProcess.on('error', (err) => {
-    console.error('[Electron] Failed to start backend server:', err);
-  });
-
-  serverProcess.on('exit', (code) => {
-    console.log(`[Electron] Backend server exited with code ${code}`);
-  });
-}
-
-function stopBackendServer() {
-  if (serverProcess) {
-    serverProcess.kill();
-    serverProcess = null;
-  }
 }
 
 function createMenu() {
@@ -217,7 +211,13 @@ VirtualScenario v0.1.0
 
 // App lifecycle
 app.whenReady().then(() => {
-  startBackendServer();
+  console.log('[Electron] App is ready');
+
+  // Initialize database and IPC handlers
+  initializeDatabase();
+  registerIpcHandlers();
+
+  // Create window and menu
   createWindow();
   createMenu();
 
@@ -229,16 +229,11 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
-  stopBackendServer();
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
 
 app.on('before-quit', () => {
-  stopBackendServer();
-});
-
-app.on('will-quit', () => {
-  stopBackendServer();
+  console.log('[Electron] App is quitting');
 });
