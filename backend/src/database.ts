@@ -147,8 +147,8 @@ export class DatabaseManager {
 
   createScene(data: any) {
     const stmt = this.db.prepare(`
-      INSERT INTO scenes (id, project_id, order_index, title, description, participant_count)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO scenes (id, project_id, order_index, title, description, participant_count, background_map_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
     return stmt.run(
       data.id,
@@ -156,7 +156,8 @@ export class DatabaseManager {
       data.order,
       data.title,
       data.description || null,
-      data.participantCount || null
+      data.participantCount || null,
+      data.backgroundMapId || null
     );
   }
 

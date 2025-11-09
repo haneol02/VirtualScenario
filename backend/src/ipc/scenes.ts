@@ -32,13 +32,21 @@ export function registerScenesHandlers(db: DatabaseManager) {
   ipcMain.handle('create-scene', async (_event: any, projectId: string, data: any) => {
     try {
       const id = uuidv4();
-      const { title, description, duration = 10, order_index = 0, background_map_id } = data;
+      const { title, description, participantCount, order, backgroundMapId } = data;
 
       if (!title) {
         throw new Error('Title is required');
       }
 
-      db.createScene({ id, project_id: projectId, title, description, duration, order_index, background_map_id });
+      db.createScene({
+        id,
+        projectId,
+        title,
+        description,
+        participantCount,
+        order: order !== undefined ? order : 0,
+        backgroundMapId,
+      });
       const scene = db.getScene(id);
       return scene;
     } catch (error: any) {
