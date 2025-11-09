@@ -622,7 +622,7 @@ export default function SceneEditor() {
       await scenesAPI.update(selectedScene.id, { backgroundMapId });
       const updatedScenes = await scenesAPI.getAll(projectId!);
       setScenes(updatedScenes);
-      const currentScene = updatedScenes.find(s => s.id === selectedScene.id);
+      const currentScene = updatedScenes.find((s: any) => s.id === selectedScene.id);
       if (currentScene) {
         setSelectedScene(currentScene);
       }
