@@ -6,20 +6,10 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Production builds
-dist/
-build/
-out/
-release/
-release-builds/
-*.exe
-*.dmg
-*.app
 backend/dist/
 backend/build/
 frontend/dist/
 frontend/build/
-backend/frontend-dist
-backend/frontend-dist/
 .vite/
 .next/
 .nuxt/
@@ -54,12 +44,6 @@ logs/
 Thumbs.db
 .DS_Store
 
-# Electron
-release-builds/
-dist-electron/
-release/
-backend/frontend-dist/
-
 # TypeScript
 *.tsbuildinfo
 
@@ -90,3 +74,5 @@ uploads/
 .parcel-cache/
 .eslintcache
 .stylelintcache
+.claude/
+.claude
