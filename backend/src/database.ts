@@ -603,6 +603,33 @@ export class DatabaseManager {
     return this.db.prepare('SELECT * FROM asset_library WHERE id = ?').get(id);
   }
 
+  updateAsset(id: string, data: {
+    name?: string;
+    category?: string;
+  }) {
+    const fields: string[] = [];
+    const values: any[] = [];
+
+    if (data.name !== undefined) {
+      fields.push('name = ?');
+      values.push(data.name);
+    }
+    if (data.category !== undefined) {
+      fields.push('category = ?');
+      values.push(data.category);
+    }
+
+    if (fields.length === 0) return;
+
+    fields.push('updated_at = CURRENT_TIMESTAMP');
+    values.push(id);
+
+    const sql = `UPDATE asset_library SET ${fields.join(', ')} WHERE id = ?`;
+    const stmt = this.db.prepare(sql);
+    stmt.run(...values);
+    return this.db.prepare('SELECT * FROM asset_library WHERE id = ?').get(id);
+  }
+
   deleteAsset(id: string) {
     const stmt = this.db.prepare('DELETE FROM asset_library WHERE id = ?');
     return stmt.run(id);

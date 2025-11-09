@@ -313,6 +313,9 @@ export const assetsAPI = {
     }).then(res => res.data);
   },
 
+  update: (id: string, data: { name?: string; category?: string }) =>
+    api.put<Asset>(`/assets/${id}`, data).then(res => res.data),
+
   delete: (id: string) =>
     api.delete(`/assets/${id}`).then(res => res.data),
 };
