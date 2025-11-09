@@ -48,11 +48,16 @@
     },
     "files": [
       "dist/**/*",
-      "frontend-dist/**/*",
-      "database/schema.sql",
       "package.json"
     ],
     "extraResources": [
+      {
+        "from": "frontend-dist",
+        "to": "frontend-dist",
+        "filter": [
+          "**/*"
+        ]
+      },
       {
         "from": "database",
         "to": "database",
@@ -60,6 +65,9 @@
           "**/*"
         ]
       }
+    ],
+    "asarUnpack": [
+      "**/*.node"
     ],
     "win": {
       "target": [
