@@ -7,8 +7,27 @@ export class DatabaseManager {
   private dbPath: string;
 
   constructor(dbPath?: string) {
-    // Use provided path or default to ./data/scenario.db
-    this.dbPath = dbPath || path.join(__dirname, '../data/scenario.db');
+    // Detect if running in packaged Electron app
+    const isPackaged = (process as any).resourcesPath !== undefined;
+
+    if (dbPath) {
+      this.dbPath = dbPath;
+    } else if (isPackaged) {
+      // Production: use app data directory (writable)
+      const userDataPath = process.env.APPDATA ||
+                          process.env.HOME ||
+                          process.cwd();
+      const appDataDir = path.join(userDataPath, 'VirtualScenario');
+      if (!fs.existsSync(appDataDir)) {
+        fs.mkdirSync(appDataDir, { recursive: true });
+      }
+      this.dbPath = path.join(appDataDir, 'scenario.db');
+      console.log('[Database] Production mode - Database path:', this.dbPath);
+    } else {
+      // Development: use local data directory
+      this.dbPath = path.join(__dirname, '../data/scenario.db');
+      console.log('[Database] Development mode - Database path:', this.dbPath);
+    }
 
     // Ensure data directory exists
     const dataDir = path.dirname(this.dbPath);
@@ -22,7 +41,18 @@ export class DatabaseManager {
   }
 
   private initialize() {
-    const schemaPath = path.join(__dirname, '../database/schema.sql');
+    const isPackaged = (process as any).resourcesPath !== undefined;
+
+    let schemaPath: string;
+    if (isPackaged) {
+      // Production: schema.sql is in extraResources/database/
+      schemaPath = path.join((process as any).resourcesPath, 'database', 'schema.sql');
+      console.log('[Database] Loading schema from:', schemaPath);
+    } else {
+      // Development
+      schemaPath = path.join(__dirname, '../database/schema.sql');
+    }
+
     const schema = fs.readFileSync(schemaPath, 'utf-8');
     this.db.exec(schema);
 
