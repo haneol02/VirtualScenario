@@ -1,3 +1,4 @@
+// @ts-ignore - electron is in devDependencies for electron-builder
 import { app, BrowserWindow, Menu, shell } from 'electron';
 import * as path from 'path';
 import { spawn, ChildProcess } from 'child_process';
@@ -27,12 +28,21 @@ function createWindow() {
     mainWindow.loadURL(`http://localhost:${FRONTEND_PORT}`);
     mainWindow.webContents.openDevTools();
   } else {
-    // Production mode: load from built files
-    const frontendPath = path.join(__dirname, '../frontend-dist/index.html');
-    console.log('Loading frontend from:', frontendPath);
-    console.log('File exists:', require('fs').existsSync(frontendPath));
+    // Production mode: load from built files in extraResources
+    const resourcesPath = (process as any).resourcesPath || path.join(__dirname, '..');
+    const frontendPath = path.join(resourcesPath, 'frontend-dist', 'index.html');
+    console.log('[Electron] Loading frontend from:', frontendPath);
+    console.log('[Electron] Resources path:', resourcesPath);
+    console.log('[Electron] File exists:', require('fs').existsSync(frontendPath));
+
+    // List files in frontend-dist to debug
+    const frontendDir = path.join(resourcesPath, 'frontend-dist');
+    if (require('fs').existsSync(frontendDir)) {
+      console.log('[Electron] Frontend directory contents:', require('fs').readdirSync(frontendDir));
+    }
+
     mainWindow.loadFile(frontendPath).catch((err: Error) => {
-      console.error('Failed to load frontend:', err);
+      console.error('[Electron] Failed to load frontend:', err);
     });
     // Always open DevTools in production to debug
     mainWindow.webContents.openDevTools();
@@ -52,12 +62,14 @@ function createWindow() {
 function startBackendServer() {
   if (isDev) {
     // In development, assume backend is already running separately
-    console.log('Development mode: Backend server should be running separately on port', SERVER_PORT);
+    console.log('[Electron] Development mode: Backend server should be running separately on port', SERVER_PORT);
     return;
   }
 
   // Production mode: start backend server as child process
+  // server.js is in app.asar/dist/server.js
   const serverScript = path.join(__dirname, 'server.js');
+  console.log('[Electron] Starting backend server from:', serverScript);
 
   serverProcess = spawn('node', [serverScript], {
     env: { ...process.env, PORT: SERVER_PORT.toString() },
@@ -65,11 +77,11 @@ function startBackendServer() {
   });
 
   serverProcess.on('error', (err) => {
-    console.error('Failed to start backend server:', err);
+    console.error('[Electron] Failed to start backend server:', err);
   });
 
   serverProcess.on('exit', (code) => {
-    console.log(`Backend server exited with code ${code}`);
+    console.log(`[Electron] Backend server exited with code ${code}`);
   });
 }
 
@@ -81,7 +93,7 @@ function stopBackendServer() {
 }
 
 function createMenu() {
-  const template: Array<Electron.MenuItemConstructorOptions> = [
+  const template: any[] = [
     {
       label: '파일',
       submenu: [
