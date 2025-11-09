@@ -70,10 +70,22 @@ function startBackendServer() {
   // server.js is in app.asar/dist/server.js
   const serverScript = path.join(__dirname, 'server.js');
   console.log('[Electron] Starting backend server from:', serverScript);
+  console.log('[Electron] __dirname:', __dirname);
+  console.log('[Electron] Server script exists:', require('fs').existsSync(serverScript));
 
   serverProcess = spawn('node', [serverScript], {
-    env: { ...process.env, PORT: SERVER_PORT.toString() },
-    stdio: 'inherit',
+    env: { ...process.env, PORT: SERVER_PORT.toString(), NODE_ENV: 'production' },
+    stdio: 'pipe', // Changed from 'inherit' to capture output
+  });
+
+  // Capture and log stdout
+  serverProcess.stdout?.on('data', (data) => {
+    console.log('[Backend Server]', data.toString());
+  });
+
+  // Capture and log stderr
+  serverProcess.stderr?.on('data', (data) => {
+    console.error('[Backend Server Error]', data.toString());
   });
 
   serverProcess.on('error', (err) => {
