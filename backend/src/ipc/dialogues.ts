@@ -5,7 +5,7 @@ import { DatabaseManager } from '../database';
 
 export function registerDialoguesHandlers(db: DatabaseManager) {
   // GET dialogues by scene ID
-  ipcMain.handle('get-dialogues', async (_event, sceneId: string) => {
+  ipcMain.handle('get-dialogues', async (_event: any, sceneId: string) => {
     try {
       return db.getDialogues(sceneId);
     } catch (error: any) {
@@ -15,7 +15,7 @@ export function registerDialoguesHandlers(db: DatabaseManager) {
   });
 
   // CREATE dialogue
-  ipcMain.handle('create-dialogue', async (_event, sceneId: string, data: any) => {
+  ipcMain.handle('create-dialogue', async (_event: any, sceneId: string, data: any) => {
     try {
       const id = uuidv4();
       const { speaker, text, start_time = 0, end_time = 5, object_id, order_index = 0 } = data;
@@ -35,7 +35,7 @@ export function registerDialoguesHandlers(db: DatabaseManager) {
         order_index,
       });
 
-      const dialogue = db.getDialogue(sceneId, id);
+      const dialogue = db.getDialogue(id);
       return dialogue;
     } catch (error: any) {
       console.error('[IPC] create-dialogue error:', error);
@@ -44,9 +44,9 @@ export function registerDialoguesHandlers(db: DatabaseManager) {
   });
 
   // UPDATE dialogue
-  ipcMain.handle('update-dialogue', async (_event, sceneId: string, id: string, data: any) => {
+  ipcMain.handle('update-dialogue', async (_event: any, sceneId: string, id: string, data: any) => {
     try {
-      db.updateDialogue(sceneId, id, data);
+      db.updateDialogue(id, data);
     } catch (error: any) {
       console.error('[IPC] update-dialogue error:', error);
       throw new Error(error.message);
@@ -54,9 +54,9 @@ export function registerDialoguesHandlers(db: DatabaseManager) {
   });
 
   // DELETE dialogue
-  ipcMain.handle('delete-dialogue', async (_event, sceneId: string, id: string) => {
+  ipcMain.handle('delete-dialogue', async (_event: any, sceneId: string, id: string) => {
     try {
-      db.deleteDialogue(sceneId, id);
+      db.deleteDialogue(id);
     } catch (error: any) {
       console.error('[IPC] delete-dialogue error:', error);
       throw new Error(error.message);

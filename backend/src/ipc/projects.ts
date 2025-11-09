@@ -15,7 +15,7 @@ export function registerProjectsHandlers(db: DatabaseManager) {
   });
 
   // GET project by ID
-  ipcMain.handle('get-project', async (_event, id: string) => {
+  ipcMain.handle('get-project', async (_event: any, id: string) => {
     try {
       const project = db.getProject(id);
       if (!project) {
@@ -29,7 +29,7 @@ export function registerProjectsHandlers(db: DatabaseManager) {
   });
 
   // CREATE project
-  ipcMain.handle('create-project', async (_event, data: any) => {
+  ipcMain.handle('create-project', async (_event: any, data: any) => {
     try {
       const id = uuidv4();
       const { title, description, version = '1.0' } = data;
@@ -48,7 +48,7 @@ export function registerProjectsHandlers(db: DatabaseManager) {
   });
 
   // UPDATE project
-  ipcMain.handle('update-project', async (_event, id: string, data: any) => {
+  ipcMain.handle('update-project', async (_event: any, id: string, data: any) => {
     try {
       db.updateProject(id, data);
     } catch (error: any) {
@@ -58,7 +58,7 @@ export function registerProjectsHandlers(db: DatabaseManager) {
   });
 
   // DELETE project
-  ipcMain.handle('delete-project', async (_event, id: string) => {
+  ipcMain.handle('delete-project', async (_event: any, id: string) => {
     try {
       db.deleteProject(id);
     } catch (error: any) {
@@ -68,7 +68,7 @@ export function registerProjectsHandlers(db: DatabaseManager) {
   });
 
   // EXPORT project
-  ipcMain.handle('export-project', async (_event, id: string) => {
+  ipcMain.handle('export-project', async (_event: any, id: string) => {
     try {
       const project = db.getProject(id);
       if (!project) {

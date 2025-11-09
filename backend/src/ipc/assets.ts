@@ -7,7 +7,7 @@ export function registerAssetsHandlers(db: DatabaseManager) {
   // GET all assets
   ipcMain.handle('get-assets', async () => {
     try {
-      return db.getAssets();
+      return db.getAllAssets();
     } catch (error: any) {
       console.error('[IPC] get-assets error:', error);
       throw new Error(error.message);
@@ -15,9 +15,10 @@ export function registerAssetsHandlers(db: DatabaseManager) {
   });
 
   // GET asset by ID
-  ipcMain.handle('get-asset', async (_event, id: string) => {
+  ipcMain.handle('get-asset', async (_event: any, id: string) => {
     try {
-      const asset = db.getAsset(id);
+      const assets = db.getAllAssets();
+      const asset = assets.find((a: any) => a.id === id);
       if (!asset) {
         throw new Error('Asset not found');
       }
@@ -29,17 +30,25 @@ export function registerAssetsHandlers(db: DatabaseManager) {
   });
 
   // CREATE asset
-  ipcMain.handle('create-asset', async (_event, data: any) => {
+  ipcMain.handle('create-asset', async (_event: any, data: any) => {
     try {
-      const id = uuidv4();
-      const { name, type, file_path, thumbnail_path } = data;
+      const { name, category, type, file_path, file_format, text_content, text_font_size, text_color, metadata } = data;
 
-      if (!name || !type) {
-        throw new Error('Name and type are required');
+      if (!name || !category) {
+        throw new Error('Name and category are required');
       }
 
-      db.createAsset({ id, name, type, file_path, thumbnail_path });
-      const asset = db.getAsset(id);
+      const asset = db.createAsset({
+        name,
+        category,
+        type,
+        file_path,
+        file_format,
+        text_content,
+        text_font_size,
+        text_color,
+        metadata,
+      });
       return asset;
     } catch (error: any) {
       console.error('[IPC] create-asset error:', error);
@@ -48,7 +57,7 @@ export function registerAssetsHandlers(db: DatabaseManager) {
   });
 
   // DELETE asset
-  ipcMain.handle('delete-asset', async (_event, id: string) => {
+  ipcMain.handle('delete-asset', async (_event: any, id: string) => {
     try {
       db.deleteAsset(id);
     } catch (error: any) {

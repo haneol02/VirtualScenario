@@ -15,7 +15,7 @@ export function registerBackgroundMapsHandlers(db: DatabaseManager) {
   });
 
   // GET background map by ID
-  ipcMain.handle('get-background-map', async (_event, id: string) => {
+  ipcMain.handle('get-background-map', async (_event: any, id: string) => {
     try {
       const map = db.getBackgroundMap(id);
       if (!map) {
@@ -29,7 +29,7 @@ export function registerBackgroundMapsHandlers(db: DatabaseManager) {
   });
 
   // CREATE background map
-  ipcMain.handle('create-background-map', async (_event, data: any) => {
+  ipcMain.handle('create-background-map', async (_event: any, data: any) => {
     try {
       const id = uuidv4();
       const { name, description } = data;
@@ -48,7 +48,7 @@ export function registerBackgroundMapsHandlers(db: DatabaseManager) {
   });
 
   // UPDATE background map
-  ipcMain.handle('update-background-map', async (_event, id: string, data: any) => {
+  ipcMain.handle('update-background-map', async (_event: any, id: string, data: any) => {
     try {
       db.updateBackgroundMap(id, data);
     } catch (error: any) {
@@ -58,7 +58,7 @@ export function registerBackgroundMapsHandlers(db: DatabaseManager) {
   });
 
   // DELETE background map
-  ipcMain.handle('delete-background-map', async (_event, id: string) => {
+  ipcMain.handle('delete-background-map', async (_event: any, id: string) => {
     try {
       db.deleteBackgroundMap(id);
     } catch (error: any) {
@@ -68,7 +68,7 @@ export function registerBackgroundMapsHandlers(db: DatabaseManager) {
   });
 
   // GET background objects by map ID
-  ipcMain.handle('get-background-objects', async (_event, mapId: string) => {
+  ipcMain.handle('get-background-objects', async (_event: any, mapId: string) => {
     try {
       return db.getBackgroundObjects(mapId);
     } catch (error: any) {
@@ -78,7 +78,7 @@ export function registerBackgroundMapsHandlers(db: DatabaseManager) {
   });
 
   // CREATE background object
-  ipcMain.handle('create-background-object', async (_event, mapId: string, data: any) => {
+  ipcMain.handle('create-background-object', async (_event: any, mapId: string, data: any) => {
     try {
       const id = uuidv4();
       const {
@@ -130,7 +130,7 @@ export function registerBackgroundMapsHandlers(db: DatabaseManager) {
   });
 
   // UPDATE background object
-  ipcMain.handle('update-background-object', async (_event, id: string, data: any) => {
+  ipcMain.handle('update-background-object', async (_event: any, id: string, data: any) => {
     try {
       db.updateBackgroundObject(id, data);
     } catch (error: any) {
@@ -140,7 +140,7 @@ export function registerBackgroundMapsHandlers(db: DatabaseManager) {
   });
 
   // DELETE background object
-  ipcMain.handle('delete-background-object', async (_event, id: string) => {
+  ipcMain.handle('delete-background-object', async (_event: any, id: string) => {
     try {
       db.deleteBackgroundObject(id);
     } catch (error: any) {

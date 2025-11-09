@@ -5,7 +5,7 @@ import { DatabaseManager } from '../database';
 
 export function registerScenesHandlers(db: DatabaseManager) {
   // GET scenes by project ID
-  ipcMain.handle('get-scenes', async (_event, projectId: string) => {
+  ipcMain.handle('get-scenes', async (_event: any, projectId: string) => {
     try {
       return db.getScenes(projectId);
     } catch (error: any) {
@@ -15,7 +15,7 @@ export function registerScenesHandlers(db: DatabaseManager) {
   });
 
   // GET scene by ID
-  ipcMain.handle('get-scene', async (_event, id: string) => {
+  ipcMain.handle('get-scene', async (_event: any, id: string) => {
     try {
       const scene = db.getScene(id);
       if (!scene) {
@@ -29,7 +29,7 @@ export function registerScenesHandlers(db: DatabaseManager) {
   });
 
   // CREATE scene
-  ipcMain.handle('create-scene', async (_event, projectId: string, data: any) => {
+  ipcMain.handle('create-scene', async (_event: any, projectId: string, data: any) => {
     try {
       const id = uuidv4();
       const { title, description, duration = 10, order_index = 0, background_map_id } = data;
@@ -48,7 +48,7 @@ export function registerScenesHandlers(db: DatabaseManager) {
   });
 
   // UPDATE scene
-  ipcMain.handle('update-scene', async (_event, id: string, data: any) => {
+  ipcMain.handle('update-scene', async (_event: any, id: string, data: any) => {
     try {
       db.updateScene(id, data);
     } catch (error: any) {
@@ -58,7 +58,7 @@ export function registerScenesHandlers(db: DatabaseManager) {
   });
 
   // DELETE scene
-  ipcMain.handle('delete-scene', async (_event, id: string) => {
+  ipcMain.handle('delete-scene', async (_event: any, id: string) => {
     try {
       db.deleteScene(id);
     } catch (error: any) {

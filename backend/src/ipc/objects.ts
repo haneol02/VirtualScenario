@@ -5,7 +5,7 @@ import { DatabaseManager } from '../database';
 
 export function registerObjectsHandlers(db: DatabaseManager) {
   // GET scene objects
-  ipcMain.handle('get-scene-objects', async (_event, sceneId: string) => {
+  ipcMain.handle('get-scene-objects', async (_event: any, sceneId: string) => {
     try {
       return db.getSceneObjects(sceneId);
     } catch (error: any) {
@@ -15,7 +15,7 @@ export function registerObjectsHandlers(db: DatabaseManager) {
   });
 
   // CREATE scene object
-  ipcMain.handle('create-scene-object', async (_event, sceneId: string, data: any) => {
+  ipcMain.handle('create-scene-object', async (_event: any, sceneId: string, data: any) => {
     try {
       const id = uuidv4();
       const {
@@ -62,7 +62,7 @@ export function registerObjectsHandlers(db: DatabaseManager) {
         show_nametag,
       });
 
-      const obj = db.getSceneObject(sceneId, id);
+      const obj = db.getSceneObject(id);
       return obj;
     } catch (error: any) {
       console.error('[IPC] create-scene-object error:', error);
@@ -71,14 +71,14 @@ export function registerObjectsHandlers(db: DatabaseManager) {
   });
 
   // UPDATE scene object
-  ipcMain.handle('update-scene-object', async (_event, sceneId: string, id: string, data: any) => {
+  ipcMain.handle('update-scene-object', async (_event: any, sceneId: string, id: string, data: any) => {
     try {
       const updateData: any = { ...data };
       if (updateData.pathData !== undefined) {
         updateData.path_data = updateData.pathData ? JSON.stringify(updateData.pathData) : null;
         delete updateData.pathData;
       }
-      db.updateSceneObject(sceneId, id, updateData);
+      db.updateSceneObject(id, updateData);
     } catch (error: any) {
       console.error('[IPC] update-scene-object error:', error);
       throw new Error(error.message);
@@ -86,9 +86,9 @@ export function registerObjectsHandlers(db: DatabaseManager) {
   });
 
   // DELETE scene object
-  ipcMain.handle('delete-scene-object', async (_event, sceneId: string, id: string) => {
+  ipcMain.handle('delete-scene-object', async (_event: any, sceneId: string, id: string) => {
     try {
-      db.deleteSceneObject(sceneId, id);
+      db.deleteSceneObject(id);
     } catch (error: any) {
       console.error('[IPC] delete-scene-object error:', error);
       throw new Error(error.message);
