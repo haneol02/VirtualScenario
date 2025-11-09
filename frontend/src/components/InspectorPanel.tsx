@@ -1,13 +1,14 @@
-import { SceneObject, Dialogue, scenesAPI, PathKeyframe, Asset } from '../lib/api';
+import { SceneObject, BackgroundObject, Dialogue, scenesAPI, backgroundMapsAPI, PathKeyframe, Asset } from '../lib/api';
 import { useState, useEffect } from 'react';
 
 interface InspectorPanelProps {
-  selectedObject?: SceneObject;
+  selectedObject?: SceneObject | BackgroundObject;
   selectedDialogue?: Dialogue;
-  sceneId: string;
+  sceneId: string;  // For SceneObject, this is scene_id; for BackgroundObject, this is background_map_id
   assets: Asset[];
   onUpdate: () => void;
   onDelete: (id: string, type: 'object' | 'dialogue') => void;
+  objectType?: 'scene' | 'background';  // 'scene' for SceneObject, 'background' for BackgroundObject
 }
 
 export default function InspectorPanel({
@@ -17,6 +18,7 @@ export default function InspectorPanel({
   assets,
   onUpdate,
   onDelete,
+  objectType = 'scene',  // Default to 'scene' for backward compatibility
 }: InspectorPanelProps) {
   // Local state for Korean input handling
   const [localObjectName, setLocalObjectName] = useState('');
