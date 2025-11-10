@@ -672,6 +672,10 @@ export class DatabaseManager {
     return this.db.prepare('SELECT * FROM asset_library ORDER BY category, name').all();
   }
 
+  getAsset(id: string) {
+    return this.db.prepare('SELECT * FROM asset_library WHERE id = ?').get(id);
+  }
+
   getAssetsByCategory(category: string) {
     return this.db.prepare('SELECT * FROM asset_library WHERE category = ? ORDER BY name').all(category);
   }
