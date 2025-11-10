@@ -100,6 +100,13 @@ function LightObject({
     }
   }, [obj.id, onLightCreated]);
 
+  // Update intensity when metadata changes
+  useEffect(() => {
+    if (lightRef.current && 'intensity' in lightRef.current) {
+      (lightRef.current as any).intensity = intensity;
+    }
+  }, [intensity]);
+
   // Transform handling
   const handleTransform = () => {
     if (!lightRef.current || !transformRef.current) return;
@@ -285,7 +292,17 @@ function SceneObjectMesh({
 
   // Apply keyframe values or DB values based on currentTime
   useEffect(() => {
-    if (!meshRef.current || currentTime === undefined) return;
+    if (!meshRef.current) return;
+
+    // If currentTime is undefined (e.g., BackgroundMapEditor), always use DB values
+    if (currentTime === undefined) {
+      const dbVisible = ('visible' in obj && obj.visible !== undefined) ? obj.visible : 1;
+      const dbNametag = obj.show_nametag ?? 1;
+
+      meshRef.current.visible = dbVisible !== 0;
+      setCurrentShowNametag(dbNametag);
+      return;
+    }
 
     // Check if object has keyframes
     if ('path_data' in obj && obj.path_data) {
