@@ -202,7 +202,15 @@ function LightObject({
     <group>
       {renderLight()}
 
-      {/* Helper mesh to visualize light position (except ambient) */}
+      {/* Helper mesh to visualize light position (only when selected) */}
+      {lightType !== 'ambient' && isSelected && (
+        <mesh position={position}>
+          <sphereGeometry args={[0.2, 16, 16]} />
+          <meshBasicMaterial color="#ffff00" wireframe />
+        </mesh>
+      )}
+
+      {/* Invisible clickable area for light selection */}
       {lightType !== 'ambient' && (
         <mesh position={position} onClick={(e) => {
           e.stopPropagation();
@@ -212,8 +220,8 @@ function LightObject({
           }
           onSelect();
         }}>
-          <sphereGeometry args={[0.2, 16, 16]} />
-          <meshBasicMaterial color={isSelected ? '#ffff00' : color} wireframe />
+          <sphereGeometry args={[0.5, 8, 8]} />
+          <meshBasicMaterial visible={false} />
         </mesh>
       )}
 
@@ -1063,8 +1071,8 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
           makeDefault
           enableDamping
           dampingFactor={0.05}
-          minDistance={5}
-          maxDistance={50}
+          minDistance={0.5}
+          maxDistance={200}
           maxPolarAngle={Math.PI / 2}
         />
 
