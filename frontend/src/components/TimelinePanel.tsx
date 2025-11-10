@@ -547,45 +547,60 @@ export default function TimelinePanel({
 
           {/* Object Tracks Section */}
           <div className="border-b border-gray-700">
-            {objects.map((obj, index) => (
-              <div
-                key={obj.id}
-                draggable={!isPlaying}
-                onDragStart={(e) => !isPlaying && handleDragStart(e, 'object', obj.id, index)}
-                onDragOver={(e) => !isPlaying && handleDragOver(e, 'object', index)}
-                onDragEnd={handleDragEnd}
-                onClick={() => !isPlaying && onSelectObject(obj.id)}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  if (isPlaying) return;
-                  const pos = adjustContextMenuPosition(e.clientX, e.clientY);
-                  setContextMenu({
-                    x: pos.x,
-                    y: pos.y,
-                    objectId: obj.id,
-                    time: currentTime,
-                  });
-                }}
-                className={`h-14 px-3 py-2 text-sm border-b border-gray-750 transition-colors ${
-                  isPlaying ? 'cursor-not-allowed' : 'cursor-move'
-                } ${
-                  selectedObjectId === obj.id
-                    ? 'bg-blue-700 text-white'
-                    : 'hover:bg-gray-700 text-gray-300'
-                } ${draggedItem?.type === 'object' && draggedItem.index === index ? 'opacity-50' : ''} ${
-                  dragOverIndex === index && draggedItem?.type === 'object' ? 'border-t-2 border-t-blue-400' : ''
-                }`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="truncate flex-1">{obj.name}</div>
+            {objects.map((obj, index) => {
+              // Get type icon
+              const getTypeIcon = (type: string) => {
+                if (type === 'primitive_box' || type === 'box') return '📦';
+                if (type === 'primitive_sphere' || type === 'sphere') return '⚪';
+                if (type === 'primitive_cylinder' || type === 'cylinder') return '🥫';
+                if (type === 'primitive_cone' || type === 'cone') return '🔺';
+                if (type === 'primitive_plane' || type === 'plane') return '⬜';
+                if (type === 'primitive_torus' || type === 'torus') return '🍩';
+                if (type === 'model') return '🎭';
+                if (type === 'image') return '🖼️';
+                if (type === 'text') return '📝';
+                return '📦';
+              };
 
-                  {/* Status Icons */}
-                  <div className="flex items-center gap-1 flex-shrink-0">
+              return (
+                <div
+                  key={obj.id}
+                  draggable={!isPlaying}
+                  onDragStart={(e) => !isPlaying && handleDragStart(e, 'object', obj.id, index)}
+                  onDragOver={(e) => !isPlaying && handleDragOver(e, 'object', index)}
+                  onDragEnd={handleDragEnd}
+                  onClick={() => !isPlaying && onSelectObject(obj.id)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    if (isPlaying) return;
+                    const pos = adjustContextMenuPosition(e.clientX, e.clientY);
+                    setContextMenu({
+                      x: pos.x,
+                      y: pos.y,
+                      objectId: obj.id,
+                      time: currentTime,
+                    });
+                  }}
+                  className={`h-14 px-3 py-1.5 text-sm border-b border-gray-750 transition-colors ${
+                    isPlaying ? 'cursor-not-allowed' : 'cursor-move'
+                  } ${
+                    selectedObjectId === obj.id
+                      ? 'bg-blue-700 text-white'
+                      : 'hover:bg-gray-700 text-gray-300'
+                  } ${draggedItem?.type === 'object' && draggedItem.index === index ? 'opacity-50' : ''} ${
+                    dragOverIndex === index && draggedItem?.type === 'object' ? 'border-t-2 border-t-blue-400' : ''
+                  }`}
+                >
+                  {/* Object Name (no truncate) */}
+                  <div className="text-sm font-medium mb-1 leading-tight">{obj.name}</div>
+
+                  {/* Icons Row */}
+                  <div className="flex items-center gap-1.5 text-xs">
                     {/* Visible Toggle */}
                     <button
                       onClick={(e) => handleToggleVisible(e, obj.id)}
-                      className="p-1 hover:bg-gray-600 rounded transition-colors"
-                      title={obj.visible === 0 ? "숨김 상태 (클릭하여 표시)" : "표시 중 (클릭하여 숨김)"}
+                      className="opacity-60 hover:opacity-100 transition-opacity text-sm"
+                      title={obj.visible === 0 ? "숨김" : "표시"}
                     >
                       {obj.visible === 0 ? '👁️‍🗨️' : '👁️'}
                     </button>
@@ -593,8 +608,8 @@ export default function TimelinePanel({
                     {/* Nametag Toggle */}
                     <button
                       onClick={(e) => handleToggleNametag(e, obj.id)}
-                      className="p-1 hover:bg-gray-600 rounded transition-colors"
-                      title={obj.show_nametag === 0 ? "네임태그 숨김 (클릭하여 표시)" : "네임태그 표시 중 (클릭하여 숨김)"}
+                      className="opacity-60 hover:opacity-100 transition-opacity text-sm"
+                      title={obj.show_nametag === 0 ? "네임태그 숨김" : "네임태그 표시"}
                     >
                       {obj.show_nametag === 0 ? '🏷️' : '📛'}
                     </button>
@@ -602,20 +617,20 @@ export default function TimelinePanel({
                     {/* Locked Toggle */}
                     <button
                       onClick={(e) => handleToggleLocked(e, obj.id)}
-                      className="p-1 hover:bg-gray-600 rounded transition-colors"
-                      title={('locked' in obj && obj.locked === 1) ? "잠금 상태 (클릭하여 해제)" : "잠금 해제 (클릭하여 잠금)"}
+                      className="opacity-60 hover:opacity-100 transition-opacity text-sm"
+                      title={('locked' in obj && obj.locked === 1) ? "잠금" : "해제"}
                     >
                       {('locked' in obj && obj.locked === 1) ? '🔒' : '🔓'}
                     </button>
-                  </div>
 
-                  <span className="px-1.5 py-0.5 bg-blue-600 text-white text-xs font-semibold rounded flex-shrink-0">
-                    오브젝트
-                  </span>
+                    {/* Object Type Badge */}
+                    <span className="px-1 py-0.5 bg-blue-600 text-white text-[10px] font-semibold rounded flex-shrink-0 ml-auto">
+                      오브젝트
+                    </span>
+                  </div>
                 </div>
-                <div className="text-xs text-gray-500 mt-0.5">{obj.type}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Dialogue Tracks Section */}
@@ -643,7 +658,7 @@ export default function TimelinePanel({
                       time: currentTime,
                     });
                   }}
-                  className={`h-14 px-3 py-2 text-sm border-b border-gray-750 transition-colors ${
+                  className={`h-14 px-3 py-1.5 text-sm border-b border-gray-750 transition-colors ${
                     isPlaying ? 'cursor-not-allowed' : 'cursor-move'
                   } ${
                     selectedDialogueId === dlg.id
@@ -653,14 +668,17 @@ export default function TimelinePanel({
                     dragOverIndex === index && draggedItem?.type === 'dialogue' ? 'border-t-2 border-t-green-400' : ''
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="truncate flex-1">{displayText}</div>
-                    <span className="px-1.5 py-0.5 bg-green-600 text-white text-xs font-semibold rounded flex-shrink-0">
+                  {/* Dialogue Text (no truncate) */}
+                  <div className="text-sm font-medium mb-1 leading-tight">{displayText}</div>
+
+                  {/* Time + Badge Row */}
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-gray-400">
+                      {dlg.start_time.toFixed(1)}s - {(dlg.start_time + dlg.duration).toFixed(1)}s
+                    </span>
+                    <span className="px-1 py-0.5 bg-green-600 text-white text-[10px] font-semibold rounded flex-shrink-0">
                       대화/자막
                     </span>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-0.5">
-                    {dlg.start_time.toFixed(1)}s - {(dlg.start_time + dlg.duration).toFixed(1)}s
                   </div>
                 </div>
               );
