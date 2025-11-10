@@ -918,13 +918,19 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
   useImperativeHandle(ref, () => ({
     getObjectTransform: (objectId: string) => {
       const mesh = objectRefs.current.get(objectId);
-      if (!mesh) return null;
+      if (!mesh) {
+        console.log('⚠️ getObjectTransform: mesh not found for', objectId);
+        return null;
+      }
 
       // Find object in props to get visible and show_nametag
       const obj = objects.find(o => o.id === objectId);
-      if (!obj) return null;
+      if (!obj) {
+        console.log('⚠️ getObjectTransform: obj not found for', objectId);
+        return null;
+      }
 
-      return {
+      const result = {
         position: mesh.position.toArray() as [number, number, number],
         rotation: [
           (mesh.rotation.x * 180) / Math.PI,
@@ -937,6 +943,15 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
         // Use DB value (already updated by toggle handlers)
         show_nametag: obj.show_nametag ?? 1,
       };
+
+      console.log('✅ getObjectTransform for', objectId, ':', {
+        'mesh.visible': mesh.visible,
+        'obj.show_nametag': obj.show_nametag,
+        'result.visible': result.visible,
+        'result.show_nametag': result.show_nametag
+      });
+
+      return result;
     }
   }), [objects]);
 
