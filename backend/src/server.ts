@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import { DatabaseManager } from './database';
 import { createProjectsRouter } from './routes/projects';
 import { createScenesRouter } from './routes/scenes';
@@ -9,6 +10,18 @@ import { createAssetsRouter } from './routes/assets';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Ensure upload directories exist
+const uploadsDir = path.join(__dirname, '../uploads');
+const modelsDir = path.join(uploadsDir, 'models');
+const imagesDir = path.join(uploadsDir, 'images');
+
+[uploadsDir, modelsDir, imagesDir].forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+    console.log(`✅ Created directory: ${dir}`);
+  }
+});
 
 // Middleware
 app.use(cors({

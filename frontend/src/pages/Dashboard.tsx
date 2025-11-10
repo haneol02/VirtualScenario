@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { projectsAPI, type Project } from '../lib/api';
+import UserGuideModal from '../components/UserGuideModal';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const [newProjectTitle, setNewProjectTitle] = useState('');
 
   useEffect(() => {
@@ -67,6 +69,12 @@ export default function Dashboard() {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">VirtualScenario Editor</h1>
           <div className="flex gap-3">
+            <button
+              onClick={() => setShowGuide(true)}
+              className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+            >
+              📖 사용 가이드
+            </button>
             <button
               onClick={() => navigate('/background-maps')}
               className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
@@ -174,6 +182,9 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* User Guide Modal */}
+      <UserGuideModal isOpen={showGuide} onClose={() => setShowGuide(false)} />
 
       {/* Footer */}
       <footer className="bg-gray-800 border-t border-gray-700 px-6 py-3 text-sm text-gray-400">

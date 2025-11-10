@@ -718,18 +718,20 @@ export class DatabaseManager {
     const fields: string[] = [];
     const values: any[] = [];
 
-    if (data.name !== undefined) {
+    if (data.name !== undefined && data.name !== null) {
       fields.push('name = ?');
       values.push(data.name);
     }
-    if (data.category !== undefined) {
+    if (data.category !== undefined && data.category !== null) {
       fields.push('category = ?');
       values.push(data.category);
     }
 
-    if (fields.length === 0) return;
+    // If no fields to update, just return the current asset
+    if (fields.length === 0) {
+      return this.db.prepare('SELECT * FROM asset_library WHERE id = ?').get(id);
+    }
 
-    fields.push('updated_at = CURRENT_TIMESTAMP');
     values.push(id);
 
     const sql = `UPDATE asset_library SET ${fields.join(', ')} WHERE id = ?`;
