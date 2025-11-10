@@ -136,6 +136,45 @@ export class DatabaseManager {
         console.error('Migration error:', error);
       }
     }
+
+    // Check if show_nametag column exists in scene_objects and background_objects
+    const sceneObjectsInfoForNametag = this.db.pragma('table_info(scene_objects)') as any[];
+    const hasNametagInSceneObjects = sceneObjectsInfoForNametag.some((col: any) => col.name === 'show_nametag');
+
+    const backgroundObjectsInfoForNametag = this.db.pragma('table_info(background_objects)') as any[];
+    const hasNametagInBackgroundObjects = backgroundObjectsInfoForNametag.some((col: any) => col.name === 'show_nametag');
+
+    if (!hasNametagInSceneObjects || !hasNametagInBackgroundObjects) {
+      console.log('Running migration: add_show_nametag_column...');
+      try {
+        if (!hasNametagInSceneObjects) {
+          this.db.exec('ALTER TABLE scene_objects ADD COLUMN show_nametag INTEGER DEFAULT 1');
+          this.db.exec('UPDATE scene_objects SET show_nametag = 1 WHERE show_nametag IS NULL');
+        }
+        if (!hasNametagInBackgroundObjects) {
+          this.db.exec('ALTER TABLE background_objects ADD COLUMN show_nametag INTEGER DEFAULT 1');
+          this.db.exec('UPDATE background_objects SET show_nametag = 1 WHERE show_nametag IS NULL');
+        }
+        console.log('✅ Migration completed: show_nametag field added to scene_objects and background_objects');
+      } catch (error) {
+        console.error('Migration error:', error);
+      }
+    }
+
+    // Check if layer_index column exists in dialogues
+    const dialoguesInfoForLayer = this.db.pragma('table_info(dialogues)') as any[];
+    const hasLayerIndexInDialogues = dialoguesInfoForLayer.some((col: any) => col.name === 'layer_index');
+
+    if (!hasLayerIndexInDialogues) {
+      console.log('Running migration: add_layer_index_to_dialogues...');
+      try {
+        this.db.exec('ALTER TABLE dialogues ADD COLUMN layer_index INTEGER DEFAULT 0');
+        this.db.exec('UPDATE dialogues SET layer_index = 0 WHERE layer_index IS NULL');
+        console.log('✅ Migration completed: layer_index field added to dialogues (0 = auto-assign, 1+ = manual layer)');
+      } catch (error) {
+        console.error('Migration error:', error);
+      }
+    }
   }
 
   // Projects
@@ -368,8 +407,8 @@ export class DatabaseManager {
     const orderIndex = maxOrder.max_order + 1;
 
     const stmt = this.db.prepare(`
-      INSERT INTO dialogues (id, scene_id, object_id, speaker_name, text, start_time, duration, audio_path, order_index)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO dialogues (id, scene_id, object_id, speaker_name, text, start_time, duration, audio_path, order_index, layer_index)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     return stmt.run(
       data.id,
@@ -380,7 +419,8 @@ export class DatabaseManager {
       data.startTime,
       data.duration,
       data.audioPath || null,
-      orderIndex
+      orderIndex,
+      data.layerIndex ?? 0  // 0 = auto-assign, 1+ = manual layer
     );
   }
 
@@ -411,6 +451,10 @@ export class DatabaseManager {
     if (data.audioPath !== undefined) {
       fields.push('audio_path = ?');
       values.push(data.audioPath);
+    }
+    if (data.layerIndex !== undefined) {
+      fields.push('layer_index = ?');
+      values.push(data.layerIndex);
     }
 
     if (fields.length === 0) return;

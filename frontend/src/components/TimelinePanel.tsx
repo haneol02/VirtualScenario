@@ -140,14 +140,30 @@ export default function TimelinePanel({
   const pixelsPerSecond = 50 * zoom;
   const timelineWidth = maxTime * pixelsPerSecond;
 
-  // Auto-assign dialogues to layers based on time overlap
+  // Assign dialogues to layers (manual + auto)
   const assignDialoguesToLayers = (dialogues: Dialogue[]): Dialogue[][] => {
     const layers: Dialogue[][] = [];
 
-    // Sort dialogues by start time
-    const sortedDialogues = [...dialogues].sort((a, b) => a.start_time - b.start_time);
+    // Separate manual and auto dialogues
+    const manualDialogues = dialogues.filter(d => d.layer_index >= 1);
+    const autoDialogues = dialogues.filter(d => d.layer_index === 0);
 
-    for (const dialogue of sortedDialogues) {
+    // Place manual dialogues in their specified layers
+    for (const dialogue of manualDialogues) {
+      const layerIndex = dialogue.layer_index - 1;  // layer_index 1 = array index 0
+
+      // Ensure layer exists
+      while (layers.length <= layerIndex) {
+        layers.push([]);
+      }
+
+      layers[layerIndex].push(dialogue);
+    }
+
+    // Auto-assign remaining dialogues
+    const sortedAutoDialogues = [...autoDialogues].sort((a, b) => a.start_time - b.start_time);
+
+    for (const dialogue of sortedAutoDialogues) {
       // Find a layer where this dialogue doesn't overlap
       let placed = false;
       for (const layer of layers) {
@@ -170,6 +186,9 @@ export default function TimelinePanel({
         layers.push([dialogue]);
       }
     }
+
+    // Sort dialogues within each layer by start time for display
+    layers.forEach(layer => layer.sort((a, b) => a.start_time - b.start_time));
 
     return layers;
   };
@@ -723,31 +742,42 @@ export default function TimelinePanel({
 
           {/* Dialogue Layer Tracks Section */}
           <div>
-            {dialogueLayers.map((layer, layerIndex) => (
-              <div
-                key={`layer-${layerIndex}`}
-                className="h-14 px-3 py-1.5 text-sm border-b border-gray-750 transition-colors bg-gray-800 hover:bg-gray-750"
-              >
-                {/* Layer Info */}
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-gray-300">
-                    대화/자막 레이어 {layerIndex + 1}
-                  </span>
-                  <span className="px-1.5 py-0.5 bg-green-600 text-white text-[10px] font-semibold rounded">
-                    {layer.length}개
-                  </span>
+            {dialogueLayers.map((layer, layerIndex) => {
+              // Check if this layer has any manual dialogues
+              const hasManualDialogues = layer.some(d => d.layer_index >= 1);
+              const isManualLayer = hasManualDialogues && layer.every(d => d.layer_index === layerIndex + 1);
+
+              return (
+                <div
+                  key={`layer-${layerIndex}`}
+                  className="h-14 px-3 py-1.5 text-sm border-b border-gray-750 transition-colors bg-gray-800 hover:bg-gray-750"
+                >
+                  {/* Layer Info */}
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                      <span>대화/자막 레이어 {layerIndex + 1}</span>
+                      {isManualLayer && (
+                        <span className="px-1.5 py-0.5 bg-blue-600 text-white text-[9px] font-semibold rounded">
+                          수동
+                        </span>
+                      )}
+                    </span>
+                    <span className="px-1.5 py-0.5 bg-green-600 text-white text-[10px] font-semibold rounded">
+                      {layer.length}개
+                    </span>
+                  </div>
+                  {/* Layer time range */}
+                  <div className="text-xs text-gray-500">
+                    {layer.length > 0 && (
+                      <>
+                        {Math.min(...layer.map(d => d.start_time)).toFixed(1)}s -
+                        {Math.max(...layer.map(d => d.start_time + d.duration)).toFixed(1)}s
+                      </>
+                    )}
+                  </div>
                 </div>
-                {/* Layer time range */}
-                <div className="text-xs text-gray-500">
-                  {layer.length > 0 && (
-                    <>
-                      {Math.min(...layer.map(d => d.start_time)).toFixed(1)}s -
-                      {Math.max(...layer.map(d => d.start_time + d.duration)).toFixed(1)}s
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

@@ -122,6 +122,7 @@ export interface Dialogue {
   start_time: number;
   duration: number;
   audio_path?: string;
+  layer_index: number;  // 0 = auto-assign, 1+ = manual layer
   created_at: string;
 }
 
@@ -213,6 +214,7 @@ export const scenesAPI = {
     startTime?: number;
     duration?: number;
     audioPath?: string;
+    layerIndex?: number;  // 0 = auto-assign, 1+ = manual layer
   }) =>
     api.post<Dialogue>(`/scenes/${sceneId}/dialogues`, data).then(res => res.data),
 
@@ -223,6 +225,7 @@ export const scenesAPI = {
     startTime?: number;
     duration?: number;
     audioPath?: string;
+    layerIndex?: number;  // 0 = auto-assign, 1+ = manual layer
   }) =>
     api.put<Dialogue>(`/scenes/${sceneId}/dialogues/${dialogueId}`, data).then(res => res.data),
 

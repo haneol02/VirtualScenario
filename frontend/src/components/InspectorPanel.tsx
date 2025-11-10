@@ -936,6 +936,32 @@ export default function InspectorPanel({
             />
           </div>
 
+          {/* Layer Index */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-400 mb-2 select-none" onDragStart={(e) => e.preventDefault()}>
+              레이어 <span className="text-gray-500">(0 = 자동 배치)</span>
+            </label>
+            <input
+              type="number"
+              value={selectedDialogue.layer_index}
+              onChange={(e) => {
+                const value = Math.max(0, parseInt(e.target.value) || 0);
+                handleDialogueUpdate('layerIndex', value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.currentTarget.blur();
+                }
+              }}
+              step="1"
+              min="0"
+              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-green-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              0 = 자동 배치, 1 이상 = 수동 레이어 지정
+            </p>
+          </div>
+
           <hr className="border-gray-700" />
 
           {/* Delete Button */}

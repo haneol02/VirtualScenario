@@ -118,7 +118,7 @@ export function createScenesRouter(db: DatabaseManager) {
   router.post('/:id/dialogues', (req, res) => {
     try {
       const sceneId = req.params.id;
-      const { objectId, speakerName, text, startTime, duration, audioPath } = req.body;
+      const { objectId, speakerName, text, startTime, duration, audioPath, layerIndex } = req.body;
 
       const dialogueId = uuidv4();
 
@@ -130,7 +130,8 @@ export function createScenesRouter(db: DatabaseManager) {
         text,
         startTime: startTime || 0,
         duration: duration || 3,
-        audioPath: audioPath || null
+        audioPath: audioPath || null,
+        layerIndex: layerIndex ?? 0  // 0 = auto-assign, 1+ = manual layer
       });
 
       const dialogue = db.getDialogue(dialogueId);
@@ -143,8 +144,8 @@ export function createScenesRouter(db: DatabaseManager) {
   // PUT /api/scenes/:sceneId/dialogues/:id - 대화 수정
   router.put('/:sceneId/dialogues/:id', (req, res) => {
     try {
-      const { objectId, speakerName, text, startTime, duration, audioPath } = req.body;
-      db.updateDialogue(req.params.id, { objectId, speakerName, text, startTime, duration, audioPath });
+      const { objectId, speakerName, text, startTime, duration, audioPath, layerIndex } = req.body;
+      db.updateDialogue(req.params.id, { objectId, speakerName, text, startTime, duration, audioPath, layerIndex });
       const dialogue = db.getDialogue(req.params.id);
       res.json(dialogue);
     } catch (error: any) {

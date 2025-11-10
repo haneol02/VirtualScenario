@@ -17,6 +17,9 @@ export default function BackgroundMapEditor() {
   const [selectedObjectId, setSelectedObjectId] = useState<string | undefined>();
   const [assets, setAssets] = useState<Asset[]>([]);
 
+  // Copy/Paste state
+  const [copiedObject, setCopiedObject] = useState<BackgroundObject | null>(null);
+
   const [showCreateMapDialog, setShowCreateMapDialog] = useState(false);
   const [showAddObjectDialog, setShowAddObjectDialog] = useState(false);
   const [leftSidebarTab, setLeftSidebarTab] = useState<'objects' | 'assets'>('objects');
@@ -73,11 +76,29 @@ export default function BackgroundMapEditor() {
           }
         }
       }
+      // Copy (Ctrl+C)
+      else if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        if (selectedObjectId) {
+          e.preventDefault();
+          const obj = objects.find(o => o.id === selectedObjectId);
+          if (obj) {
+            setCopiedObject(obj);
+            console.log('오브젝트 복사됨:', obj.name);
+          }
+        }
+      }
+      // Paste (Ctrl+V)
+      else if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+        if (copiedObject && selectedMap) {
+          e.preventDefault();
+          handlePasteObject(copiedObject);
+        }
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo, selectedObjectId, objects, selectedMap]);
+  }, [undo, redo, selectedObjectId, objects, selectedMap, copiedObject]);
 
   // Load background maps and assets
   useEffect(() => {
@@ -318,6 +339,45 @@ export default function BackgroundMapEditor() {
       });
     } catch (error) {
       console.error('Failed to duplicate object:', error);
+    }
+  };
+
+  const handlePasteObject = async (obj: BackgroundObject) => {
+    if (!selectedMap) return;
+
+    try {
+      const createdObject = await backgroundMapsAPI.createObject(selectedMap.id, {
+        type: obj.type,
+        name: obj.name + ' (붙여넣기)',
+        modelId: obj.model_id,
+        color: obj.color,
+        positionX: obj.position_x + 0.5, // Offset slightly
+        positionY: obj.position_y,
+        positionZ: obj.position_z + 0.5,
+        rotationX: obj.rotation_x,
+        rotationY: obj.rotation_y,
+        rotationZ: obj.rotation_z,
+        scaleX: obj.scale_x,
+        scaleY: obj.scale_y,
+        scaleZ: obj.scale_z,
+      });
+      await loadObjects();
+      setSelectedObjectId(createdObject.id);
+
+      // Record undo action
+      pushAction({
+        type: 'create_object',
+        undo: async () => {
+          await backgroundMapsAPI.deleteObject(createdObject.id);
+          await loadObjects();
+        },
+        redo: async () => {
+          await loadObjects();
+        },
+        data: { objectId: createdObject.id }
+      });
+    } catch (error) {
+      console.error('Failed to paste object:', error);
     }
   };
 
