@@ -271,7 +271,11 @@ export default function InspectorPanel({
     if (!selectedObject || !newName.trim()) return;
 
     try {
-      await scenesAPI.updateObject(sceneId, selectedObject.id, { name: newName });
+      if (objectType === 'background') {
+        await backgroundMapsAPI.updateObject(selectedObject.id, { name: newName });
+      } else {
+        await scenesAPI.updateObject(sceneId, selectedObject.id, { name: newName });
+      }
       onUpdate();
     } catch (error) {
       console.error('Failed to update name:', error);
