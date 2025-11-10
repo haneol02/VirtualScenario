@@ -816,10 +816,10 @@ export default function TimelinePanel({
               min="1"
               max="600"
               step="1"
-              title="장면 길이 (최소 1초)"
+              title="장면 길이 - 수정하면 이 장면에만 적용됩니다"
             />
             <span className="text-sm text-gray-400">s</span>
-            <span className="text-xs text-gray-500 ml-1">(최소 1초)</span>
+            <span className="text-xs text-blue-400 ml-2 px-2 py-0.5 bg-blue-500/10 rounded">📝 장면별 개별 설정</span>
           </div>
         </div>
 

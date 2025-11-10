@@ -153,10 +153,13 @@ export default function SceneEditor() {
     }
   }, [selectedScene?.background_map_id]);
 
-  // Auto-calculate maxTime based on keyframes and dialogues (only if not manually set)
+  // Auto-calculate maxTime based on keyframes and dialogues (only if scene has no manual duration)
   useEffect(() => {
-    // Skip auto-calculation if user manually set maxTime
+    // Skip auto-calculation if:
+    // 1. User manually set maxTime in this session, OR
+    // 2. Selected scene has a saved duration
     if (isManualMaxTime) return;
+    if (selectedScene?.duration !== undefined && selectedScene?.duration !== null && selectedScene.duration > 0) return;
 
     let calculatedMaxTime = 1; // Default 1 second (minimum)
 
@@ -185,8 +188,10 @@ export default function SceneEditor() {
     });
 
     // Add 5 seconds buffer
-    setMaxTime(Math.max(1, calculatedMaxTime + 5));
-  }, [objects, dialogues, isManualMaxTime]);
+    const newMaxTime = Math.max(1, calculatedMaxTime + 5);
+    setMaxTime(newMaxTime);
+    console.log(`🤖 자동 계산: ${newMaxTime}초 (키프레임/대화 기반)`);
+  }, [objects, dialogues, isManualMaxTime, selectedScene?.duration]);
 
   // Animation playback loop
   useEffect(() => {
@@ -330,10 +335,17 @@ export default function SceneEditor() {
       setObjects(objectsData);
       setDialogues(dialoguesData);
 
-      // Load scene duration if available, otherwise keep default
-      if (scene.duration !== undefined && scene.duration !== null) {
+      // Load scene duration - each scene has independent duration
+      if (scene.duration !== undefined && scene.duration !== null && scene.duration > 0) {
+        // Scene has manually set duration
         setMaxTime(scene.duration);
         setIsManualMaxTime(true);
+        console.log(`✅ 장면 "${scene.title}" 로드: 수동 설정 길이 ${scene.duration}초`);
+      } else {
+        // No duration set - enable auto-calculation for this scene
+        setIsManualMaxTime(false);
+        console.log(`✅ 장면 "${scene.title}" 로드: 자동 계산 모드`);
+        // maxTime will be auto-calculated by useEffect based on keyframes/dialogues
       }
     } catch (error) {
       console.error('Failed to load scene data:', error);
@@ -1085,11 +1097,17 @@ export default function SceneEditor() {
                   {scene.description && (
                     <p className="text-xs text-gray-400 mb-1">{scene.description}</p>
                   )}
-                  {scene.participant_count && (
-                    <div className="text-xs text-gray-500">
-                      👥 {scene.participant_count}명
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                    {scene.participant_count && (
+                      <span>👥 {scene.participant_count}명</span>
+                    )}
+                    {scene.duration !== undefined && scene.duration !== null && scene.duration > 0 && (
+                      <>
+                        {scene.participant_count && <span>•</span>}
+                        <span className="text-blue-400">⏱️ {scene.duration}초</span>
+                      </>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -1455,10 +1473,22 @@ export default function SceneEditor() {
                   setMaxTime(newMaxTime);
                   setIsManualMaxTime(true); // Mark as manually set
 
-                  // Save duration to server
+                  // Save duration to server and update local scene state
                   if (selectedScene) {
                     try {
                       await scenesAPI.update(selectedScene.id, { duration: newMaxTime });
+
+                      // Update local selectedScene object
+                      setSelectedScene({ ...selectedScene, duration: newMaxTime });
+
+                      // Update scenes list to keep everything in sync
+                      setScenes(prevScenes =>
+                        prevScenes.map(s =>
+                          s.id === selectedScene.id ? { ...s, duration: newMaxTime } : s
+                        )
+                      );
+
+                      console.log(`💾 장면 "${selectedScene.title}" 길이 저장: ${newMaxTime}초`);
                     } catch (error) {
                       console.error('Failed to update scene duration:', error);
                     }
