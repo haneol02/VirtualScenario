@@ -196,31 +196,21 @@ export default function TimelinePanel({
   const pixelsPerSecond = 50 * zoom;
   const timelineWidth = maxTime * pixelsPerSecond;
 
-  // Assign dialogues to layers (manual + auto)
-  const assignDialoguesToLayers = (dialogues: Dialogue[]): { layers: Dialogue[][]; layerTypes: ('auto' | 'manual')[] } => {
+  // Assign dialogues to layers (auto first, then manual)
+  const assignDialoguesToLayers = (dialogues: Dialogue[]): {
+    layers: Dialogue[][];
+    layerTypes: ('auto' | 'manual')[];
+    layerIndices: number[];  // Store actual layer_index for each layer
+  } => {
     const layers: Dialogue[][] = [];
     const layerTypes: ('auto' | 'manual')[] = [];
+    const layerIndices: number[] = [];
 
     // Separate manual and auto dialogues
     const manualDialogues = dialogues.filter(d => d.layer_index >= 1);
     const autoDialogues = dialogues.filter(d => d.layer_index === 0);
 
-    // First, create manual layers (even if empty)
-    for (const layerIndex of manualLayers) {
-      const arrayIndex = layerIndex - 1;  // layer_index 1 = array index 0
-
-      // Ensure array has enough space
-      while (layers.length <= arrayIndex) {
-        layers.push([]);
-        layerTypes.push('manual');
-      }
-
-      // Add dialogues for this manual layer
-      const dialoguesForLayer = manualDialogues.filter(d => d.layer_index === layerIndex);
-      layers[arrayIndex] = dialoguesForLayer.sort((a, b) => a.start_time - b.start_time);
-    }
-
-    // Auto-assign remaining dialogues (create auto layers as needed)
+    // First, create auto layers (they go on top)
     const sortedAutoDialogues = [...autoDialogues].sort((a, b) => a.start_time - b.start_time);
 
     for (const dialogue of sortedAutoDialogues) {
@@ -228,7 +218,7 @@ export default function TimelinePanel({
       let placed = false;
 
       for (let i = 0; i < layers.length; i++) {
-        if (layerTypes[i] === 'manual') continue; // Skip manual layers
+        if (layerTypes[i] !== 'auto') continue; // Only check auto layers
 
         const layer = layers[i];
         const overlaps = layer.some(d => {
@@ -248,13 +238,22 @@ export default function TimelinePanel({
       if (!placed) {
         layers.push([dialogue]);
         layerTypes.push('auto');
+        layerIndices.push(0);  // Auto layers have layer_index = 0
       }
     }
 
-    return { layers, layerTypes };
+    // Then add manual layers (they go below, in order)
+    for (const layerIndex of manualLayers.sort((a, b) => a - b)) {
+      const dialoguesForLayer = manualDialogues.filter(d => d.layer_index === layerIndex);
+      layers.push(dialoguesForLayer.sort((a, b) => a.start_time - b.start_time));
+      layerTypes.push('manual');
+      layerIndices.push(layerIndex);  // Store actual layer_index
+    }
+
+    return { layers, layerTypes, layerIndices };
   };
 
-  const { layers: dialogueLayers, layerTypes } = assignDialoguesToLayers(dialogues);
+  const { layers: dialogueLayers, layerTypes, layerIndices } = assignDialoguesToLayers(dialogues);
 
   // Calculate total content height (header + objects + dialogue layers + add button)
   const headerHeight = 32; // h-8 = 32px
@@ -476,13 +475,8 @@ export default function TimelinePanel({
               // Calculate new layer index based on the layer type
               let newLayerIndex: number | undefined = undefined;
               if (dialogueDrag.previewLayerIndex !== undefined && dialogueDrag.previewLayerIndex !== dialogueDrag.initialLayerIndex) {
-                const layerType = layerTypes[dialogueDrag.previewLayerIndex];
-                if (layerType === 'auto') {
-                  newLayerIndex = 0; // Auto layer
-                } else {
-                  // Manual layer: calculate actual layer_index
-                  newLayerIndex = manualLayers[dialogueDrag.previewLayerIndex] ?? 0;
-                }
+                // Use layerIndices to get actual layer_index
+                newLayerIndex = layerIndices[dialogueDrag.previewLayerIndex];
               }
 
               await scenesAPI.updateDialogue(sceneId, id, {
@@ -504,13 +498,8 @@ export default function TimelinePanel({
 
           // Handle layer change
           if (dialogueDrag.previewLayerIndex !== undefined && dialogueDrag.previewLayerIndex !== dialogueDrag.initialLayerIndex) {
-            const layerType = layerTypes[dialogueDrag.previewLayerIndex];
-            if (layerType === 'auto') {
-              updates.layerIndex = 0; // Auto layer
-            } else {
-              // Manual layer: calculate actual layer_index
-              updates.layerIndex = manualLayers[dialogueDrag.previewLayerIndex] ?? 0;
-            }
+            // Use layerIndices to get actual layer_index
+            updates.layerIndex = layerIndices[dialogueDrag.previewLayerIndex];
           }
 
           if (Object.keys(updates).length > 0) {
@@ -900,10 +889,12 @@ export default function TimelinePanel({
           <div>
             {dialogueLayers.map((layer, layerIndex) => {
               const layerType = layerTypes[layerIndex];
-              const isManualLayer = layerType === 'manual';
 
-              // Get actual layer_index for manual layers
-              const actualLayerIndex = isManualLayer ? manualLayers[layerIndex] : 0;
+              // Get actual layer_index from layerIndices
+              const actualLayerIndex = layerIndices[layerIndex];
+
+              // Determine if manual layer based on actual layer_index (more reliable)
+              const isManualLayer = actualLayerIndex >= 1;
 
               return (
                 <div
