@@ -54,6 +54,9 @@ export default function SceneEditor() {
   // Undo/Redo system
   const { pushAction, undo, redo, canUndo, canRedo } = useUndoRedo();
 
+  // Shortcuts tooltip visibility
+  const [showShortcuts, setShowShortcuts] = useState(true);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1440,24 +1443,33 @@ export default function SceneEditor() {
                     ↷
                   </button>
                   <div className="border-l border-gray-600 h-6 mx-1"></div>
-                  <div className="text-xs font-semibold text-white">단축키</div>
+                  <button
+                    onClick={() => setShowShortcuts(!showShortcuts)}
+                    className="text-xs font-semibold text-white hover:text-blue-400 transition-colors cursor-pointer flex items-center gap-1"
+                    title={showShortcuts ? "단축키 숨기기" : "단축키 보기"}
+                  >
+                    <span>단축키</span>
+                    <span className="text-gray-500">{showShortcuts ? '▼' : '▶'}</span>
+                  </button>
                 </div>
               </div>
 
               {/* Keyboard Shortcuts - Scrollable */}
-              <div className="px-3 py-2 text-xs text-gray-400 space-y-0.5">
-                <div><kbd className="px-1 bg-gray-700 rounded text-white">Space</kbd> 재생/일시정지</div>
-                <div><kbd className="px-1 bg-gray-700 rounded text-white">K</kbd> 키프레임 추가</div>
-                <div><kbd className="px-1 bg-gray-700 rounded text-white">Delete</kbd> 삭제</div>
-                <div><kbd className="px-1 bg-gray-700 rounded text-white">Ctrl+클릭</kbd> 다중 선택</div>
-                <div><kbd className="px-1 bg-gray-700 rounded text-white">Shift+클릭</kbd> 범위 선택</div>
-                <div><kbd className="px-1 bg-gray-700 rounded text-white">Ctrl+C</kbd> 복사</div>
-                <div><kbd className="px-1 bg-gray-700 rounded text-white">Ctrl+V</kbd> 붙여넣기</div>
-                <div><kbd className="px-1 bg-gray-700 rounded text-white">Ctrl+D</kbd> 복제</div>
-                <div><kbd className="px-1 bg-gray-700 rounded text-white">Ctrl+Z</kbd> 실행 취소</div>
-                <div><kbd className="px-1 bg-gray-700 rounded text-white">Ctrl+Shift+Z</kbd> 다시 실행</div>
-                <div><kbd className="px-1 bg-gray-700 rounded text-white">Esc</kbd> 선택 해제</div>
-              </div>
+              {showShortcuts && (
+                <div className="px-3 py-2 text-xs text-gray-400 space-y-0.5">
+                  <div><kbd className="px-1 bg-gray-700 rounded text-white">Space</kbd> 재생/일시정지</div>
+                  <div><kbd className="px-1 bg-gray-700 rounded text-white">K</kbd> 키프레임 추가</div>
+                  <div><kbd className="px-1 bg-gray-700 rounded text-white">Delete</kbd> 삭제</div>
+                  <div><kbd className="px-1 bg-gray-700 rounded text-white">Ctrl+클릭</kbd> 다중 선택</div>
+                  <div><kbd className="px-1 bg-gray-700 rounded text-white">Shift+클릭</kbd> 범위 선택</div>
+                  <div><kbd className="px-1 bg-gray-700 rounded text-white">Ctrl+C</kbd> 복사</div>
+                  <div><kbd className="px-1 bg-gray-700 rounded text-white">Ctrl+V</kbd> 붙여넣기</div>
+                  <div><kbd className="px-1 bg-gray-700 rounded text-white">Ctrl+D</kbd> 복제</div>
+                  <div><kbd className="px-1 bg-gray-700 rounded text-white">Ctrl+Z</kbd> 실행 취소</div>
+                  <div><kbd className="px-1 bg-gray-700 rounded text-white">Ctrl+Shift+Z</kbd> 다시 실행</div>
+                  <div><kbd className="px-1 bg-gray-700 rounded text-white">Esc</kbd> 선택 해제</div>
+                </div>
+              )}
             </div>
           </>
         ) : (
