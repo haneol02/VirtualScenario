@@ -237,9 +237,9 @@ export default function InspectorPanel({
         parseFloat(localRotation[2]) || 0,
       ];
       const scale: [number, number, number] = [
-        Math.max(0.1, parseFloat(localScale[0]) || 0.1),
-        Math.max(0.1, parseFloat(localScale[1]) || 0.1),
-        Math.max(0.1, parseFloat(localScale[2]) || 0.1),
+        Math.max(0.0001, parseFloat(localScale[0]) || 0.0001),
+        Math.max(0.0001, parseFloat(localScale[1]) || 0.0001),
+        Math.max(0.0001, parseFloat(localScale[2]) || 0.0001),
       ];
 
       const transform = { position, rotation, scale };
@@ -738,10 +738,10 @@ export default function InspectorPanel({
                       setLocalScale(newScale);
                     }}
                     onBlur={(e) => {
-                      // 포커스 해제 시 빈 문자열이거나 0.001 미만이면 0.001로 설정
-                      if (e.target.value === '' || parseFloat(e.target.value) < 0.001) {
+                      // 포커스 해제 시 빈 문자열이거나 0.0001 미만이면 0.0001로 설정
+                      if (e.target.value === '' || parseFloat(e.target.value) < 0.0001) {
                         const newScale = [...localScale] as [string, string, string];
-                        newScale[idx] = '0.001';
+                        newScale[idx] = '0.0001';
                         setLocalScale(newScale);
                       }
                       handleTransformBlur();

@@ -1689,8 +1689,8 @@ export default function SceneEditor() {
                                     scale: [newVal, obj.scale_y, obj.scale_z]
                                   });
                                 }}
-                                step="0.1"
-                                min="0.1"
+                                step="0.0001"
+                                min="0.0001"
                                 className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500"
                                 placeholder="X"
                               />
@@ -1705,8 +1705,8 @@ export default function SceneEditor() {
                                     scale: [obj.scale_x, newVal, obj.scale_z]
                                   });
                                 }}
-                                step="0.1"
-                                min="0.1"
+                                step="0.0001"
+                                min="0.0001"
                                 className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500"
                                 placeholder="Y"
                               />
@@ -1721,8 +1721,8 @@ export default function SceneEditor() {
                                     scale: [obj.scale_x, obj.scale_y, newVal]
                                   });
                                 }}
-                                step="0.1"
-                                min="0.1"
+                                step="0.0001"
+                                min="0.0001"
                                 className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500"
                                 placeholder="Z"
                               />
