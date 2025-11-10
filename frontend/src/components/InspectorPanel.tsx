@@ -738,10 +738,10 @@ export default function InspectorPanel({
                       setLocalScale(newScale);
                     }}
                     onBlur={(e) => {
-                      // 포커스 해제 시 빈 문자열이거나 0.1 미만이면 0.1로 설정
-                      if (e.target.value === '' || parseFloat(e.target.value) < 0.1) {
+                      // 포커스 해제 시 빈 문자열이거나 0.001 미만이면 0.001로 설정
+                      if (e.target.value === '' || parseFloat(e.target.value) < 0.001) {
                         const newScale = [...localScale] as [string, string, string];
-                        newScale[idx] = '0.1';
+                        newScale[idx] = '0.001';
                         setLocalScale(newScale);
                       }
                       handleTransformBlur();
@@ -751,8 +751,8 @@ export default function InspectorPanel({
                         e.currentTarget.blur();
                       }
                     }}
-                    step="0.1"
-                    min="0.1"
+                    step="0.001"
+                    min="0.001"
                     className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
                   />
                 </div>
