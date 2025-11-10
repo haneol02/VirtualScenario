@@ -876,6 +876,7 @@ export class DatabaseManager {
   updateAsset(id: string, data: {
     name?: string;
     category?: string;
+    metadata?: string;
   }) {
     const fields: string[] = [];
     const values: any[] = [];
@@ -887,6 +888,10 @@ export class DatabaseManager {
     if (data.category !== undefined && data.category !== null) {
       fields.push('category = ?');
       values.push(data.category);
+    }
+    if (data.metadata !== undefined) {
+      fields.push('metadata = ?');
+      values.push(data.metadata);
     }
 
     // If no fields to update, just return the current asset
