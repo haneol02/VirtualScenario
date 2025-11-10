@@ -140,10 +140,46 @@ export default function TimelinePanel({
   const pixelsPerSecond = 50 * zoom;
   const timelineWidth = maxTime * pixelsPerSecond;
 
-  // Calculate total content height (header + objects + dialogues)
+  // Auto-assign dialogues to layers based on time overlap
+  const assignDialoguesToLayers = (dialogues: Dialogue[]): Dialogue[][] => {
+    const layers: Dialogue[][] = [];
+
+    // Sort dialogues by start time
+    const sortedDialogues = [...dialogues].sort((a, b) => a.start_time - b.start_time);
+
+    for (const dialogue of sortedDialogues) {
+      // Find a layer where this dialogue doesn't overlap
+      let placed = false;
+      for (const layer of layers) {
+        const overlaps = layer.some(d => {
+          const dEnd = d.start_time + d.duration;
+          const dialogueEnd = dialogue.start_time + dialogue.duration;
+          // Check if they overlap (not if one ends exactly when other starts)
+          return !(dialogue.start_time >= dEnd || dialogueEnd <= d.start_time);
+        });
+
+        if (!overlaps) {
+          layer.push(dialogue);
+          placed = true;
+          break;
+        }
+      }
+
+      // If no suitable layer found, create a new one
+      if (!placed) {
+        layers.push([dialogue]);
+      }
+    }
+
+    return layers;
+  };
+
+  const dialogueLayers = assignDialoguesToLayers(dialogues);
+
+  // Calculate total content height (header + objects + dialogue layers)
   const headerHeight = 32; // h-8 = 32px
   const trackHeight = 56; // h-14 = 56px
-  const totalContentHeight = headerHeight + (objects.length * trackHeight) + (dialogues.length * trackHeight);
+  const totalContentHeight = headerHeight + (objects.length * trackHeight) + (dialogueLayers.length * trackHeight);
 
   // Generate time markers (every second)
   const timeMarkers = [];
@@ -685,56 +721,33 @@ export default function TimelinePanel({
             })}
           </div>
 
-          {/* Dialogue Tracks Section */}
+          {/* Dialogue Layer Tracks Section */}
           <div>
-            {dialogues.map((dlg, index) => {
-              const speaker = dlg.speaker_name || (dlg.object_id ? objects.find(obj => obj.id === dlg.object_id)?.name : null);
-              const displayText = speaker ? `${speaker}: ${dlg.text}` : dlg.text;
-
-              return (
-                <div
-                  key={dlg.id}
-                  draggable={!isPlaying}
-                  onDragStart={(e) => !isPlaying && handleDragStart(e, 'dialogue', dlg.id, index)}
-                  onDragOver={(e) => !isPlaying && handleDragOver(e, 'dialogue', index)}
-                  onDragEnd={handleDragEnd}
-                  onClick={() => !isPlaying && onSelectDialogue(dlg.id)}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    if (isPlaying) return;
-                    const pos = adjustContextMenuPosition(e.clientX, e.clientY);
-                    setContextMenu({
-                      x: pos.x,
-                      y: pos.y,
-                      dialogueId: dlg.id,
-                      time: currentTime,
-                    });
-                  }}
-                  className={`h-14 px-3 py-1.5 text-sm border-b border-gray-750 transition-colors ${
-                    isPlaying ? 'cursor-not-allowed' : 'cursor-move'
-                  } ${
-                    selectedDialogueId === dlg.id
-                      ? 'bg-green-700 text-white'
-                      : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
-                  } ${draggedItem?.type === 'dialogue' && draggedItem.index === index ? 'opacity-50' : ''} ${
-                    dragOverIndex === index && draggedItem?.type === 'dialogue' ? 'border-t-2 border-t-green-400' : ''
-                  }`}
-                >
-                  {/* Dialogue Text */}
-                  <div className="text-sm font-medium mb-1 leading-tight truncate">{displayText}</div>
-
-                  {/* Time + Badge Row */}
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-400">
-                      {dlg.start_time.toFixed(1)}s - {(dlg.start_time + dlg.duration).toFixed(1)}s
-                    </span>
-                    <span className="px-1 py-0.5 bg-green-600 text-white text-[10px] font-semibold rounded flex-shrink-0">
-                      대화/자막
-                    </span>
-                  </div>
+            {dialogueLayers.map((layer, layerIndex) => (
+              <div
+                key={`layer-${layerIndex}`}
+                className="h-14 px-3 py-1.5 text-sm border-b border-gray-750 transition-colors bg-gray-800 hover:bg-gray-750"
+              >
+                {/* Layer Info */}
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-medium text-gray-300">
+                    대화/자막 레이어 {layerIndex + 1}
+                  </span>
+                  <span className="px-1.5 py-0.5 bg-green-600 text-white text-[10px] font-semibold rounded">
+                    {layer.length}개
+                  </span>
                 </div>
-              );
-            })}
+                {/* Layer time range */}
+                <div className="text-xs text-gray-500">
+                  {layer.length > 0 && (
+                    <>
+                      {Math.min(...layer.map(d => d.start_time)).toFixed(1)}s -
+                      {Math.max(...layer.map(d => d.start_time + d.duration)).toFixed(1)}s
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -847,60 +860,62 @@ export default function TimelinePanel({
             })}
           </div>
 
-          {/* Dialogue Tracks */}
+          {/* Dialogue Layer Tracks */}
           <div>
-            {dialogues.map((dlg) => {
-              // Use preview values if this dialogue is being dragged
-              const isDragging = dialogueDrag?.dialogueId === dlg.id;
-              const displayStartTime = isDragging && dialogueDrag.previewStartTime !== undefined
-                ? dialogueDrag.previewStartTime
-                : dlg.start_time;
-              const displayDuration = isDragging && dialogueDrag.previewDuration !== undefined
-                ? dialogueDrag.previewDuration
-                : dlg.duration;
+            {dialogueLayers.map((layer, layerIndex) => (
+              <div
+                key={`layer-track-${layerIndex}`}
+                className="h-14 border-b border-gray-750 relative"
+                style={{ width: `${timelineWidth}px` }}
+              >
+                {/* Render all dialogues in this layer */}
+                {layer.map((dlg) => {
+                  // Use preview values if this dialogue is being dragged
+                  const isDragging = dialogueDrag?.dialogueId === dlg.id;
+                  const displayStartTime = isDragging && dialogueDrag.previewStartTime !== undefined
+                    ? dialogueDrag.previewStartTime
+                    : dlg.start_time;
+                  const displayDuration = isDragging && dialogueDrag.previewDuration !== undefined
+                    ? dialogueDrag.previewDuration
+                    : dlg.duration;
 
-              const startPx = displayStartTime * pixelsPerSecond;
-              const widthPx = displayDuration * pixelsPerSecond;
+                  const startPx = displayStartTime * pixelsPerSecond;
+                  const widthPx = displayDuration * pixelsPerSecond;
 
-              return (
-                <div
-                  key={dlg.id}
-                  className="h-14 border-b border-gray-750 relative"
-                  style={{ width: `${timelineWidth}px` }}
-                >
-                  {/* Dialogue Bar */}
-                  <div
-                    className={`absolute top-2 h-10 rounded timeline-interactive group ${
-                      selectedDialogueId === dlg.id
-                        ? 'bg-green-600 border-2 border-green-400'
-                        : 'bg-green-700 border-2 border-green-800 hover:bg-green-600 hover:shadow-lg'
-                    } ${isDragging ? 'opacity-80' : 'transition-all'} ${
-                      isPlaying ? 'pointer-events-none opacity-50' : ''
-                    }`}
-                    style={{
-                      left: `${startPx}px`,
-                      width: `${widthPx}px`,
-                    }}
-                    onClick={(e) => {
-                      if (isPlaying) return;
-                      e.stopPropagation();
-                      onSelectDialogue(dlg.id);
-                    }}
-                    onContextMenu={(e) => {
-                      if (isPlaying) return;
-                      e.preventDefault();
-                      e.stopPropagation();
-                      const pos = adjustContextMenuPosition(e.clientX, e.clientY);
-                      setContextMenu({
-                        x: pos.x,
-                        y: pos.y,
-                        dialogueId: dlg.id,
-                        time: dlg.start_time,
-                      });
-                    }}
-                    onMouseDown={(e) => !isPlaying && e.stopPropagation()}
-                    title={dlg.text}
-                  >
+                  return (
+                    <div
+                      key={dlg.id}
+                      className={`absolute top-2 h-10 rounded timeline-interactive group ${
+                        selectedDialogueId === dlg.id
+                          ? 'bg-green-600 border-2 border-green-400'
+                          : 'bg-green-700 border-2 border-green-800 hover:bg-green-600 hover:shadow-lg'
+                      } ${isDragging ? 'opacity-80' : 'transition-all'} ${
+                        isPlaying ? 'pointer-events-none opacity-50' : ''
+                      }`}
+                      style={{
+                        left: `${startPx}px`,
+                        width: `${widthPx}px`,
+                      }}
+                      onClick={(e) => {
+                        if (isPlaying) return;
+                        e.stopPropagation();
+                        onSelectDialogue(dlg.id);
+                      }}
+                      onContextMenu={(e) => {
+                        if (isPlaying) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const pos = adjustContextMenuPosition(e.clientX, e.clientY);
+                        setContextMenu({
+                          x: pos.x,
+                          y: pos.y,
+                          dialogueId: dlg.id,
+                          time: dlg.start_time,
+                        });
+                      }}
+                      onMouseDown={(e) => !isPlaying && e.stopPropagation()}
+                      title={dlg.text}
+                    >
                     {/* Left resize handle */}
                     <div
                       className={`absolute left-0 top-0 h-full w-2 hover:bg-green-400 opacity-0 group-hover:opacity-100 transition-opacity ${
@@ -931,9 +946,10 @@ export default function TimelinePanel({
                       onClick={(e) => e.stopPropagation()}
                     />
                   </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            ))}
           </div>
 
           {/* Playhead */}
