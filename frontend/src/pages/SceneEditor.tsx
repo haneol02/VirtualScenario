@@ -1361,19 +1361,16 @@ export default function SceneEditor() {
               />
             </div>
 
-            {/* Playing Warning & Overlay */}
+            {/* Playing Warning */}
             {isPlaying && (
-              <>
-                {/* Transparent overlay to block interaction */}
-                <div className="absolute inset-0 z-40 bg-transparent cursor-not-allowed" />
-
-                {/* Warning message */}
-                <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-yellow-500 bg-opacity-50 text-black px-6 py-3 rounded-lg shadow-2xl z-[10000] font-semibold flex items-center gap-2 select-none pointer-events-none"
-                  onDragStart={(e) => e.preventDefault()}>
-                  <span className="text-2xl">⚠️</span>
-                  <span>재생 중에는 편집할 수 없습니다</span>
+              <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-yellow-500 bg-opacity-90 text-black px-6 py-3 rounded-lg shadow-2xl z-[10000] font-semibold flex items-center gap-2 select-none pointer-events-none"
+                onDragStart={(e) => e.preventDefault()}>
+                <span className="text-2xl">⚠️</span>
+                <div className="flex flex-col">
+                  <span>재생 중 편집 제한</span>
+                  <span className="text-xs font-normal">카메라 시점 전환만 가능합니다</span>
                 </div>
-              </>
+              </div>
             )}
 
             {/* Dialogue Subtitles */}

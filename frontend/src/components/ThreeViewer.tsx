@@ -192,7 +192,14 @@ function LightObject({
 
       {/* Helper mesh to visualize light position (except ambient) */}
       {lightType !== 'ambient' && (
-        <mesh position={position} onClick={onSelect}>
+        <mesh position={position} onClick={(e) => {
+          e.stopPropagation();
+          // Prevent selection during playback
+          if (isPlaying) {
+            return;
+          }
+          onSelect();
+        }}>
           <sphereGeometry args={[0.2, 16, 16]} />
           <meshBasicMaterial color={isSelected ? '#ffff00' : color} wireframe />
         </mesh>
@@ -451,6 +458,10 @@ function SceneObjectMesh({
           scale={initialTransform.scale as [number, number, number]}
           onClick={(e) => {
             e.stopPropagation();
+            // Prevent selection during playback
+            if (isPlaying) {
+              return;
+            }
             // Prevent selection if object is locked
             if ('locked' in obj && obj.locked === 1) {
               return;
@@ -503,6 +514,7 @@ function SceneObjectMesh({
               isSelected={isSelected}
               onSelect={onSelect}
               obj={obj}
+              isPlaying={isPlaying}
             />
           </ErrorBoundary>
         </Suspense>
@@ -517,6 +529,7 @@ function SceneObjectMesh({
           isSelected={isSelected}
           onSelect={onSelect}
           obj={obj}
+          isPlaying={isPlaying}
         />
       ) : (
         // Render Primitive
@@ -531,6 +544,10 @@ function SceneObjectMesh({
           scale={initialTransform.scale as [number, number, number]}
           onClick={(e) => {
             e.stopPropagation();
+            // Prevent selection during playback
+            if (isPlaying) {
+              return;
+            }
             // Prevent selection if object is locked
             if ('locked' in obj && obj.locked === 1) {
               return;
@@ -648,7 +665,8 @@ function ImagePlane({
   initialTransform,
   isSelected,
   onSelect,
-  obj
+  obj,
+  isPlaying
 }: {
   meshRef: any;
   imagePath: string;
@@ -656,6 +674,7 @@ function ImagePlane({
   isSelected: boolean;
   onSelect: () => void;
   obj: SceneObject | BackgroundObject;
+  isPlaying?: boolean;
 }) {
   const texture = useLoader(THREE.TextureLoader, imagePath);
 
@@ -671,6 +690,10 @@ function ImagePlane({
       scale={initialTransform.scale as [number, number, number]}
       onClick={(e) => {
         e.stopPropagation();
+        // Prevent selection during playback
+        if (isPlaying) {
+          return;
+        }
         // Prevent selection if object is locked
         if ('locked' in obj && obj.locked === 1) {
           return;
@@ -727,7 +750,8 @@ function Text3DObject({
   initialTransform,
   isSelected,
   onSelect,
-  obj
+  obj,
+  isPlaying
 }: {
   meshRef: any;
   textContent: string;
@@ -737,6 +761,7 @@ function Text3DObject({
   isSelected: boolean;
   onSelect: () => void;
   obj: SceneObject | BackgroundObject;
+  isPlaying?: boolean;
 }) {
   return (
     <group
@@ -750,6 +775,10 @@ function Text3DObject({
       scale={initialTransform.scale as [number, number, number]}
       onClick={(e) => {
         e.stopPropagation();
+        // Prevent selection during playback
+        if (isPlaying) {
+          return;
+        }
         // Prevent selection if object is locked
         if ('locked' in obj && obj.locked === 1) {
           return;
