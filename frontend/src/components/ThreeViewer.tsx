@@ -357,9 +357,26 @@ function SceneObjectMesh({
             THREE.MathUtils.lerp(prevScale[2], nextScale[2], t)
           );
 
-          // Apply visible and show_nametag from prevKeyframe (no interpolation, discrete values)
-          const visibleValue = prevKeyframe.visible !== undefined ? prevKeyframe.visible : 1;
-          const nametagValue = prevKeyframe.show_nametag !== undefined ? prevKeyframe.show_nametag : 1;
+          // Apply visible and show_nametag (no interpolation, discrete values)
+          // Find the most recent keyframe with visible/show_nametag values
+          let visibleValue = 1;
+          let nametagValue = 1;
+
+          // Search backwards from current keyframe for visible value
+          for (let i = keyframes.indexOf(prevKeyframe); i >= 0; i--) {
+            if (keyframes[i].visible !== undefined) {
+              visibleValue = keyframes[i].visible;
+              break;
+            }
+          }
+
+          // Search backwards from current keyframe for show_nametag value
+          for (let i = keyframes.indexOf(prevKeyframe); i >= 0; i--) {
+            if (keyframes[i].show_nametag !== undefined) {
+              nametagValue = keyframes[i].show_nametag;
+              break;
+            }
+          }
 
           meshRef.current.visible = visibleValue === 1;
           setCurrentShowNametag(nametagValue);
