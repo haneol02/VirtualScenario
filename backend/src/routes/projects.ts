@@ -68,6 +68,17 @@ export function createProjectsRouter(db: DatabaseManager) {
     }
   });
 
+  // POST /api/projects/:id/duplicate - 프로젝트 복제
+  router.post('/:id/duplicate', (req, res) => {
+    try {
+      const { title } = req.body;
+      const newProject = db.duplicateProject(req.params.id, title);
+      res.status(201).json(newProject);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // GET /api/projects/:id/scenes - 프로젝트의 씬 목록
   router.get('/:id/scenes', (req, res) => {
     try {

@@ -22,6 +22,7 @@ interface ThreeViewerProps {
   currentTime?: number;  // Current playback time for animation
   isPlaying?: boolean;  // Is timeline playing
   gridSize?: { width: number; depth: number };  // Custom grid size
+  backgroundObjectIds?: string[];  // IDs of background objects (non-draggable)
   onObjectSelect?: (objectId: string) => void;
   onObjectTransform?: (objectId: string, transform: {
     position: [number, number, number];
@@ -67,7 +68,8 @@ function LightObject({
   onTransformEnd,
   asset,
   isPlaying,
-  onLightCreated
+  onLightCreated,
+  isBackgroundObject
 }: {
   obj: SceneObject | BackgroundObject;
   isSelected: boolean;
@@ -77,6 +79,7 @@ function LightObject({
   onTransformEnd?: (transform: any) => void;
   isPlaying?: boolean;
   onLightCreated?: (objectId: string, light: THREE.Light) => void;
+  isBackgroundObject?: boolean;
 }) {
   const lightRef = useRef<THREE.Light>(null);
   const transformRef = useRef<any>(null);
@@ -221,8 +224,8 @@ function LightObject({
         </Html>
       )}
 
-      {/* TransformControls for selected light (only translate mode) */}
-      {isSelected && lightType !== 'ambient' && !isPlaying && lightRef.current && (
+      {/* TransformControls for selected light (only translate mode) - 배경 오브젝트는 드래그 불가 */}
+      {isSelected && lightType !== 'ambient' && !isPlaying && !isBackgroundObject && lightRef.current && (
         <TransformControls
           ref={transformRef}
           object={lightRef.current}
@@ -244,7 +247,8 @@ function SceneObjectMesh({
   asset,
   currentTime,
   isPlaying,
-  onMeshCreated
+  onMeshCreated,
+  isBackgroundObject
 }: {
   obj: SceneObject | BackgroundObject;
   isSelected: boolean;
@@ -255,6 +259,7 @@ function SceneObjectMesh({
   currentTime?: number;
   isPlaying?: boolean;
   onMeshCreated?: (objectId: string, mesh: THREE.Mesh) => void;
+  isBackgroundObject?: boolean;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const transformRef = useRef<any>(null);
@@ -542,13 +547,13 @@ function SceneObjectMesh({
         </mesh>
       )}
 
-      {/* TransformControls */}
-      {isSelected && meshRef.current && !isPlaying && (
+      {/* TransformControls - 배경 오브젝트는 드래그 불가 */}
+      {isSelected && meshRef.current && !isPlaying && !isBackgroundObject && (
         <TransformControls
           ref={transformRef}
           object={meshRef.current}
           mode={transformMode}
-          enabled={!isPlaying}
+          enabled={!isPlaying && !isBackgroundObject}
           onObjectChange={() => {
             if (meshRef.current) {
               // 변환 중 실시간 업데이트는 하지 않음 (성능 문제)
@@ -846,6 +851,7 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
   currentTime,
   isPlaying,
   gridSize = { width: 20, depth: 20 },
+  backgroundObjectIds = [],
   onObjectSelect,
   onObjectTransform
 }, ref) => {
@@ -931,6 +937,7 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
           .map((obj) => {
             const asset = getAssetForObject(obj);
             const isLight = obj.model_id?.startsWith('light_');
+            const isBackgroundObject = backgroundObjectIds.includes(obj.id);
 
             // Render light objects with LightObject component
             if (isLight) {
@@ -945,6 +952,7 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
                   asset={asset}
                   isPlaying={isPlaying}
                   onLightCreated={handleMeshCreated as any}
+                  isBackgroundObject={isBackgroundObject}
                 />
               );
             }
@@ -962,6 +970,7 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
                 currentTime={currentTime}
                 isPlaying={isPlaying}
                 onMeshCreated={handleMeshCreated}
+                isBackgroundObject={isBackgroundObject}
               />
             );
           })}
@@ -987,58 +996,61 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
 
       {/* Transform 모드 전환 버튼 */}
       {selectedObjectId && (
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-gray-900 bg-opacity-90 rounded-lg p-2 flex gap-2 z-10">
+        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-gray-900 bg-opacity-90 rounded-lg p-1.5 sm:p-2 flex gap-1 sm:gap-2 z-10 max-w-[95vw]">
           <button
             onClick={() => setTransformMode('translate')}
-            className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+            className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
               transformMode === 'translate'
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
           >
-            📍 이동 (G)
+            <span className="hidden sm:inline">📍 이동 (G)</span>
+            <span className="sm:hidden">📍</span>
           </button>
           <button
             onClick={() => setTransformMode('rotate')}
-            className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+            className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
               transformMode === 'rotate'
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
           >
-            🔄 회전 (R)
+            <span className="hidden sm:inline">🔄 회전 (R)</span>
+            <span className="sm:hidden">🔄</span>
           </button>
           <button
             onClick={() => setTransformMode('scale')}
-            className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+            className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
               transformMode === 'scale'
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
           >
-            📏 스케일 (S)
+            <span className="hidden sm:inline">📏 스케일 (S)</span>
+            <span className="sm:hidden">📏</span>
           </button>
         </div>
       )}
 
-      {/* 안내 텍스트 */}
-      <div className="absolute bottom-4 left-4 bg-gray-900 bg-opacity-75 text-white p-3 rounded-lg text-xs pointer-events-none select-none z-10">
-        <p className="mb-1">🖱️ <strong>마우스 좌클릭</strong>: 회전</p>
-        <p className="mb-1">🖱️ <strong>마우스 우클릭</strong>: 팬</p>
-        <p className="mb-1">🖱️ <strong>마우스 휠</strong>: 줌</p>
+      {/* 안내 텍스트 - 작은 화면에서는 숨김 */}
+      <div className="hidden lg:block absolute bottom-2 sm:bottom-4 left-2 sm:left-4 bg-gray-900 bg-opacity-75 text-white p-2 sm:p-3 rounded-lg text-xs pointer-events-none select-none z-10 max-w-[200px]">
+        <p className="mb-1">🖱️ <strong>좌클릭</strong>: 회전</p>
+        <p className="mb-1">🖱️ <strong>우클릭</strong>: 팬</p>
+        <p className="mb-1">🖱️ <strong>휠</strong>: 줌</p>
         {selectedObjectId && (
           <>
             <hr className="my-2 border-gray-600" />
-            <p className="mb-1">⌨️ <strong>G</strong>: 이동 모드</p>
-            <p className="mb-1">⌨️ <strong>R</strong>: 회전 모드</p>
-            <p>⌨️ <strong>S</strong>: 스케일 모드</p>
+            <p className="mb-1">⌨️ <strong>G</strong>: 이동</p>
+            <p className="mb-1">⌨️ <strong>R</strong>: 회전</p>
+            <p>⌨️ <strong>S</strong>: 스케일</p>
           </>
         )}
       </div>
 
       {/* 객체 수 표시 */}
-      <div className="absolute top-4 right-4 bg-gray-900 bg-opacity-75 text-white px-4 py-2 rounded-lg text-sm pointer-events-none select-none z-10">
-        📦 오브젝트: <strong>{objects.length}</strong>개
+      <div className="absolute top-2 sm:top-4 right-2 sm:right-4 bg-gray-900 bg-opacity-75 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-xs sm:text-sm pointer-events-none select-none z-10 whitespace-nowrap">
+        📦 <span className="hidden sm:inline">오브젝트: </span><strong>{objects.length}</strong><span className="hidden sm:inline">개</span>
       </div>
     </div>
   );

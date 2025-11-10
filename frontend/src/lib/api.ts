@@ -141,6 +141,9 @@ export const projectsAPI = {
   delete: (id: string) =>
     api.delete(`/projects/${id}`).then(res => res.data),
 
+  duplicate: (id: string, title?: string) =>
+    api.post<Project>(`/projects/${id}/duplicate`, { title }).then(res => res.data),
+
   export: (id: string) =>
     api.get(`/projects/${id}/export`).then(res => res.data),
 };

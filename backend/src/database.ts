@@ -225,6 +225,104 @@ export class DatabaseManager {
     return stmt.run(id);
   }
 
+  duplicateProject(id: string, newTitle?: string) {
+    // Get original project
+    const originalProject: any = this.getProject(id);
+    if (!originalProject) {
+      throw new Error('Project not found');
+    }
+
+    // Create new project with new ID
+    const newProjectId = `project_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const title = newTitle || `${originalProject.title} (복사본)`;
+
+    this.createProject({
+      id: newProjectId,
+      title,
+      description: originalProject.description,
+      version: originalProject.version
+    });
+
+    // Get all scenes from original project
+    const originalScenes: any[] = this.getScenes(id);
+
+    // Duplicate each scene
+    for (const originalScene of originalScenes) {
+      const newSceneId = `scene_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+      // Create new scene
+      this.createScene({
+        id: newSceneId,
+        projectId: newProjectId,
+        order: originalScene.order_index,
+        title: originalScene.title,
+        description: originalScene.description,
+        participantCount: originalScene.participant_count
+      });
+
+      // Update background_map_id and duration if exists
+      if (originalScene.background_map_id || originalScene.duration) {
+        this.updateScene(newSceneId, {
+          backgroundMapId: originalScene.background_map_id,
+          duration: originalScene.duration
+        });
+      }
+
+      // Duplicate scene objects
+      const originalObjects: any[] = this.getSceneObjects(originalScene.id);
+      for (const originalObject of originalObjects) {
+        const newObjectId = `object_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+        this.createSceneObject({
+          id: newObjectId,
+          sceneId: newSceneId,
+          type: originalObject.type,
+          name: originalObject.name,
+          assetId: originalObject.model_id,
+          color: originalObject.color,
+          transform: {
+            position: [originalObject.position_x, originalObject.position_y, originalObject.position_z],
+            rotation: [originalObject.rotation_x, originalObject.rotation_y, originalObject.rotation_z],
+            scale: [originalObject.scale_x, originalObject.scale_y, originalObject.scale_z]
+          },
+          pathData: originalObject.path_data ? JSON.parse(originalObject.path_data) : null,
+          metadata: originalObject.metadata ? JSON.parse(originalObject.metadata) : null
+        });
+
+        // Update additional fields (show_nametag, visible, locked)
+        this.updateSceneObject(newObjectId, {
+          showNametag: originalObject.show_nametag,
+          visible: originalObject.visible,
+          locked: originalObject.locked
+        });
+      }
+
+      // Duplicate dialogues
+      const originalDialogues: any[] = this.getDialogues(originalScene.id);
+      for (const originalDialogue of originalDialogues) {
+        const newDialogueId = `dialogue_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+        this.createDialogue({
+          id: newDialogueId,
+          sceneId: newSceneId,
+          objectId: null, // Will need to map object IDs if needed
+          text: originalDialogue.text,
+          startTime: originalDialogue.start_time,
+          duration: originalDialogue.duration,
+          speakerName: originalDialogue.speaker_name
+        });
+
+        // Update order_index and layer_index
+        this.updateDialogue(newDialogueId, {
+          orderIndex: originalDialogue.order_index,
+          layerIndex: originalDialogue.layer_index
+        });
+      }
+    }
+
+    return this.getProject(newProjectId);
+  }
+
   // Scenes
   getScenes(projectId: string) {
     return this.db
