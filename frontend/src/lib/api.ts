@@ -1,6 +1,21 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:3001/api';
+// Dynamically determine API URL based on current hostname
+// - In development: uses the hostname of the frontend (localhost or external IP)
+// - In production: you can override with VITE_API_URL environment variable
+const getApiBaseUrl = () => {
+  // Check for environment variable override
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+
+  // Use current hostname with port 3001
+  const hostname = window.location.hostname;
+  const protocol = window.location.protocol;
+  return `${protocol}//${hostname}:3001/api`;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,
