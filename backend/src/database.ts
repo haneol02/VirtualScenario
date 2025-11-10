@@ -121,6 +121,21 @@ export class DatabaseManager {
         console.error('Migration error:', error);
       }
     }
+
+    // Check if grid_size column exists in background_maps
+    const backgroundMapsInfo = this.db.pragma('table_info(background_maps)') as any[];
+    const hasGridSize = backgroundMapsInfo.some((col: any) => col.name === 'grid_size');
+
+    if (!hasGridSize) {
+      console.log('Running migration: add_grid_size_column...');
+      try {
+        this.db.exec('ALTER TABLE background_maps ADD COLUMN grid_size TEXT DEFAULT \'{"width": 20, "depth": 20}\'');
+        this.db.exec('UPDATE background_maps SET grid_size = \'{"width": 20, "depth": 20}\' WHERE grid_size IS NULL');
+        console.log('✅ Migration completed: grid_size field added to background_maps');
+      } catch (error) {
+        console.error('Migration error:', error);
+      }
+    }
   }
 
   // Projects
@@ -443,15 +458,16 @@ export class DatabaseManager {
 
   createBackgroundMap(data: any) {
     const stmt = this.db.prepare(`
-      INSERT INTO background_maps (id, name, description, icon, background_image_path)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO background_maps (id, name, description, icon, background_image_path, grid_size)
+      VALUES (?, ?, ?, ?, ?, ?)
     `);
     return stmt.run(
       data.id,
       data.name,
       data.description || null,
       data.icon || null,
-      data.backgroundImagePath || null
+      data.backgroundImagePath || null,
+      data.gridSize || '{"width": 20, "depth": 20}'
     );
   }
 
@@ -474,6 +490,10 @@ export class DatabaseManager {
     if (data.backgroundImagePath !== undefined) {
       fields.push('background_image_path = ?');
       values.push(data.backgroundImagePath);
+    }
+    if (data.gridSize !== undefined) {
+      fields.push('grid_size = ?');
+      values.push(data.gridSize);
     }
 
     if (fields.length === 0) return;

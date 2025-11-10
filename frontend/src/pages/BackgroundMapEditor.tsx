@@ -355,6 +355,96 @@ export default function BackgroundMapEditor() {
               </select>
             </div>
 
+            {/* Grid Size Settings */}
+            {selectedMap && (
+              <div className="p-4 border-b border-gray-700">
+                <h3 className="text-sm font-semibold mb-3">맵 크기 (그리드)</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">가로 (Width)</label>
+                    <input
+                      type="number"
+                      min="5"
+                      max="200"
+                      value={
+                        selectedMap.grid_size
+                          ? JSON.parse(selectedMap.grid_size).width
+                          : 20
+                      }
+                      onChange={async (e) => {
+                        const newWidth = parseInt(e.target.value);
+                        if (isNaN(newWidth) || newWidth < 5 || newWidth > 200) return;
+
+                        const currentSize = selectedMap.grid_size
+                          ? JSON.parse(selectedMap.grid_size)
+                          : { width: 20, depth: 20 };
+
+                        const newGridSize = JSON.stringify({
+                          width: newWidth,
+                          depth: currentSize.depth
+                        });
+
+                        try {
+                          await backgroundMapsAPI.update(selectedMap.id, {
+                            gridSize: newGridSize
+                          });
+                          await loadBackgroundMaps();
+                          // Re-select the map to update the state
+                          const updatedMap = await backgroundMapsAPI.get(selectedMap.id);
+                          setSelectedMap(updatedMap);
+                        } catch (error) {
+                          console.error('Failed to update grid size:', error);
+                        }
+                      }}
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">세로 (Depth)</label>
+                    <input
+                      type="number"
+                      min="5"
+                      max="200"
+                      value={
+                        selectedMap.grid_size
+                          ? JSON.parse(selectedMap.grid_size).depth
+                          : 20
+                      }
+                      onChange={async (e) => {
+                        const newDepth = parseInt(e.target.value);
+                        if (isNaN(newDepth) || newDepth < 5 || newDepth > 200) return;
+
+                        const currentSize = selectedMap.grid_size
+                          ? JSON.parse(selectedMap.grid_size)
+                          : { width: 20, depth: 20 };
+
+                        const newGridSize = JSON.stringify({
+                          width: currentSize.width,
+                          depth: newDepth
+                        });
+
+                        try {
+                          await backgroundMapsAPI.update(selectedMap.id, {
+                            gridSize: newGridSize
+                          });
+                          await loadBackgroundMaps();
+                          // Re-select the map to update the state
+                          const updatedMap = await backgroundMapsAPI.get(selectedMap.id);
+                          setSelectedMap(updatedMap);
+                        } catch (error) {
+                          console.error('Failed to update grid size:', error);
+                        }
+                      }}
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  그리드 크기 범위: 5 ~ 200
+                </p>
+              </div>
+            )}
+
             {/* Tabs */}
             {selectedMap && (
               <>
@@ -488,6 +578,11 @@ export default function BackgroundMapEditor() {
                     objects={objects}
                     selectedObjectId={selectedObjectId}
                     assets={assets}
+                    gridSize={
+                      selectedMap.grid_size
+                        ? JSON.parse(selectedMap.grid_size)
+                        : { width: 20, depth: 20 }
+                    }
                     onObjectSelect={(id) => setSelectedObjectId(id)}
                     onObjectTransform={handleObjectTransform}
                   />

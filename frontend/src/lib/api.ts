@@ -70,6 +70,7 @@ export interface BackgroundMap {
   description?: string;
   icon?: string;
   background_image_path?: string;
+  grid_size?: string;  // JSON string: {"width": number, "depth": number}
   created_at: string;
   updated_at: string;
 }

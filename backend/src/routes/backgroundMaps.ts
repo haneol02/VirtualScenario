@@ -31,9 +31,9 @@ export function createBackgroundMapsRouter(db: DatabaseManager) {
   // POST /api/background-maps - 배경 맵 생성
   router.post('/', (req, res) => {
     try {
-      const { name, description, icon, backgroundImagePath } = req.body;
+      const { name, description, icon, backgroundImagePath, gridSize } = req.body;
       const id = uuidv4();
-      db.createBackgroundMap({ id, name, description, icon, backgroundImagePath });
+      db.createBackgroundMap({ id, name, description, icon, backgroundImagePath, gridSize });
       const map = db.getBackgroundMap(id);
       res.status(201).json(map);
     } catch (error: any) {
@@ -44,8 +44,8 @@ export function createBackgroundMapsRouter(db: DatabaseManager) {
   // PUT /api/background-maps/:id - 배경 맵 수정
   router.put('/:id', (req, res) => {
     try {
-      const { name, description, icon, backgroundImagePath } = req.body;
-      db.updateBackgroundMap(req.params.id, { name, description, icon, backgroundImagePath });
+      const { name, description, icon, backgroundImagePath, gridSize } = req.body;
+      db.updateBackgroundMap(req.params.id, { name, description, icon, backgroundImagePath, gridSize });
       const map = db.getBackgroundMap(req.params.id);
       res.json(map);
     } catch (error: any) {
