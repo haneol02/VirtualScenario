@@ -286,7 +286,7 @@ function SceneObjectMesh({
         // Render Image
         <ImagePlane
           meshRef={meshRef}
-          imagePath={`http://localhost:3001${asset.file_path}`}
+          imagePath={`${window.location.protocol}//${window.location.hostname}:3001${asset.file_path}`}
           initialTransform={initialTransform}
           isSelected={isSelected}
           onSelect={onSelect}
