@@ -256,10 +256,11 @@ export default function TimelinePanel({
 
   const { layers: dialogueLayers, layerTypes } = assignDialoguesToLayers(dialogues);
 
-  // Calculate total content height (header + objects + dialogue layers)
+  // Calculate total content height (header + objects + dialogue layers + add button)
   const headerHeight = 32; // h-8 = 32px
   const trackHeight = 56; // h-14 = 56px
-  const totalContentHeight = headerHeight + (objects.length * trackHeight) + (dialogueLayers.length * trackHeight);
+  const addLayerButtonHeight = 52; // px-3 py-2 button height
+  const totalContentHeight = headerHeight + (objects.length * trackHeight) + (dialogueLayers.length * trackHeight) + addLayerButtonHeight;
 
   // Generate time markers (every second)
   const timeMarkers = [];
@@ -801,7 +802,7 @@ export default function TimelinePanel({
       {/* Timeline Area */}
       <div ref={timelineRef} className="flex-1 flex overflow-auto">
         {/* Layer List (Left) */}
-        <div className="w-48 bg-gray-800 border-r border-gray-700 flex-shrink-0 select-none overflow-y-auto">
+        <div className="w-48 bg-gray-800 border-r border-gray-700 flex-shrink-0 select-none">
           {/* Header matching Time Ruler */}
           <div className="h-8 bg-gray-800 border-b border-gray-700 flex items-center justify-between px-3 sticky top-0 z-10">
             <span className="text-xs font-semibold text-gray-400">속성</span>
@@ -897,18 +898,6 @@ export default function TimelinePanel({
 
           {/* Dialogue Layer Tracks Section */}
           <div>
-            {/* Add Layer Button */}
-            <div className="border-b border-gray-700 bg-gray-850">
-              <button
-                onClick={handleAddLayer}
-                className="w-full px-3 py-2 text-sm font-medium text-blue-400 hover:text-blue-300 hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
-                disabled={isPlaying}
-              >
-                <span className="text-lg">+</span>
-                <span>레이어 추가</span>
-              </button>
-            </div>
-
             {dialogueLayers.map((layer, layerIndex) => {
               const layerType = layerTypes[layerIndex];
               const isManualLayer = layerType === 'manual';
@@ -966,6 +955,18 @@ export default function TimelinePanel({
                 </div>
               );
             })}
+
+            {/* Add Layer Button */}
+            <div className="border-t border-gray-700 bg-gray-850">
+              <button
+                onClick={handleAddLayer}
+                className="w-full px-3 py-2 text-sm font-medium text-blue-400 hover:text-blue-300 hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                disabled={isPlaying}
+              >
+                <span className="text-lg">+</span>
+                <span>레이어 추가</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1214,6 +1215,9 @@ export default function TimelinePanel({
                 })}
               </div>
             ))}
+
+            {/* Spacer for Add Layer Button alignment */}
+            <div className="border-t border-gray-750" style={{ width: `${timelineWidth}px`, height: '52px' }}></div>
           </div>
 
           {/* Playhead */}
