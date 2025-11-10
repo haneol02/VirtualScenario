@@ -275,7 +275,8 @@ export default function AssetLibraryPanel({ onAssetSelect, onAssetUpdated }: Ass
             <span>✏️</span>
             <span>편집 (이름 변경)</span>
           </button>
-          {assets.find(a => a.id === contextMenu.assetId)?.type === 'model' && (
+          {/* Allow deletion for all types except primitives */}
+          {assets.find(a => a.id === contextMenu.assetId)?.type !== 'primitive' && (
             <>
               <div className="border-t border-gray-700 my-1"></div>
               <button

@@ -1,6 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { DatabaseManager } from '../database';
 
@@ -214,7 +215,35 @@ export function createAssetsRouter(db: DatabaseManager) {
   router.delete('/:id', (req, res) => {
     try {
       const { id } = req.params;
+
+      // Get asset info before deleting from database
+      const asset: any = db.getAsset(id);
+
+      if (!asset) {
+        return res.status(404).json({ error: 'Asset not found' });
+      }
+
+      // Delete from database first
       db.deleteAsset(id);
+
+      // If asset has a file, delete the physical file
+      if (asset.file_path) {
+        // Convert URL path to file system path
+        // file_path is like: /uploads/models/uuid.glb
+        const filePath = path.join(__dirname, '../..', asset.file_path);
+
+        // Delete file if it exists
+        fs.unlink(filePath, (err) => {
+          if (err) {
+            console.error('Failed to delete file:', filePath, err);
+            // Don't fail the request if file deletion fails
+            // The database record is already deleted
+          } else {
+            console.log('Deleted file:', filePath);
+          }
+        });
+      }
+
       res.json({ success: true });
     } catch (error) {
       console.error('Failed to delete asset:', error);

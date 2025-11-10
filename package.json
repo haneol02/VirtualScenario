@@ -9,7 +9,12 @@
     "dev:frontend": "cd frontend && npm run dev",
     "dev:frontend:host": "cd frontend && npm run dev:host",
     "dev:backend": "cd backend && npm run dev",
-    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install"
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "build": "cd backend && npm run build:all",
+    "package": "cd backend && npm run package",
+    "package:win": "cd backend && npm run package:win",
+    "package:mac": "cd backend && npm run package:mac",
+    "package:linux": "cd backend && npm run package:linux"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

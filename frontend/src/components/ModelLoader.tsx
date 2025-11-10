@@ -1,4 +1,4 @@
-import { useRef, useEffect, Suspense } from 'react';
+import { useRef, useEffect, Suspense, Component, ErrorInfo, ReactNode } from 'react';
 import { useGLTF, Html } from '@react-three/drei';
 import { useLoader } from '@react-three/fiber';
 import { OBJLoader } from 'three-stdlib';
@@ -28,7 +28,9 @@ function LoadingFallback({ position = [0, 0, 0] }: { position?: [number, number,
 
 // GLB/GLTF Loader Component
 function GLTFModelLoader({ filePath, color }: { filePath: string; color?: string }) {
-  const { scene } = useGLTF(`http://localhost:3001${filePath}`, true); // Enable Draco compression support
+  // Use dynamic hostname
+  const apiUrl = `${window.location.protocol}//${window.location.hostname}:3001${filePath}`;
+  const { scene } = useGLTF(apiUrl, true); // Enable Draco compression support
   const clonedScene = scene.clone();
 
   // Apply color if provided
@@ -51,7 +53,9 @@ function GLTFModelLoader({ filePath, color }: { filePath: string; color?: string
 
 // OBJ Loader Component
 function OBJModelLoader({ filePath, color }: { filePath: string; color?: string }) {
-  const obj = useLoader(OBJLoader, `http://localhost:3001${filePath}`);
+  // Use dynamic hostname
+  const apiUrl = `${window.location.protocol}//${window.location.hostname}:3001${filePath}`;
+  const obj = useLoader(OBJLoader, apiUrl);
   const clonedObj = obj.clone();
 
   // Apply color if provided
@@ -71,7 +75,9 @@ function OBJModelLoader({ filePath, color }: { filePath: string; color?: string 
 
 // FBX Loader Component
 function FBXModelLoader({ filePath, color }: { filePath: string; color?: string }) {
-  const fbx = useLoader(FBXLoader, `http://localhost:3001${filePath}`);
+  // Use dynamic hostname
+  const apiUrl = `${window.location.protocol}//${window.location.hostname}:3001${filePath}`;
+  const fbx = useLoader(FBXLoader, apiUrl);
   const clonedFbx = fbx.clone();
 
   // Apply color if provided
@@ -92,45 +98,76 @@ function FBXModelLoader({ filePath, color }: { filePath: string; color?: string 
   return <primitive object={clonedFbx} />;
 }
 
-// Error Fallback Component
-function ErrorFallback({ error, position = [0, 0, 0] }: { error: Error; position?: [number, number, number] }) {
+// Error Fallback - Display default box when model fails to load
+function ErrorFallback({ color = '#ff6b6b' }: { color?: string }) {
   return (
-    <Html center position={position}>
-      <div className="bg-red-900 bg-opacity-90 text-white px-6 py-4 rounded-lg shadow-2xl max-w-md pointer-events-none select-none">
-        <div className="font-semibold mb-2">⚠️ 모델 로딩 실패</div>
-        <div className="text-xs text-gray-300">{error.message}</div>
-        <div className="text-xs text-gray-400 mt-2">파일 경로나 포맷을 확인하세요</div>
-      </div>
-    </Html>
+    <group>
+      {/* Default fallback box */}
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial color={color} />
+      </mesh>
+      {/* Error indicator label */}
+      <Html center position={[0, 0.8, 0]} distanceFactor={10} zIndexRange={[100, 0]}>
+        <div className="bg-red-900 bg-opacity-90 text-white px-3 py-1 rounded text-xs pointer-events-none select-none whitespace-nowrap">
+          ⚠️ 모델 로드 실패 (기본 박스 표시)
+        </div>
+      </Html>
+    </group>
   );
 }
 
-// Main Model Loader Component with Suspense
+// ErrorBoundary for catching model loading errors
+class ModelErrorBoundary extends Component<
+  { children: ReactNode; fallbackColor?: string },
+  { hasError: boolean }
+> {
+  constructor(props: { children: ReactNode; fallbackColor?: string }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(_: Error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Model loading error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <ErrorFallback color={this.props.fallbackColor} />;
+    }
+
+    return this.props.children;
+  }
+}
+
+// Main Model Loader Component with Suspense and ErrorBoundary
 export default function ModelLoader({ filePath, fileFormat, color }: ModelLoaderProps) {
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <ModelLoaderInner filePath={filePath} fileFormat={fileFormat} color={color} />
-    </Suspense>
+    <ModelErrorBoundary fallbackColor={color}>
+      <Suspense fallback={<LoadingFallback />}>
+        <ModelLoaderInner filePath={filePath} fileFormat={fileFormat} color={color} />
+      </Suspense>
+    </ModelErrorBoundary>
   );
 }
 
 // Inner loader component
 function ModelLoaderInner({ filePath, fileFormat, color }: ModelLoaderProps) {
-  try {
-    switch (fileFormat) {
-      case 'glb':
-      case 'gltf':
-        return <GLTFModelLoader filePath={filePath} color={color} />;
-      case 'obj':
-        return <OBJModelLoader filePath={filePath} color={color} />;
-      case 'fbx':
-        return <FBXModelLoader filePath={filePath} color={color} />;
-      default:
-        console.warn(`Unsupported file format: ${fileFormat}`);
-        return null;
-    }
-  } catch (error) {
-    console.error('Model loading error:', error);
-    return <ErrorFallback error={error as Error} />;
+  switch (fileFormat) {
+    case 'glb':
+    case 'gltf':
+      return <GLTFModelLoader filePath={filePath} color={color} />;
+    case 'obj':
+      return <OBJModelLoader filePath={filePath} color={color} />;
+    case 'fbx':
+      return <FBXModelLoader filePath={filePath} color={color} />;
+    default:
+      console.warn(`Unsupported file format: ${fileFormat}`);
+      // Return default box for unsupported formats
+      return <ErrorFallback color={color} />;
   }
 }
