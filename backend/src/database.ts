@@ -243,6 +243,10 @@ export class DatabaseManager {
       fields.push('show_nametag = ?');
       values.push(data.showNametag ? 1 : 0);
     }
+    if (data.visible !== undefined) {
+      fields.push('visible = ?');
+      values.push(data.visible ? 1 : 0);
+    }
     if (data.transform !== undefined) {
       if (data.transform.position) {
         fields.push('position_x = ?', 'position_y = ?', 'position_z = ?');
@@ -495,6 +499,10 @@ export class DatabaseManager {
     if (data.showNametag !== undefined) {
       fields.push('show_nametag = ?');
       values.push(data.showNametag ? 1 : 0);
+    }
+    if (data.visible !== undefined) {
+      fields.push('visible = ?');
+      values.push(data.visible ? 1 : 0);
     }
 
     // Handle transform data (can be nested object or direct fields)
