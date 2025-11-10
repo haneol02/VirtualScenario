@@ -255,6 +255,7 @@ function SceneObjectMesh({
               position={[0, 'scale_y' in obj ? obj.scale_y * 0.7 : 1, 0]}
               center
               distanceFactor={10}
+              zIndexRange={[100, 0]}
               style={{
                 pointerEvents: 'none',
                 userSelect: 'none',
@@ -327,6 +328,7 @@ function SceneObjectMesh({
               position={[0, 'scale_y' in obj ? obj.scale_y * 0.7 : 1, 0]}
               center
               distanceFactor={10}
+              zIndexRange={[100, 0]}
               style={{
                 pointerEvents: 'none',
                 userSelect: 'none',
@@ -430,6 +432,7 @@ function ImagePlane({
           position={[0, 'scale_y' in obj ? obj.scale_y * 1.2 : 1, 0]}
           center
           distanceFactor={10}
+              zIndexRange={[100, 0]}
           style={{
             pointerEvents: 'none',
             userSelect: 'none',
@@ -506,6 +509,7 @@ function Text3DObject({
           position={[0, textSize * 0.7, 0]}
           center
           distanceFactor={10}
+              zIndexRange={[100, 0]}
           style={{
             pointerEvents: 'none',
             userSelect: 'none',
