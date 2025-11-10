@@ -122,13 +122,63 @@ export default function TimelinePanel({
     dialogueId: string;
     mode: 'move' | 'resize-left' | 'resize-right';
     startX: number;
+    startY: number;  // Track vertical position for layer changes
     initialStartTime: number;
     initialDuration: number;
+    initialLayerIndex: number;  // Store original layer
     previewStartTime?: number;
     previewDuration?: number;
+    previewLayerIndex?: number;  // Preview layer during drag
     selectedIds?: string[];  // For multi-selection dragging
     initialTimes?: Map<string, { startTime: number; duration: number }>;  // Store initial states
   } | null>(null);
+
+  // Hover layer state (for visual feedback)
+  const [hoveredLayerIndex, setHoveredLayerIndex] = useState<number | null>(null);
+
+  // Manual layers state (track which layers exist)
+  const [manualLayers, setManualLayers] = useState<number[]>([]); // Layer indices [1, 2, 3, ...]
+
+  // Initialize manual layers from existing dialogues
+  useEffect(() => {
+    const existingManualLayers = new Set<number>();
+    dialogues.forEach(d => {
+      if (d.layer_index >= 1) {
+        existingManualLayers.add(d.layer_index);
+      }
+    });
+    setManualLayers(Array.from(existingManualLayers).sort((a, b) => a - b));
+  }, [dialogues]);
+
+  // Layer management functions
+  const handleAddLayer = () => {
+    const maxLayer = manualLayers.length > 0 ? Math.max(...manualLayers) : 0;
+    const newLayerIndex = maxLayer + 1;
+    setManualLayers([...manualLayers, newLayerIndex]);
+  };
+
+  const handleDeleteLayer = async (layerIndex: number) => {
+    if (layerIndex < 1) return; // Cannot delete auto layer (0)
+
+    // Move all dialogues in this layer back to auto (layer_index = 0)
+    const dialoguesInLayer = dialogues.filter(d => d.layer_index === layerIndex);
+
+    for (const dialogue of dialoguesInLayer) {
+      try {
+        await scenesAPI.updateDialogue(sceneId, dialogue.id, {
+          layerIndex: 0, // Move to auto layer
+        });
+      } catch (error) {
+        console.error('Failed to move dialogue to auto layer:', error);
+      }
+    }
+
+    // Remove layer from manual layers
+    setManualLayers(manualLayers.filter(l => l !== layerIndex));
+
+    // Refresh dialogues
+    onRefresh();
+  };
 
   // Layer reordering state
   const [draggedItem, setDraggedItem] = useState<{ type: 'object' | 'dialogue'; id: string; index: number } | null>(null);
@@ -147,36 +197,43 @@ export default function TimelinePanel({
   const timelineWidth = maxTime * pixelsPerSecond;
 
   // Assign dialogues to layers (manual + auto)
-  const assignDialoguesToLayers = (dialogues: Dialogue[]): Dialogue[][] => {
+  const assignDialoguesToLayers = (dialogues: Dialogue[]): { layers: Dialogue[][]; layerTypes: ('auto' | 'manual')[] } => {
     const layers: Dialogue[][] = [];
+    const layerTypes: ('auto' | 'manual')[] = [];
 
     // Separate manual and auto dialogues
     const manualDialogues = dialogues.filter(d => d.layer_index >= 1);
     const autoDialogues = dialogues.filter(d => d.layer_index === 0);
 
-    // Place manual dialogues in their specified layers
-    for (const dialogue of manualDialogues) {
-      const layerIndex = dialogue.layer_index - 1;  // layer_index 1 = array index 0
+    // First, create manual layers (even if empty)
+    for (const layerIndex of manualLayers) {
+      const arrayIndex = layerIndex - 1;  // layer_index 1 = array index 0
 
-      // Ensure layer exists
-      while (layers.length <= layerIndex) {
+      // Ensure array has enough space
+      while (layers.length <= arrayIndex) {
         layers.push([]);
+        layerTypes.push('manual');
       }
 
-      layers[layerIndex].push(dialogue);
+      // Add dialogues for this manual layer
+      const dialoguesForLayer = manualDialogues.filter(d => d.layer_index === layerIndex);
+      layers[arrayIndex] = dialoguesForLayer.sort((a, b) => a.start_time - b.start_time);
     }
 
-    // Auto-assign remaining dialogues
+    // Auto-assign remaining dialogues (create auto layers as needed)
     const sortedAutoDialogues = [...autoDialogues].sort((a, b) => a.start_time - b.start_time);
 
     for (const dialogue of sortedAutoDialogues) {
-      // Find a layer where this dialogue doesn't overlap
+      // Find an auto layer where this dialogue doesn't overlap
       let placed = false;
-      for (const layer of layers) {
+
+      for (let i = 0; i < layers.length; i++) {
+        if (layerTypes[i] === 'manual') continue; // Skip manual layers
+
+        const layer = layers[i];
         const overlaps = layer.some(d => {
           const dEnd = d.start_time + d.duration;
           const dialogueEnd = dialogue.start_time + dialogue.duration;
-          // Check if they overlap (not if one ends exactly when other starts)
           return !(dialogue.start_time >= dEnd || dialogueEnd <= d.start_time);
         });
 
@@ -187,19 +244,17 @@ export default function TimelinePanel({
         }
       }
 
-      // If no suitable layer found, create a new one
+      // If no suitable auto layer found, create a new one
       if (!placed) {
         layers.push([dialogue]);
+        layerTypes.push('auto');
       }
     }
 
-    // Sort dialogues within each layer by start time for display
-    layers.forEach(layer => layer.sort((a, b) => a.start_time - b.start_time));
-
-    return layers;
+    return { layers, layerTypes };
   };
 
-  const dialogueLayers = assignDialoguesToLayers(dialogues);
+  const { layers: dialogueLayers, layerTypes } = assignDialoguesToLayers(dialogues);
 
   // Calculate total content height (header + objects + dialogue layers)
   const headerHeight = 32; // h-8 = 32px
@@ -306,7 +361,8 @@ export default function TimelinePanel({
   const handleDialogueMouseDown = (
     e: React.MouseEvent,
     dialogueId: string,
-    mode: 'move' | 'resize-left' | 'resize-right'
+    mode: 'move' | 'resize-left' | 'resize-right',
+    layerIndex: number
   ) => {
     e.stopPropagation();
     const dialogue = dialogues.find(d => d.id === dialogueId);
@@ -329,8 +385,10 @@ export default function TimelinePanel({
         dialogueId,
         mode,
         startX: e.clientX,
+        startY: e.clientY,
         initialStartTime: dialogue.start_time,
         initialDuration: dialogue.duration,
+        initialLayerIndex: layerIndex,
         selectedIds: Array.from(selectedDialogueIds),
         initialTimes,
       });
@@ -340,8 +398,10 @@ export default function TimelinePanel({
         dialogueId,
         mode,
         startX: e.clientX,
+        startY: e.clientY,
         initialStartTime: dialogue.start_time,
         initialDuration: dialogue.duration,
+        initialLayerIndex: layerIndex,
       });
     }
   };
@@ -357,13 +417,27 @@ export default function TimelinePanel({
       const deltaX = e.clientX - dialogueDrag.startX;
       const deltaTime = deltaX / pixelsPerSecond;
 
+      // Calculate layer change if in move mode
+      let newLayerIndex = dialogueDrag.initialLayerIndex;
+      if (dialogueDrag.mode === 'move') {
+        const deltaY = e.clientY - dialogueDrag.startY;
+        const layerChange = Math.round(deltaY / trackHeight);
+        newLayerIndex = Math.max(0, dialogueDrag.initialLayerIndex + layerChange);
+
+        // Clamp to valid layer range (0 to total layers - 1)
+        newLayerIndex = Math.min(newLayerIndex, dialogueLayers.length - 1);
+
+        // Update hovered layer for visual feedback
+        setHoveredLayerIndex(newLayerIndex);
+      }
+
       if (dialogueDrag.mode === 'move') {
         const rawStartTime = dialogueDrag.initialStartTime + deltaTime;
         const snappedStartTime = snapToHalfSecond(rawStartTime);
         const newStartTime = Math.max(0, Math.min(snappedStartTime, maxTime - dialogueDrag.initialDuration));
 
-        // Update preview state only
-        setDialogueDrag(prev => prev ? { ...prev, previewStartTime: newStartTime } : null);
+        // Update preview state with layer change
+        setDialogueDrag(prev => prev ? { ...prev, previewStartTime: newStartTime, previewLayerIndex: newLayerIndex } : null);
       } else if (dialogueDrag.mode === 'resize-left') {
         const rawStartTime = dialogueDrag.initialStartTime + deltaTime;
         const snappedStartTime = snapToHalfSecond(rawStartTime);
@@ -383,8 +457,11 @@ export default function TimelinePanel({
     };
 
     const handleMouseUp = async () => {
+      // Clear hover effect
+      setHoveredLayerIndex(null);
+
       // Apply changes to backend when drag ends
-      if (dialogueDrag.previewStartTime !== undefined || dialogueDrag.previewDuration !== undefined) {
+      if (dialogueDrag.previewStartTime !== undefined || dialogueDrag.previewDuration !== undefined || dialogueDrag.previewLayerIndex !== undefined) {
         // Check if this is a multi-selection drag
         if (dialogueDrag.selectedIds && dialogueDrag.initialTimes && dialogueDrag.mode === 'move') {
           // Multi-selection: update all selected dialogues
@@ -394,12 +471,28 @@ export default function TimelinePanel({
             const initialState = dialogueDrag.initialTimes.get(id);
             if (initialState) {
               const newStartTime = Math.max(0, initialState.startTime + deltaTime);
-              await onUpdateDialogue(id, { startTime: newStartTime });
+
+              // Calculate new layer index based on the layer type
+              let newLayerIndex: number | undefined = undefined;
+              if (dialogueDrag.previewLayerIndex !== undefined && dialogueDrag.previewLayerIndex !== dialogueDrag.initialLayerIndex) {
+                const layerType = layerTypes[dialogueDrag.previewLayerIndex];
+                if (layerType === 'auto') {
+                  newLayerIndex = 0; // Auto layer
+                } else {
+                  // Manual layer: calculate actual layer_index
+                  newLayerIndex = manualLayers[dialogueDrag.previewLayerIndex] ?? 0;
+                }
+              }
+
+              await scenesAPI.updateDialogue(sceneId, id, {
+                startTime: newStartTime,
+                ...(newLayerIndex !== undefined && { layerIndex: newLayerIndex }),
+              });
             }
           }
         } else {
           // Single dialogue: update only the dragged dialogue
-          const updates: { startTime?: number; duration?: number } = {};
+          const updates: { startTime?: number; duration?: number; layerIndex?: number } = {};
 
           if (dialogueDrag.previewStartTime !== undefined) {
             updates.startTime = dialogueDrag.previewStartTime;
@@ -408,8 +501,24 @@ export default function TimelinePanel({
             updates.duration = dialogueDrag.previewDuration;
           }
 
-          onUpdateDialogue(dialogueDrag.dialogueId, updates);
+          // Handle layer change
+          if (dialogueDrag.previewLayerIndex !== undefined && dialogueDrag.previewLayerIndex !== dialogueDrag.initialLayerIndex) {
+            const layerType = layerTypes[dialogueDrag.previewLayerIndex];
+            if (layerType === 'auto') {
+              updates.layerIndex = 0; // Auto layer
+            } else {
+              // Manual layer: calculate actual layer_index
+              updates.layerIndex = manualLayers[dialogueDrag.previewLayerIndex] ?? 0;
+            }
+          }
+
+          if (Object.keys(updates).length > 0) {
+            await scenesAPI.updateDialogue(sceneId, dialogueDrag.dialogueId, updates);
+          }
         }
+
+        // Refresh to show updated layer assignment
+        onRefresh();
       }
       setDialogueDrag(null);
     };
@@ -788,37 +897,70 @@ export default function TimelinePanel({
 
           {/* Dialogue Layer Tracks Section */}
           <div>
+            {/* Add Layer Button */}
+            <div className="border-b border-gray-700 bg-gray-850">
+              <button
+                onClick={handleAddLayer}
+                className="w-full px-3 py-2 text-sm font-medium text-blue-400 hover:text-blue-300 hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                disabled={isPlaying}
+              >
+                <span className="text-lg">+</span>
+                <span>레이어 추가</span>
+              </button>
+            </div>
+
             {dialogueLayers.map((layer, layerIndex) => {
-              // Check if this layer has any manual dialogues
-              const hasManualDialogues = layer.some(d => d.layer_index >= 1);
-              const isManualLayer = hasManualDialogues && layer.every(d => d.layer_index === layerIndex + 1);
+              const layerType = layerTypes[layerIndex];
+              const isManualLayer = layerType === 'manual';
+
+              // Get actual layer_index for manual layers
+              const actualLayerIndex = isManualLayer ? manualLayers[layerIndex] : 0;
 
               return (
                 <div
                   key={`layer-${layerIndex}`}
-                  className="h-14 px-3 py-1.5 text-sm border-b border-gray-750 transition-colors bg-gray-800 hover:bg-gray-750"
+                  className={`h-14 px-3 py-1.5 text-sm border-b border-gray-750 transition-colors ${
+                    hoveredLayerIndex === layerIndex ? 'bg-blue-800' : 'bg-gray-800 hover:bg-gray-750'
+                  }`}
                 >
                   {/* Layer Info */}
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium text-gray-300 flex items-center gap-2">
-                      <span>대화/자막 레이어 {layerIndex + 1}</span>
+                      <span>{isManualLayer ? `레이어 ${actualLayerIndex}` : '자동 레이어'}</span>
                       {isManualLayer && (
                         <span className="px-1.5 py-0.5 bg-blue-600 text-white text-[9px] font-semibold rounded">
                           수동
                         </span>
                       )}
                     </span>
-                    <span className="px-1.5 py-0.5 bg-green-600 text-white text-[10px] font-semibold rounded">
-                      {layer.length}개
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="px-1.5 py-0.5 bg-green-600 text-white text-[10px] font-semibold rounded">
+                        {layer.length}개
+                      </span>
+                      {isManualLayer && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteLayer(actualLayerIndex);
+                          }}
+                          className="text-red-400 hover:text-red-300 text-xs"
+                          title="레이어 삭제"
+                          disabled={isPlaying}
+                        >
+                          🗑️
+                        </button>
+                      )}
+                    </div>
                   </div>
                   {/* Layer time range */}
                   <div className="text-xs text-gray-500">
-                    {layer.length > 0 && (
+                    {layer.length > 0 ? (
                       <>
                         {Math.min(...layer.map(d => d.start_time)).toFixed(1)}s -
                         {Math.max(...layer.map(d => d.start_time + d.duration)).toFixed(1)}s
                       </>
+                    ) : (
+                      <span className="text-gray-600 italic">빈 레이어</span>
                     )}
                   </div>
                 </div>
@@ -941,7 +1083,9 @@ export default function TimelinePanel({
             {dialogueLayers.map((layer, layerIndex) => (
               <div
                 key={`layer-track-${layerIndex}`}
-                className="h-14 border-b border-gray-750 relative"
+                className={`h-14 border-b border-gray-750 relative transition-colors ${
+                  hoveredLayerIndex === layerIndex ? 'bg-blue-900 bg-opacity-30' : ''
+                }`}
                 style={{ width: `${timelineWidth}px` }}
               >
                 {/* Render all dialogues in this layer */}
@@ -1041,7 +1185,7 @@ export default function TimelinePanel({
                       className={`absolute left-0 top-0 h-full w-2 hover:bg-green-400 opacity-0 group-hover:opacity-100 transition-opacity ${
                         isPlaying ? 'cursor-not-allowed' : 'cursor-ew-resize'
                       }`}
-                      onMouseDown={(e) => !isPlaying && handleDialogueMouseDown(e, dlg.id, 'resize-left')}
+                      onMouseDown={(e) => !isPlaying && handleDialogueMouseDown(e, dlg.id, 'resize-left', layerIndex)}
                       onClick={(e) => e.stopPropagation()}
                     />
 
@@ -1051,7 +1195,7 @@ export default function TimelinePanel({
                         isPlaying ? 'cursor-not-allowed' : 'cursor-move'
                       }`}
                       style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
-                      onMouseDown={(e) => !isPlaying && handleDialogueMouseDown(e, dlg.id, 'move')}
+                      onMouseDown={(e) => !isPlaying && handleDialogueMouseDown(e, dlg.id, 'move', layerIndex)}
                       onDragStart={(e) => e.preventDefault()}
                     >
                       {dlg.text}
@@ -1062,7 +1206,7 @@ export default function TimelinePanel({
                       className={`absolute right-0 top-0 h-full w-2 hover:bg-green-400 opacity-0 group-hover:opacity-100 transition-opacity ${
                         isPlaying ? 'cursor-not-allowed' : 'cursor-ew-resize'
                       }`}
-                      onMouseDown={(e) => !isPlaying && handleDialogueMouseDown(e, dlg.id, 'resize-right')}
+                      onMouseDown={(e) => !isPlaying && handleDialogueMouseDown(e, dlg.id, 'resize-right', layerIndex)}
                       onClick={(e) => e.stopPropagation()}
                     />
                   </div>
