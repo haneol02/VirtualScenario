@@ -266,36 +266,8 @@ function SceneObjectMesh({
   const meshRef = useRef<THREE.Mesh>(null);
   const transformRef = useRef<any>(null);
 
-  // Track show_nametag from keyframe
+  // Track show_nametag from keyframe or DB
   const [currentShowNametag, setCurrentShowNametag] = useState<number>(obj.show_nametag ?? 1);
-
-  // Check if object has keyframes
-  const hasKeyframes = ('path_data' in obj && obj.path_data) ? (() => {
-    try {
-      const keyframes = JSON.parse(obj.path_data);
-      return keyframes && keyframes.length > 0;
-    } catch {
-      return false;
-    }
-  })() : false;
-
-  // Update currentShowNametag when obj.show_nametag changes
-  // Apply when: 1) no keyframes, OR 2) has keyframes but editing (not playing)
-  useEffect(() => {
-    if (!hasKeyframes || !isPlaying) {
-      setCurrentShowNametag(obj.show_nametag ?? 1);
-    }
-  }, [obj.show_nametag, hasKeyframes, isPlaying]);
-
-  // Apply visible from obj when: 1) no keyframes, OR 2) has keyframes but editing (not playing)
-  // This ensures checkbox toggles are immediately reflected in the mesh
-  useEffect(() => {
-    if (meshRef.current && (!hasKeyframes || !isPlaying)) {
-      const newVisible = ('visible' in obj && obj.visible !== undefined) ? obj.visible !== 0 : true;
-      meshRef.current.visible = newVisible;
-      console.log('🔄 Applying DB visible to mesh:', { objectId: obj.id, visible: obj.visible, newVisible, isPlaying, hasKeyframes });
-    }
-  }, [obj.visible, hasKeyframes, isPlaying, obj.id]);
 
   // Register mesh ref to parent
   useEffect(() => {
@@ -304,111 +276,114 @@ function SceneObjectMesh({
     }
   }, [obj.id, onMeshCreated]);
 
-  // Keyframe animation based on currentTime (ONLY during playback)
+  // Apply keyframe values or DB values based on currentTime
   useEffect(() => {
-    if (!meshRef.current || currentTime === undefined || !('path_data' in obj) || !obj.path_data) return;
+    if (!meshRef.current || currentTime === undefined) return;
 
-    // Only apply keyframe animation during playback
-    // When editing (not playing), use DB values for immediate checkbox feedback
-    if (!isPlaying) return;
+    // Check if object has keyframes
+    if ('path_data' in obj && obj.path_data) {
+      try {
+        const keyframes = JSON.parse(obj.path_data);
+        if (keyframes && keyframes.length > 0) {
+          // HAS KEYFRAMES: Use currentTime to determine values
 
-    // 재생 중에는 선택 여부와 관계없이 모든 오브젝트에 애니메이션 적용
-    // TransformControls는 isPlaying 시 비활성화되어 있으므로 충돌 없음
+          // Find surrounding keyframes
+          let prevKeyframe = keyframes[0];
+          let nextKeyframe = keyframes[keyframes.length - 1];
 
-    try {
-      const keyframes = JSON.parse(obj.path_data);
-      if (!keyframes || keyframes.length === 0) return;
+          for (let i = 0; i < keyframes.length - 1; i++) {
+            if (keyframes[i].time <= currentTime && keyframes[i + 1].time >= currentTime) {
+              prevKeyframe = keyframes[i];
+              nextKeyframe = keyframes[i + 1];
+              break;
+            }
+          }
 
-      // Find surrounding keyframes
-      let prevKeyframe = keyframes[0];
-      let nextKeyframe = keyframes[keyframes.length - 1];
+          // If before first keyframe or after last keyframe, use that keyframe
+          if (currentTime <= keyframes[0].time) {
+            prevKeyframe = nextKeyframe = keyframes[0];
+          } else if (currentTime >= keyframes[keyframes.length - 1].time) {
+            prevKeyframe = nextKeyframe = keyframes[keyframes.length - 1];
+          }
 
-      for (let i = 0; i < keyframes.length - 1; i++) {
-        if (keyframes[i].time <= currentTime && keyframes[i + 1].time >= currentTime) {
-          prevKeyframe = keyframes[i];
-          nextKeyframe = keyframes[i + 1];
-          break;
+          // Linear interpolation (lerp) for position and rotation
+          const t = prevKeyframe === nextKeyframe ? 0 :
+            (currentTime - prevKeyframe.time) / (nextKeyframe.time - prevKeyframe.time);
+
+          // Interpolate position
+          if (prevKeyframe.position && nextKeyframe.position) {
+            meshRef.current.position.set(
+              THREE.MathUtils.lerp(prevKeyframe.position[0], nextKeyframe.position[0], t),
+              THREE.MathUtils.lerp(prevKeyframe.position[1], nextKeyframe.position[1], t),
+              THREE.MathUtils.lerp(prevKeyframe.position[2], nextKeyframe.position[2], t)
+            );
+          }
+
+          // Interpolate rotation (in radians)
+          if (prevKeyframe.rotation && nextKeyframe.rotation) {
+            const prevEuler = new THREE.Euler(
+              (prevKeyframe.rotation[0] * Math.PI) / 180,
+              (prevKeyframe.rotation[1] * Math.PI) / 180,
+              (prevKeyframe.rotation[2] * Math.PI) / 180
+            );
+            const nextEuler = new THREE.Euler(
+              (nextKeyframe.rotation[0] * Math.PI) / 180,
+              (nextKeyframe.rotation[1] * Math.PI) / 180,
+              (nextKeyframe.rotation[2] * Math.PI) / 180
+            );
+
+            // Spherical linear interpolation for rotation
+            const prevQuat = new THREE.Quaternion().setFromEuler(prevEuler);
+            const nextQuat = new THREE.Quaternion().setFromEuler(nextEuler);
+            const resultQuat = new THREE.Quaternion().slerpQuaternions(prevQuat, nextQuat, t);
+
+            meshRef.current.rotation.setFromQuaternion(resultQuat);
+          }
+
+          // Interpolate scale
+          const prevScale = prevKeyframe.scale ?? [1, 1, 1];
+          const nextScale = nextKeyframe.scale ?? [1, 1, 1];
+
+          meshRef.current.scale.set(
+            THREE.MathUtils.lerp(prevScale[0], nextScale[0], t),
+            THREE.MathUtils.lerp(prevScale[1], nextScale[1], t),
+            THREE.MathUtils.lerp(prevScale[2], nextScale[2], t)
+          );
+
+          // Apply visible and show_nametag from prevKeyframe (no interpolation, discrete values)
+          const visibleValue = prevKeyframe.visible !== undefined ? prevKeyframe.visible : 1;
+          const nametagValue = prevKeyframe.show_nametag !== undefined ? prevKeyframe.show_nametag : 1;
+
+          meshRef.current.visible = visibleValue === 1;
+          setCurrentShowNametag(nametagValue);
+
+          console.log('🎬 Keyframe applied at', currentTime + 's:', {
+            objectId: obj.id,
+            visible: visibleValue,
+            show_nametag: nametagValue,
+            fromKeyframe: prevKeyframe.time + 's'
+          });
+
+          return; // Exit early, we used keyframes
         }
+      } catch (e) {
+        console.error('Failed to parse keyframes:', e);
       }
-
-      // If before first keyframe or after last keyframe, use that keyframe
-      if (currentTime <= keyframes[0].time) {
-        prevKeyframe = nextKeyframe = keyframes[0];
-      } else if (currentTime >= keyframes[keyframes.length - 1].time) {
-        prevKeyframe = nextKeyframe = keyframes[keyframes.length - 1];
-      }
-
-      // Linear interpolation (lerp) for position and rotation
-      const t = prevKeyframe === nextKeyframe ? 0 :
-        (currentTime - prevKeyframe.time) / (nextKeyframe.time - prevKeyframe.time);
-
-      // Interpolate position
-      if (prevKeyframe.position && nextKeyframe.position) {
-        meshRef.current.position.set(
-          THREE.MathUtils.lerp(prevKeyframe.position[0], nextKeyframe.position[0], t),
-          THREE.MathUtils.lerp(prevKeyframe.position[1], nextKeyframe.position[1], t),
-          THREE.MathUtils.lerp(prevKeyframe.position[2], nextKeyframe.position[2], t)
-        );
-      }
-
-      // Interpolate rotation (in radians)
-      if (prevKeyframe.rotation && nextKeyframe.rotation) {
-        const prevEuler = new THREE.Euler(
-          (prevKeyframe.rotation[0] * Math.PI) / 180,
-          (prevKeyframe.rotation[1] * Math.PI) / 180,
-          (prevKeyframe.rotation[2] * Math.PI) / 180
-        );
-        const nextEuler = new THREE.Euler(
-          (nextKeyframe.rotation[0] * Math.PI) / 180,
-          (nextKeyframe.rotation[1] * Math.PI) / 180,
-          (nextKeyframe.rotation[2] * Math.PI) / 180
-        );
-
-        // Spherical linear interpolation for rotation
-        const prevQuat = new THREE.Quaternion().setFromEuler(prevEuler);
-        const nextQuat = new THREE.Quaternion().setFromEuler(nextEuler);
-        const resultQuat = new THREE.Quaternion().slerpQuaternions(prevQuat, nextQuat, t);
-
-        meshRef.current.rotation.setFromQuaternion(resultQuat);
-      }
-
-      // Interpolate scale (with fallback to DB values for old keyframes)
-      const prevScale = prevKeyframe.scale ?? [
-        'scale_x' in obj ? obj.scale_x : 1,
-        'scale_y' in obj ? obj.scale_y : 1,
-        'scale_z' in obj ? obj.scale_z : 1
-      ];
-      const nextScale = nextKeyframe.scale ?? [
-        'scale_x' in obj ? obj.scale_x : 1,
-        'scale_y' in obj ? obj.scale_y : 1,
-        'scale_z' in obj ? obj.scale_z : 1
-      ];
-
-      meshRef.current.scale.set(
-        THREE.MathUtils.lerp(prevScale[0], nextScale[0], t),
-        THREE.MathUtils.lerp(prevScale[1], nextScale[1], t),
-        THREE.MathUtils.lerp(prevScale[2], nextScale[2], t)
-      );
-
-      // Apply visible and show_nametag from prevKeyframe (hold previous value until next keyframe)
-      // Use prevKeyframe value with fallback to defaults
-      const visibleValue = prevKeyframe.visible !== undefined ? prevKeyframe.visible : 1;
-      const nametagValue = prevKeyframe.show_nametag !== undefined ? prevKeyframe.show_nametag : 1;
-
-      meshRef.current.visible = visibleValue === 1;
-      setCurrentShowNametag(nametagValue);
-
-      console.log('🎬 Keyframe animation applied:', {
-        objectId: obj.id,
-        currentTime,
-        visibleValue,
-        nametagValue,
-        'prevKeyframe.time': prevKeyframe.time
-      });
-    } catch (e) {
-      console.error('Failed to apply keyframe animation:', e);
     }
-  }, [currentTime, obj, isPlaying]);
+
+    // NO KEYFRAMES: Use DB values
+    const dbVisible = ('visible' in obj && obj.visible !== undefined) ? obj.visible : 1;
+    const dbNametag = obj.show_nametag ?? 1;
+
+    meshRef.current.visible = dbVisible !== 0;
+    setCurrentShowNametag(dbNametag);
+
+    console.log('📄 DB values applied:', {
+      objectId: obj.id,
+      visible: dbVisible,
+      show_nametag: dbNametag
+    });
+  }, [currentTime, obj]);
 
   // 색상 결정 (color 필드 우선, 없으면 타입별 기본 색상)
   const getColor = () => {

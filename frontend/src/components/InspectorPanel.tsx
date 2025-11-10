@@ -16,6 +16,7 @@ interface InspectorPanelProps {
     rotation: [number, number, number];
     scale: [number, number, number];
   }) => void;  // Callback for transform changes (with keyframe support)
+  onUpdateVisibility?: (objectId: string, visible: number, showNametag: number) => void;  // Update visibility in keyframes
 }
 
 export default function InspectorPanel({
@@ -29,6 +30,7 @@ export default function InspectorPanel({
   currentTime = 0,
   isPlaying = false,
   onTransformChange,
+  onUpdateVisibility,
 }: InspectorPanelProps) {
   // Local state for input handling (입력 중에는 자유롭게 입력 가능, blur 시에만 적용)
   const [localObjectName, setLocalObjectName] = useState('');
@@ -293,11 +295,16 @@ export default function InspectorPanel({
 
     try {
       if (objectType === 'background') {
+        // Background objects: save to DB directly
         await backgroundMapsAPI.updateObject(selectedObject.id, { showNametag: checked });
+        onUpdate();
       } else {
-        await scenesAPI.updateObject(sceneId, selectedObject.id, { showNametag: checked });
+        // Scene objects: use keyframe system
+        if (onUpdateVisibility) {
+          const currentVisible = selectedObject.visible ?? 1;
+          onUpdateVisibility(selectedObject.id, currentVisible, checked ? 1 : 0);
+        }
       }
-      onUpdate();
     } catch (error) {
       console.error('Failed to update nametag:', error);
     }
@@ -314,11 +321,16 @@ export default function InspectorPanel({
 
     try {
       if (objectType === 'background') {
+        // Background objects: save to DB directly
         await backgroundMapsAPI.updateObject(selectedObject.id, { visible: checked });
+        onUpdate();
       } else {
-        await scenesAPI.updateObject(sceneId, selectedObject.id, { visible: checked });
+        // Scene objects: use keyframe system
+        if (onUpdateVisibility) {
+          const currentNametag = selectedObject.show_nametag ?? 1;
+          onUpdateVisibility(selectedObject.id, checked ? 1 : 0, currentNametag);
+        }
       }
-      onUpdate();
     } catch (error) {
       console.error('Failed to update visibility:', error);
     }
