@@ -1915,14 +1915,17 @@ export default function SceneEditor() {
           <div className="bg-gray-800 rounded-lg p-6 w-96 border border-gray-700">
             <h2 className="text-xl font-bold mb-4">새 대화 추가</h2>
             <div className="space-y-3 mb-4">
-              <textarea
-                value={newDialogueText}
-                onChange={(e) => setNewDialogueText(e.target.value)}
-                placeholder="대화 내용"
-                rows={3}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:outline-none focus:border-green-500 resize-none"
-                autoFocus
-              />
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">대화 내용 (Enter로 줄넘김)</label>
+                <textarea
+                  value={newDialogueText}
+                  onChange={(e) => setNewDialogueText(e.target.value)}
+                  placeholder="대화 내용을 입력하세요"
+                  rows={4}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:outline-none focus:border-green-500 resize-y"
+                  autoFocus
+                />
+              </div>
               <div>
                 <label className="text-xs text-gray-400 block mb-1">발화자 이름 (직접 입력)</label>
                 <input

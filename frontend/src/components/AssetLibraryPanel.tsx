@@ -167,7 +167,7 @@ export default function AssetLibraryPanel({ onAssetSelect, onAssetUpdated }: Ass
     ? assets
     : assets.filter(asset => asset.category === selectedCategory);
 
-  const categories = ['all', 'primitive', 'model', 'person', 'train', 'facility', 'sign'];
+  const categories = ['all', 'primitive', 'light', 'model', 'person', 'train', 'facility', 'sign'];
 
   return (
     <PanelGroup
@@ -241,6 +241,11 @@ export default function AssetLibraryPanel({ onAssetSelect, onAssetUpdated }: Ass
                   {asset.type === 'primitive' && (
                     <span className="bg-gray-500 px-2 py-0.5 rounded mr-2">
                       PRIMITIVE
+                    </span>
+                  )}
+                  {asset.category === 'light' && (
+                    <span className="bg-yellow-500 px-2 py-0.5 rounded mr-2">
+                      💡 LIGHT
                     </span>
                   )}
                   {asset.category}

@@ -58,6 +58,182 @@ function PrimitiveGeometry({ modelId }: { modelId?: string }) {
   }
 }
 
+// 조명 오브젝트 렌더링 컴포넌트
+function LightObject({
+  obj,
+  isSelected,
+  onSelect,
+  transformMode,
+  onTransformEnd,
+  asset,
+  isPlaying,
+  onLightCreated
+}: {
+  obj: SceneObject | BackgroundObject;
+  isSelected: boolean;
+  onSelect: () => void;
+  asset?: Asset;
+  transformMode: TransformMode;
+  onTransformEnd?: (transform: any) => void;
+  isPlaying?: boolean;
+  onLightCreated?: (objectId: string, light: THREE.Light) => void;
+}) {
+  const lightRef = useRef<THREE.Light>(null);
+  const transformRef = useRef<any>(null);
+
+  // Get light metadata from asset
+  const metadata = asset?.metadata ? (typeof asset.metadata === 'string' ? JSON.parse(asset.metadata) : asset.metadata) : {};
+  const lightType = metadata.lightType || 'point';
+  const intensity = metadata.intensity || 1.0;
+  const distance = metadata.distance || 10;
+  const angle = metadata.angle || 0.5;
+
+  // Register light ref to parent
+  useEffect(() => {
+    if (lightRef.current && onLightCreated) {
+      onLightCreated(obj.id, lightRef.current);
+    }
+  }, [obj.id, onLightCreated]);
+
+  // Transform handling
+  const handleTransform = () => {
+    if (!lightRef.current || !transformRef.current) return;
+
+    const position = lightRef.current.position;
+    const rotation = lightRef.current.rotation;
+
+    const transform = {
+      position: position.toArray() as [number, number, number],
+      rotation: [
+        (rotation.x * 180) / Math.PI,
+        (rotation.y * 180) / Math.PI,
+        (rotation.z * 180) / Math.PI,
+      ] as [number, number, number],
+      scale: [1, 1, 1] as [number, number, number],
+    };
+
+    onTransformEnd?.(transform);
+  };
+
+  const position: [number, number, number] = [obj.position_x, obj.position_y, obj.position_z];
+  const rotation: [number, number, number] = [
+    (obj.rotation_x * Math.PI) / 180,
+    (obj.rotation_y * Math.PI) / 180,
+    (obj.rotation_z * Math.PI) / 180,
+  ];
+  const color = obj.color || '#ffffff';
+
+  // Render different light types
+  const renderLight = () => {
+    switch (lightType) {
+      case 'directional':
+        return (
+          <directionalLight
+            ref={lightRef}
+            position={position}
+            rotation={rotation}
+            intensity={intensity}
+            color={color}
+            castShadow
+          />
+        );
+      case 'point':
+        return (
+          <pointLight
+            ref={lightRef}
+            position={position}
+            intensity={intensity}
+            color={color}
+            distance={distance}
+            castShadow
+          />
+        );
+      case 'spot':
+        return (
+          <spotLight
+            ref={lightRef}
+            position={position}
+            rotation={rotation}
+            intensity={intensity}
+            color={color}
+            angle={angle}
+            distance={distance}
+            castShadow
+          />
+        );
+      case 'ambient':
+        return (
+          <ambientLight
+            ref={lightRef}
+            intensity={intensity}
+            color={color}
+          />
+        );
+      default:
+        return (
+          <pointLight
+            ref={lightRef}
+            position={position}
+            intensity={intensity}
+            color={color}
+          />
+        );
+    }
+  };
+
+  return (
+    <group>
+      {renderLight()}
+
+      {/* Helper mesh to visualize light position (except ambient) */}
+      {lightType !== 'ambient' && (
+        <mesh position={position} onClick={onSelect}>
+          <sphereGeometry args={[0.2, 16, 16]} />
+          <meshBasicMaterial color={isSelected ? '#ffff00' : color} wireframe />
+        </mesh>
+      )}
+
+      {/* Nametag */}
+      {obj.show_nametag === 1 && lightType !== 'ambient' && (
+        <Html
+          position={[position[0], position[1] + 0.5, position[2]]}
+          center
+          distanceFactor={10}
+          zIndexRange={[100, 0]}
+          style={{
+            pointerEvents: 'none',
+            userSelect: 'none',
+          }}
+        >
+          <div
+            style={{
+              background: 'rgba(0, 0, 0, 0.7)',
+              color: 'white',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              fontSize: '12px',
+              whiteSpace: 'nowrap',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+            }}
+          >
+            {obj.name} 💡
+          </div>
+        </Html>
+      )}
+
+      {/* TransformControls for selected light (only translate mode) */}
+      {isSelected && lightType !== 'ambient' && !isPlaying && lightRef.current && (
+        <TransformControls
+          ref={transformRef}
+          object={lightRef.current}
+          mode="translate"
+          onObjectChange={handleTransform}
+        />
+      )}
+    </group>
+  );
+}
+
 // 오브젝트 렌더링 컴포넌트
 function SceneObjectMesh({
   obj,
@@ -752,20 +928,43 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
         {/* 오브젝트 렌더링 */}
         {objects
           .filter(obj => !('visible' in obj) || obj.visible !== 0)  // visible이 없거나 0이 아닌 경우만 렌더링
-          .map((obj) => (
-            <SceneObjectMesh
-              key={obj.id}
-              obj={obj}
-              isSelected={selectedObjectId === obj.id}
-              onSelect={() => onObjectSelect?.(obj.id)}
-              transformMode={transformMode}
-              onTransformEnd={(transform) => handleTransformEnd(obj.id, transform)}
-              asset={getAssetForObject(obj)}
-              currentTime={currentTime}
-              isPlaying={isPlaying}
-              onMeshCreated={handleMeshCreated}
-            />
-          ))}
+          .map((obj) => {
+            const asset = getAssetForObject(obj);
+            const isLight = obj.model_id?.startsWith('light_');
+
+            // Render light objects with LightObject component
+            if (isLight) {
+              return (
+                <LightObject
+                  key={obj.id}
+                  obj={obj}
+                  isSelected={selectedObjectId === obj.id}
+                  onSelect={() => onObjectSelect?.(obj.id)}
+                  transformMode={transformMode}
+                  onTransformEnd={(transform) => handleTransformEnd(obj.id, transform)}
+                  asset={asset}
+                  isPlaying={isPlaying}
+                  onLightCreated={handleMeshCreated as any}
+                />
+              );
+            }
+
+            // Render normal objects with SceneObjectMesh component
+            return (
+              <SceneObjectMesh
+                key={obj.id}
+                obj={obj}
+                isSelected={selectedObjectId === obj.id}
+                onSelect={() => onObjectSelect?.(obj.id)}
+                transformMode={transformMode}
+                onTransformEnd={(transform) => handleTransformEnd(obj.id, transform)}
+                asset={asset}
+                currentTime={currentTime}
+                isPlaying={isPlaying}
+                onMeshCreated={handleMeshCreated}
+              />
+            );
+          })}
 
         {/* 카메라 컨트롤 */}
         <OrbitControls

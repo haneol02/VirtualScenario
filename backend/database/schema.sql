@@ -163,11 +163,17 @@ INSERT OR IGNORE INTO background_maps (id, name, description, icon) VALUES
   ('map_empty', '빈 공간', '배경 없음 (기본 격자)', '📐');
 
 -- Sample data for asset library (Only primitives - models can be uploaded by user)
-INSERT OR IGNORE INTO asset_library (id, category, name, thumbnail_path, metadata) VALUES
+INSERT OR IGNORE INTO asset_library (id, category, name, type, thumbnail_path, metadata) VALUES
   -- 3D Primitives (기본 도형)
-  ('primitive_box', 'primitive', '사각형', NULL, '{"description": "정육면체", "geometry": "box"}'),
-  ('primitive_sphere', 'primitive', '구', NULL, '{"description": "구", "geometry": "sphere"}'),
-  ('primitive_cylinder', 'primitive', '원기둥', NULL, '{"description": "원기둥", "geometry": "cylinder"}'),
-  ('primitive_cone', 'primitive', '원뿔', NULL, '{"description": "원뿔", "geometry": "cone"}'),
-  ('primitive_plane', 'primitive', '평면', NULL, '{"description": "평면", "geometry": "plane"}'),
-  ('primitive_torus', 'primitive', '도넛', NULL, '{"description": "도넛 모양", "geometry": "torus"}');
+  ('primitive_box', 'primitive', '사각형', 'primitive', NULL, '{"description": "정육면체", "geometry": "box"}'),
+  ('primitive_sphere', 'primitive', '구', 'primitive', NULL, '{"description": "구", "geometry": "sphere"}'),
+  ('primitive_cylinder', 'primitive', '원기둥', 'primitive', NULL, '{"description": "원기둥", "geometry": "cylinder"}'),
+  ('primitive_cone', 'primitive', '원뿔', 'primitive', NULL, '{"description": "원뿔", "geometry": "cone"}'),
+  ('primitive_plane', 'primitive', '평면', 'primitive', NULL, '{"description": "평면", "geometry": "plane"}'),
+  ('primitive_torus', 'primitive', '도넛', 'primitive', NULL, '{"description": "도넛 모양", "geometry": "torus"}'),
+
+  -- Lights (조명)
+  ('light_directional', 'light', '태양광', 'light', NULL, '{"description": "방향성 조명 (태양)", "lightType": "directional", "intensity": 1.0}'),
+  ('light_point', 'light', '전구', 'light', NULL, '{"description": "점 조명", "lightType": "point", "intensity": 1.0, "distance": 10}'),
+  ('light_spot', 'light', '스포트라이트', 'light', NULL, '{"description": "원뿔 조명", "lightType": "spot", "intensity": 1.0, "angle": 0.5, "distance": 10}'),
+  ('light_ambient', 'light', '전역 조명', 'light', NULL, '{"description": "전체를 밝게", "lightType": "ambient", "intensity": 0.5}');
