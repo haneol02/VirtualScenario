@@ -858,10 +858,10 @@ export default function SceneEditor() {
     <div className="h-screen bg-gray-900 text-white">
       <PanelGroup direction="vertical">
         {/* Top Section: Sidebar + Main Area + Inspector */}
-        <Panel defaultSize={75} minSize={30}>
+        <Panel id="top-panel" order={1} defaultSize={75} minSize={30}>
           <PanelGroup direction="horizontal">
             {/* Left Sidebar - Tabbed */}
-            <Panel defaultSize={20} minSize={15} maxSize={40}>
+            <Panel id="sidebar-panel" order={1} defaultSize={20} minSize={15} maxSize={40}>
               <aside className="w-full h-full bg-gray-800 border-r border-gray-700 flex flex-col">
         {/* Header */}
         <div className="p-4 border-b border-gray-700">
@@ -1186,7 +1186,7 @@ export default function SceneEditor() {
             <PanelResizeHandle className="w-1 bg-gray-700 hover:bg-blue-500 transition-colors cursor-col-resize" />
 
             {/* Main Area - 3D Viewer */}
-            <Panel defaultSize={60} minSize={30}>
+            <Panel id="main-panel" order={2} minSize={30}>
               <main className="h-full flex flex-col items-center justify-center bg-gray-900 relative">
         {selectedScene ? (
           <>
@@ -1320,7 +1320,7 @@ export default function SceneEditor() {
             {selectedScene && (
               <>
                 <PanelResizeHandle className="w-1 bg-gray-700 hover:bg-blue-500 transition-colors cursor-col-resize" />
-                <Panel defaultSize={20} minSize={15} maxSize={40}>
+                <Panel id="inspector-panel" order={3} minSize={15} maxSize={40}>
                   <InspectorPanel
                     selectedObject={selectedObjectId ? objects.find(obj => obj.id === selectedObjectId) : undefined}
                     selectedDialogue={selectedDialogueId ? dialogues.find(dlg => dlg.id === selectedDialogueId) : undefined}
@@ -1349,7 +1349,7 @@ export default function SceneEditor() {
         {selectedScene && (
           <>
             <PanelResizeHandle className="h-1 bg-gray-700 hover:bg-blue-500 transition-colors cursor-row-resize" />
-            <Panel defaultSize={25} minSize={15} maxSize={50}>
+            <Panel id="timeline-panel" order={2} defaultSize={25} minSize={15} maxSize={50}>
               <TimelinePanel
                 objects={objects}
                 dialogues={dialogues}

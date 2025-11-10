@@ -42,6 +42,9 @@ export default function InspectorPanel({
   const [localRotation, setLocalRotation] = useState<[string, string, string]>(['0', '0', '0']);
   const [localScale, setLocalScale] = useState<[string, string, string]>(['1', '1', '1']);
 
+  // Local state for color
+  const [localColor, setLocalColor] = useState('#ffffff');
+
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -85,6 +88,9 @@ export default function InspectorPanel({
   useEffect(() => {
     if (selectedObject) {
       setLocalObjectName(selectedObject.name);
+
+      // Sync color
+      setLocalColor(selectedObject.color || '#ffffff');
 
       // Sync transform values
       const interpolated = getInterpolatedTransform(selectedObject);
@@ -360,6 +366,31 @@ export default function InspectorPanel({
     }
   };
 
+  const handleColorChange = async (newColor: string) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
+    if (!selectedObject) return;
+
+    try {
+      if (objectType === 'background') {
+        await backgroundMapsAPI.updateObject(selectedObject.id, {
+          color: newColor
+        });
+      } else {
+        await scenesAPI.updateObject(sceneId, selectedObject.id, {
+          color: newColor
+        });
+      }
+      onUpdate();
+    } catch (error) {
+      console.error('Failed to update color:', error);
+    }
+  };
+
   const handleDialogueUpdate = async (field: string, value: any) => {
     // Prevent editing during playback
     if (isPlaying) {
@@ -511,6 +542,35 @@ export default function InspectorPanel({
                 기본 박스 사용 중. 위에서 다른 모델을 선택하세요.
               </div>
             )}
+          </div>
+
+          {/* Color Picker */}
+          <div className="bg-gray-750 rounded-lg p-3 border border-gray-600">
+            <label className="block text-xs font-semibold text-purple-400 mb-2 select-none" onDragStart={(e) => e.preventDefault()}>🎨 색상</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={localColor}
+                onChange={(e) => setLocalColor(e.target.value)}
+                onBlur={(e) => handleColorChange(e.target.value)}
+                className="w-12 h-10 rounded cursor-pointer border border-gray-600"
+                title="오브젝트 색상 선택"
+              />
+              <input
+                type="text"
+                value={localColor}
+                onChange={(e) => setLocalColor(e.target.value)}
+                onBlur={(e) => handleColorChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.currentTarget.blur();
+                  }
+                }}
+                className="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 font-mono"
+                placeholder="#ffffff"
+                pattern="^#[0-9A-Fa-f]{6}$"
+              />
+            </div>
           </div>
 
           {/* Visible Toggle */}
