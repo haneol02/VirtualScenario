@@ -133,7 +133,7 @@ export default function SceneEditor() {
     // Skip auto-calculation if user manually set maxTime
     if (isManualMaxTime) return;
 
-    let calculatedMaxTime = 30; // Default 30 seconds
+    let calculatedMaxTime = 1; // Default 1 second (minimum)
 
     // Check all keyframes
     objects.forEach(obj => {
@@ -160,7 +160,7 @@ export default function SceneEditor() {
     });
 
     // Add 5 seconds buffer
-    setMaxTime(Math.max(30, calculatedMaxTime + 5));
+    setMaxTime(Math.max(1, calculatedMaxTime + 5));
   }, [objects, dialogues, isManualMaxTime]);
 
   // Animation playback loop
@@ -1100,7 +1100,11 @@ export default function SceneEditor() {
             <div className="flex-1 w-full">
               <ThreeViewer
                 ref={threeViewerRef}
-                objects={[...backgroundObjects, ...objects]}
+                objects={[
+                  // Background objects are always locked in Scene Editor
+                  ...backgroundObjects.map(obj => ({ ...obj, locked: 1 })),
+                  ...objects
+                ]}
                 selectedObjectId={selectedObjectId}
                 assets={assets}
                 currentTime={currentTime}

@@ -314,6 +314,27 @@ export default function InspectorPanel({
     }
   };
 
+  const handleLockedToggle = async (checked: boolean) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
+    if (!selectedObject) return;
+
+    try {
+      if (objectType === 'background') {
+        await backgroundMapsAPI.updateObject(selectedObject.id, { locked: checked });
+      } else {
+        await scenesAPI.updateObject(sceneId, selectedObject.id, { locked: checked });
+      }
+      onUpdate();
+    } catch (error) {
+      console.error('Failed to update locked:', error);
+    }
+  };
+
   const handleModelChange = async (modelId: string) => {
     // Prevent editing during playback
     if (isPlaying) {
@@ -393,7 +414,7 @@ export default function InspectorPanel({
         >
           {/* Name & Type */}
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-1">이름</label>
+            <label className="block text-xs font-semibold text-gray-400 mb-1 select-none" onDragStart={(e) => e.preventDefault()}>이름</label>
             <input
               type="text"
               value={localObjectName}
@@ -407,12 +428,12 @@ export default function InspectorPanel({
               className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
               placeholder="오브젝트 이름"
             />
-            <div className="text-xs text-gray-500 mt-1">타입: {selectedObject.type}</div>
+            <div className="text-xs text-gray-500 mt-1 select-none" onDragStart={(e) => e.preventDefault()}>타입: {selectedObject.type}</div>
           </div>
 
           {/* Model Selection */}
           <div className="bg-gray-750 rounded-lg p-3 border border-gray-600">
-            <label className="block text-xs font-semibold text-blue-400 mb-2">🎨 3D 모델 / 에셋</label>
+            <label className="block text-xs font-semibold text-blue-400 mb-2 select-none" onDragStart={(e) => e.preventDefault()}>🎨 3D 모델 / 에셋</label>
             <select
               value={selectedObject.model_id || ''}
               onChange={(e) => handleModelChange(e.target.value)}
@@ -457,7 +478,7 @@ export default function InspectorPanel({
             {selectedObject.model_id && (() => {
               const currentAsset = assets.find(a => a.id === selectedObject.model_id);
               return currentAsset && (
-                <div className="mt-2 p-2 bg-gray-800 rounded text-xs">
+                <div className="mt-2 p-2 bg-gray-800 rounded text-xs select-none" onDragStart={(e) => e.preventDefault()}>
                   <div className="text-gray-400">현재 모델:</div>
                   <div className="text-white font-semibold">{currentAsset.name}</div>
                   {currentAsset.type === 'model' && currentAsset.file_format && (
@@ -481,14 +502,14 @@ export default function InspectorPanel({
               );
             })()}
             {!selectedObject.model_id && (
-              <div className="mt-2 p-2 bg-gray-800 rounded text-xs text-gray-400">
+              <div className="mt-2 p-2 bg-gray-800 rounded text-xs text-gray-400 select-none" onDragStart={(e) => e.preventDefault()}>
                 기본 박스 사용 중. 위에서 다른 모델을 선택하세요.
               </div>
             )}
           </div>
 
           {/* Visible Toggle */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 select-none" onDragStart={(e) => e.preventDefault()}>
             <input
               type="checkbox"
               id="visible"
@@ -502,7 +523,7 @@ export default function InspectorPanel({
           </div>
 
           {/* Nametag Toggle */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 select-none" onDragStart={(e) => e.preventDefault()}>
             <input
               type="checkbox"
               id="nametag"
@@ -515,6 +536,20 @@ export default function InspectorPanel({
             </label>
           </div>
 
+          {/* Locked Toggle */}
+          <div className="flex items-center gap-2 select-none" onDragStart={(e) => e.preventDefault()}>
+            <input
+              type="checkbox"
+              id="locked"
+              checked={'locked' in selectedObject ? selectedObject.locked === 1 : false}
+              onChange={(e) => handleLockedToggle(e.target.checked)}
+              className="w-4 h-4"
+            />
+            <label htmlFor="locked" className="text-sm text-gray-300 cursor-pointer">
+              🔒 오브젝트 잠금
+            </label>
+          </div>
+
           <hr className="border-gray-700" />
 
           {/* Keyframe Info */}
@@ -522,7 +557,7 @@ export default function InspectorPanel({
             try {
               const keyframes: PathKeyframe[] = JSON.parse(selectedObject.path_data);
               return keyframes.length > 0 && (
-                <div className="bg-blue-900 bg-opacity-30 border border-blue-600 rounded-lg p-3 text-xs">
+                <div className="bg-blue-900 bg-opacity-30 border border-blue-600 rounded-lg p-3 text-xs select-none" onDragStart={(e) => e.preventDefault()}>
                   <div className="flex items-start gap-2">
                     <span className="text-blue-400 text-lg">◆</span>
                     <div className="flex-1">
@@ -543,11 +578,11 @@ export default function InspectorPanel({
 
           {/* Position */}
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-2">Position</label>
+            <label className="block text-xs font-semibold text-gray-400 mb-2 select-none" onDragStart={(e) => e.preventDefault()}>Position</label>
             <div className="grid grid-cols-3 gap-2">
               {['x', 'y', 'z'].map((axis, idx) => (
                 <div key={axis}>
-                  <label className="text-xs text-gray-500 block mb-1">{axis.toUpperCase()}</label>
+                  <label className="text-xs text-gray-500 block mb-1 select-none" onDragStart={(e) => e.preventDefault()}>{axis.toUpperCase()}</label>
                   <input
                     type="number"
                     value={localPosition[idx]}
@@ -581,11 +616,11 @@ export default function InspectorPanel({
 
           {/* Rotation */}
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-2">Rotation (degrees)</label>
+            <label className="block text-xs font-semibold text-gray-400 mb-2 select-none" onDragStart={(e) => e.preventDefault()}>Rotation (degrees)</label>
             <div className="grid grid-cols-3 gap-2">
               {['x', 'y', 'z'].map((axis, idx) => (
                 <div key={axis}>
-                  <label className="text-xs text-gray-500 block mb-1">{axis.toUpperCase()}</label>
+                  <label className="text-xs text-gray-500 block mb-1 select-none" onDragStart={(e) => e.preventDefault()}>{axis.toUpperCase()}</label>
                   <input
                     type="number"
                     value={localRotation[idx]}
@@ -619,11 +654,11 @@ export default function InspectorPanel({
 
           {/* Scale */}
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-2">Scale</label>
+            <label className="block text-xs font-semibold text-gray-400 mb-2 select-none" onDragStart={(e) => e.preventDefault()}>Scale</label>
             <div className="grid grid-cols-3 gap-2">
               {['x', 'y', 'z'].map((axis, idx) => (
                 <div key={axis}>
-                  <label className="text-xs text-gray-500 block mb-1">{axis.toUpperCase()}</label>
+                  <label className="text-xs text-gray-500 block mb-1 select-none" onDragStart={(e) => e.preventDefault()}>{axis.toUpperCase()}</label>
                   <input
                     type="number"
                     value={localScale[idx]}
@@ -663,7 +698,7 @@ export default function InspectorPanel({
             const keyframes: PathKeyframe[] = JSON.parse(selectedObject.path_data);
             return keyframes.length > 0 && (
               <div>
-                <h4 className="text-sm font-semibold text-gray-300 mb-2 select-none">키프레임 ({keyframes.length}개)</h4>
+                <h4 className="text-sm font-semibold text-gray-300 mb-2 select-none" onDragStart={(e) => e.preventDefault()}>키프레임 ({keyframes.length}개)</h4>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {keyframes.map((kf, idx) => (
                     <div key={idx} className="bg-gray-750 border border-gray-600 rounded p-3 select-none"
@@ -716,7 +751,7 @@ export default function InspectorPanel({
                     </div>
                   ))}
                 </div>
-                <div className="mt-2 text-xs text-gray-500 text-center select-none">
+                <div className="mt-2 text-xs text-gray-500 text-center select-none" onDragStart={(e) => e.preventDefault()}>
                   💡 타임라인에서 'K' 키로 키프레임 추가
                 </div>
               </div>
@@ -728,7 +763,8 @@ export default function InspectorPanel({
           {/* Delete Button */}
           <button
             onClick={() => onDelete(selectedObject.id, 'object')}
-            className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-sm font-medium text-white"
+            className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-sm font-medium text-white select-none"
+            onDragStart={(e) => e.preventDefault()}
           >
             🗑️ 오브젝트 삭제 (Delete)
           </button>
@@ -752,7 +788,7 @@ export default function InspectorPanel({
         >
           {/* Speaker Name */}
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-2">발화자 이름</label>
+            <label className="block text-xs font-semibold text-gray-400 mb-2 select-none" onDragStart={(e) => e.preventDefault()}>발화자 이름</label>
             <input
               type="text"
               value={localSpeakerName}
@@ -770,7 +806,7 @@ export default function InspectorPanel({
 
           {/* Text */}
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-2">대화 내용</label>
+            <label className="block text-xs font-semibold text-gray-400 mb-2 select-none" onDragStart={(e) => e.preventDefault()}>대화 내용</label>
             <textarea
               value={localDialogueText}
               onChange={(e) => setLocalDialogueText(e.target.value)}
@@ -787,7 +823,7 @@ export default function InspectorPanel({
 
           {/* Start Time */}
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-2">시작 시간 (초)</label>
+            <label className="block text-xs font-semibold text-gray-400 mb-2 select-none" onDragStart={(e) => e.preventDefault()}>시작 시간 (초)</label>
             <input
               type="number"
               value={localDialogueStartTime}
@@ -810,7 +846,7 @@ export default function InspectorPanel({
 
           {/* Duration */}
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-2">지속 시간 (초)</label>
+            <label className="block text-xs font-semibold text-gray-400 mb-2 select-none" onDragStart={(e) => e.preventDefault()}>지속 시간 (초)</label>
             <input
               type="number"
               value={localDialogueDuration}
@@ -836,7 +872,8 @@ export default function InspectorPanel({
           {/* Delete Button */}
           <button
             onClick={() => onDelete(selectedDialogue.id, 'dialogue')}
-            className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-sm font-medium text-white"
+            className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-sm font-medium text-white select-none"
+            onDragStart={(e) => e.preventDefault()}
           >
             🗑️ 대화 삭제 (Delete)
           </button>
@@ -860,7 +897,8 @@ export default function InspectorPanel({
                   }
                   setContextMenu(null);
                 }}
-                className="w-full px-4 py-2 text-left text-sm text-white hover:bg-gray-700 flex items-center gap-2"
+                className="w-full px-4 py-2 text-left text-sm text-white hover:bg-gray-700 flex items-center gap-2 select-none"
+                onDragStart={(e) => e.preventDefault()}
               >
                 <span>🗑️</span>
                 <span>삭제 (Delete)</span>
@@ -876,7 +914,8 @@ export default function InspectorPanel({
                   }
                   setContextMenu(null);
                 }}
-                className="w-full px-4 py-2 text-left text-sm text-white hover:bg-gray-700 flex items-center gap-2"
+                className="w-full px-4 py-2 text-left text-sm text-white hover:bg-gray-700 flex items-center gap-2 select-none"
+                onDragStart={(e) => e.preventDefault()}
               >
                 <span>🗑️</span>
                 <span>삭제 (Delete)</span>
