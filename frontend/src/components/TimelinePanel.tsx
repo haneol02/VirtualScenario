@@ -913,7 +913,7 @@ export default function TimelinePanel({
                   {/* Layer Info */}
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium text-gray-300 flex items-center gap-2">
-                      <span>{isManualLayer ? `레이어 ${actualLayerIndex}` : '자동 레이어'}</span>
+                      <span>대화/자막 레이어 [{isManualLayer ? actualLayerIndex : '메인'}]</span>
                       {isManualLayer && (
                         <span className="px-1.5 py-0.5 bg-blue-600 text-white text-[9px] font-semibold rounded">
                           수동
