@@ -639,6 +639,9 @@ export default function SceneEditor() {
     // Get current transform from 3D viewer
     const currentTransform = threeViewerRef.current?.getObjectTransform(objectId);
 
+    console.log('🔍 getObjectTransform result:', currentTransform);
+    console.log('🔍 obj from DB:', { visible: obj.visible, show_nametag: obj.show_nametag });
+
     // Fallback to DB values if 3D transform not available
     const position = currentTransform?.position ?? [obj.position_x, obj.position_y, obj.position_z] as [number, number, number];
     const rotation = currentTransform?.rotation ?? [obj.rotation_x, obj.rotation_y, obj.rotation_z] as [number, number, number];
@@ -646,6 +649,8 @@ export default function SceneEditor() {
     // Use actual visible/show_nametag from 3D viewer (reflects current state after toggles)
     const visible = currentTransform?.visible ?? obj.visible ?? 1;
     const show_nametag = currentTransform?.show_nametag ?? obj.show_nametag ?? 1;
+
+    console.log('🔑 Final values for keyframe:', { visible, show_nametag });
 
     // Parse existing keyframes
     const existingKeyframes: PathKeyframe[] = obj.path_data ? JSON.parse(obj.path_data) : [];

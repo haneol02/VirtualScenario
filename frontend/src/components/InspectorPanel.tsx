@@ -815,6 +815,18 @@ export default function InspectorPanel({
                             </span>
                           </div>
                         )}
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-500 w-12">보임:</span>
+                          <span className={`text-xs font-semibold ${kf.visible === 1 ? 'text-green-400' : 'text-red-400'}`}>
+                            {kf.visible === 1 ? '보임' : '숨김'} ({kf.visible ?? 1})
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-500 w-12">라벨:</span>
+                          <span className={`text-xs font-semibold ${kf.show_nametag === 1 ? 'text-green-400' : 'text-red-400'}`}>
+                            {kf.show_nametag === 1 ? '표시' : '숨김'} ({kf.show_nametag ?? 1})
+                          </span>
+                        </div>
                       </div>
                     </div>
                   ))}
