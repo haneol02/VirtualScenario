@@ -1229,6 +1229,7 @@ export default function SceneEditor() {
                         handleDeleteDialogue(id);
                       }
                     }}
+                    onTransformChange={handleObjectTransform}
                   />
                 </Panel>
               </>

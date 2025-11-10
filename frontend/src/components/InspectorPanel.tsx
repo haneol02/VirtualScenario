@@ -11,6 +11,11 @@ interface InspectorPanelProps {
   objectType?: 'scene' | 'background';  // 'scene' for SceneObject, 'background' for BackgroundObject
   currentTime?: number;  // Current animation time for keyframe interpolation
   isPlaying?: boolean;  // Is timeline playing
+  onTransformChange?: (objectId: string, transform: {
+    position: [number, number, number];
+    rotation: [number, number, number];
+    scale: [number, number, number];
+  }) => void;  // Callback for transform changes (with keyframe support)
 }
 
 export default function InspectorPanel({
@@ -23,11 +28,19 @@ export default function InspectorPanel({
   objectType = 'scene',  // Default to 'scene' for backward compatibility
   currentTime = 0,
   isPlaying = false,
+  onTransformChange,
 }: InspectorPanelProps) {
-  // Local state for Korean input handling
+  // Local state for input handling (입력 중에는 자유롭게 입력 가능, blur 시에만 적용)
   const [localObjectName, setLocalObjectName] = useState('');
   const [localSpeakerName, setLocalSpeakerName] = useState('');
   const [localDialogueText, setLocalDialogueText] = useState('');
+  const [localDialogueStartTime, setLocalDialogueStartTime] = useState('');
+  const [localDialogueDuration, setLocalDialogueDuration] = useState('');
+
+  // Local state for transform inputs
+  const [localPosition, setLocalPosition] = useState<[string, string, string]>(['0', '0', '0']);
+  const [localRotation, setLocalRotation] = useState<[string, string, string]>(['0', '0', '0']);
+  const [localScale, setLocalScale] = useState<[string, string, string]>(['1', '1', '1']);
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{
@@ -72,13 +85,33 @@ export default function InspectorPanel({
   useEffect(() => {
     if (selectedObject) {
       setLocalObjectName(selectedObject.name);
+
+      // Sync transform values
+      const interpolated = getInterpolatedTransform(selectedObject);
+      setLocalPosition([
+        interpolated.position[0].toFixed(3),
+        interpolated.position[1].toFixed(3),
+        interpolated.position[2].toFixed(3),
+      ]);
+      setLocalRotation([
+        interpolated.rotation[0].toFixed(2),
+        interpolated.rotation[1].toFixed(2),
+        interpolated.rotation[2].toFixed(2),
+      ]);
+      setLocalScale([
+        interpolated.scale[0].toFixed(3),
+        interpolated.scale[1].toFixed(3),
+        interpolated.scale[2].toFixed(3),
+      ]);
     }
-  }, [selectedObject?.id]);
+  }, [selectedObject?.id, currentTime]);
 
   useEffect(() => {
     if (selectedDialogue) {
       setLocalSpeakerName(selectedDialogue.speaker_name || '');
       setLocalDialogueText(selectedDialogue.text);
+      setLocalDialogueStartTime(selectedDialogue.start_time.toString());
+      setLocalDialogueDuration(selectedDialogue.duration.toString());
     }
   }, [selectedDialogue?.id]);
 
@@ -181,36 +214,42 @@ export default function InspectorPanel({
     );
   }
 
-  const handleTransformChange = async (field: string, value: number) => {
-    // Prevent editing during playback
-    if (isPlaying) {
-      console.warn('Cannot edit during playback');
-      return;
-    }
-
-    if (!selectedObject) return;
-
-    const transform = {
-      position: [selectedObject.position_x, selectedObject.position_y, selectedObject.position_z] as [number, number, number],
-      rotation: [selectedObject.rotation_x, selectedObject.rotation_y, selectedObject.rotation_z] as [number, number, number],
-      scale: [selectedObject.scale_x, selectedObject.scale_y, selectedObject.scale_z] as [number, number, number],
-    };
-
-    switch (field) {
-      case 'position_x': transform.position[0] = value; break;
-      case 'position_y': transform.position[1] = value; break;
-      case 'position_z': transform.position[2] = value; break;
-      case 'rotation_x': transform.rotation[0] = value; break;
-      case 'rotation_y': transform.rotation[1] = value; break;
-      case 'rotation_z': transform.rotation[2] = value; break;
-      case 'scale_x': transform.scale[0] = value; break;
-      case 'scale_y': transform.scale[1] = value; break;
-      case 'scale_z': transform.scale[2] = value; break;
-    }
+  // Apply transform changes (called only on blur)
+  const handleTransformBlur = async () => {
+    if (isPlaying || !selectedObject) return;
 
     try {
-      await scenesAPI.updateObject(sceneId, selectedObject.id, { transform });
-      onUpdate();
+      // Parse local state to numbers
+      const position: [number, number, number] = [
+        parseFloat(localPosition[0]) || 0,
+        parseFloat(localPosition[1]) || 0,
+        parseFloat(localPosition[2]) || 0,
+      ];
+      const rotation: [number, number, number] = [
+        parseFloat(localRotation[0]) || 0,
+        parseFloat(localRotation[1]) || 0,
+        parseFloat(localRotation[2]) || 0,
+      ];
+      const scale: [number, number, number] = [
+        Math.max(0.1, parseFloat(localScale[0]) || 0.1),
+        Math.max(0.1, parseFloat(localScale[1]) || 0.1),
+        Math.max(0.1, parseFloat(localScale[2]) || 0.1),
+      ];
+
+      const transform = { position, rotation, scale };
+
+      // Use onTransformChange callback if available (for scene objects with keyframe support)
+      if (onTransformChange && objectType === 'scene') {
+        onTransformChange(selectedObject.id, transform);
+      } else {
+        // For background objects or when callback is not provided, update directly
+        if (objectType === 'background') {
+          await backgroundMapsAPI.updateObject(selectedObject.id, { transform });
+        } else {
+          await scenesAPI.updateObject(sceneId, selectedObject.id, { transform });
+        }
+        onUpdate();
+      }
     } catch (error) {
       console.error('Failed to update transform:', error);
     }
@@ -434,20 +473,20 @@ export default function InspectorPanel({
 
           <hr className="border-gray-700" />
 
-          {/* Keyframe Warning */}
+          {/* Keyframe Info */}
           {'path_data' in selectedObject && selectedObject.path_data && (() => {
             try {
               const keyframes: PathKeyframe[] = JSON.parse(selectedObject.path_data);
               return keyframes.length > 0 && (
-                <div className="bg-yellow-900 bg-opacity-30 border border-yellow-600 rounded-lg p-3 text-xs">
+                <div className="bg-blue-900 bg-opacity-30 border border-blue-600 rounded-lg p-3 text-xs">
                   <div className="flex items-start gap-2">
-                    <span className="text-yellow-500 text-lg">⚠️</span>
+                    <span className="text-blue-400 text-lg">◆</span>
                     <div className="flex-1">
-                      <div className="text-yellow-200 font-semibold mb-1">키프레임 애니메이션 활성</div>
-                      <div className="text-yellow-300 text-xs">
+                      <div className="text-blue-200 font-semibold mb-1">키프레임 애니메이션 활성</div>
+                      <div className="text-blue-300 text-xs">
                         Transform 값은 현재 시간({currentTime.toFixed(1)}초)의 보간값입니다.
                         <br />
-                        DB 기본값을 수정하려면 모든 키프레임을 삭제하세요.
+                        인스펙터에서 Transform을 수정하면 현재 시간에 키프레임이 추가/수정됩니다.
                       </div>
                     </div>
                   </div>
@@ -462,36 +501,32 @@ export default function InspectorPanel({
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-2">Position</label>
             <div className="grid grid-cols-3 gap-2">
-              {['x', 'y', 'z'].map((axis, idx) => {
-                const interpolated = getInterpolatedTransform(selectedObject);
-                const value = interpolated.position[idx];
-                return (
-                  <div key={axis}>
-                    <label className="text-xs text-gray-500 block mb-1">{axis.toUpperCase()}</label>
-                    <input
-                      type="number"
-                      value={value.toFixed(3)}
-                      onChange={(e) => {
-                        // 빈 문자열이면 업데이트하지 않음 (입력 중 허용)
-                        if (e.target.value !== '') {
-                          const val = parseFloat(e.target.value);
-                          if (!isNaN(val)) {
-                            handleTransformChange(`position_${axis}`, val);
-                          }
-                        }
-                      }}
-                      onBlur={(e) => {
-                        // 포커스 해제 시 빈 문자열이면 0으로 설정
-                        if (e.target.value === '') {
-                          handleTransformChange(`position_${axis}`, 0);
-                        }
-                      }}
-                      step="0.1"
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                );
-              })}
+              {['x', 'y', 'z'].map((axis, idx) => (
+                <div key={axis}>
+                  <label className="text-xs text-gray-500 block mb-1">{axis.toUpperCase()}</label>
+                  <input
+                    type="number"
+                    value={localPosition[idx]}
+                    onChange={(e) => {
+                      // 입력 중에는 자유롭게 입력 가능 (빈 문자열, 음수 등 모두 허용)
+                      const newPosition = [...localPosition] as [string, string, string];
+                      newPosition[idx] = e.target.value;
+                      setLocalPosition(newPosition);
+                    }}
+                    onBlur={(e) => {
+                      // 포커스 해제 시 빈 문자열이면 0으로 설정
+                      if (e.target.value === '') {
+                        const newPosition = [...localPosition] as [string, string, string];
+                        newPosition[idx] = '0';
+                        setLocalPosition(newPosition);
+                      }
+                      handleTransformBlur();
+                    }}
+                    step="0.1"
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              ))}
             </div>
           </div>
 
@@ -499,36 +534,32 @@ export default function InspectorPanel({
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-2">Rotation (degrees)</label>
             <div className="grid grid-cols-3 gap-2">
-              {['x', 'y', 'z'].map((axis, idx) => {
-                const interpolated = getInterpolatedTransform(selectedObject);
-                const value = interpolated.rotation[idx];
-                return (
-                  <div key={axis}>
-                    <label className="text-xs text-gray-500 block mb-1">{axis.toUpperCase()}</label>
-                    <input
-                      type="number"
-                      value={value.toFixed(2)}
-                      onChange={(e) => {
-                        // 빈 문자열이면 업데이트하지 않음 (입력 중 허용)
-                        if (e.target.value !== '') {
-                          const val = parseFloat(e.target.value);
-                          if (!isNaN(val)) {
-                            handleTransformChange(`rotation_${axis}`, val);
-                          }
-                        }
-                      }}
-                      onBlur={(e) => {
-                        // 포커스 해제 시 빈 문자열이면 0으로 설정
-                        if (e.target.value === '') {
-                          handleTransformChange(`rotation_${axis}`, 0);
-                        }
-                      }}
-                      step="1"
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                );
-              })}
+              {['x', 'y', 'z'].map((axis, idx) => (
+                <div key={axis}>
+                  <label className="text-xs text-gray-500 block mb-1">{axis.toUpperCase()}</label>
+                  <input
+                    type="number"
+                    value={localRotation[idx]}
+                    onChange={(e) => {
+                      // 입력 중에는 자유롭게 입력 가능
+                      const newRotation = [...localRotation] as [string, string, string];
+                      newRotation[idx] = e.target.value;
+                      setLocalRotation(newRotation);
+                    }}
+                    onBlur={(e) => {
+                      // 포커스 해제 시 빈 문자열이면 0으로 설정
+                      if (e.target.value === '') {
+                        const newRotation = [...localRotation] as [string, string, string];
+                        newRotation[idx] = '0';
+                        setLocalRotation(newRotation);
+                      }
+                      handleTransformBlur();
+                    }}
+                    step="1"
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              ))}
             </div>
           </div>
 
@@ -536,37 +567,33 @@ export default function InspectorPanel({
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-2">Scale</label>
             <div className="grid grid-cols-3 gap-2">
-              {['x', 'y', 'z'].map((axis, idx) => {
-                const interpolated = getInterpolatedTransform(selectedObject);
-                const value = interpolated.scale[idx];
-                return (
-                  <div key={axis}>
-                    <label className="text-xs text-gray-500 block mb-1">{axis.toUpperCase()}</label>
-                    <input
-                      type="number"
-                      value={value.toFixed(3)}
-                      onChange={(e) => {
-                        // 빈 문자열이면 업데이트하지 않음 (입력 중 허용)
-                        if (e.target.value !== '') {
-                          const val = parseFloat(e.target.value);
-                          if (!isNaN(val)) {
-                            handleTransformChange(`scale_${axis}`, val);
-                          }
-                        }
-                      }}
-                      onBlur={(e) => {
-                        // 포커스 해제 시 빈 문자열이거나 0.1 미만이면 0.1로 설정
-                        if (e.target.value === '' || parseFloat(e.target.value) < 0.1) {
-                          handleTransformChange(`scale_${axis}`, 0.1);
-                        }
-                      }}
-                      step="0.1"
-                      min="0.1"
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                );
-              })}
+              {['x', 'y', 'z'].map((axis, idx) => (
+                <div key={axis}>
+                  <label className="text-xs text-gray-500 block mb-1">{axis.toUpperCase()}</label>
+                  <input
+                    type="number"
+                    value={localScale[idx]}
+                    onChange={(e) => {
+                      // 입력 중에는 자유롭게 입력 가능
+                      const newScale = [...localScale] as [string, string, string];
+                      newScale[idx] = e.target.value;
+                      setLocalScale(newScale);
+                    }}
+                    onBlur={(e) => {
+                      // 포커스 해제 시 빈 문자열이거나 0.1 미만이면 0.1로 설정
+                      if (e.target.value === '' || parseFloat(e.target.value) < 0.1) {
+                        const newScale = [...localScale] as [string, string, string];
+                        newScale[idx] = '0.1';
+                        setLocalScale(newScale);
+                      }
+                      handleTransformBlur();
+                    }}
+                    step="0.1"
+                    min="0.1"
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              ))}
             </div>
           </div>
 
@@ -694,8 +721,13 @@ export default function InspectorPanel({
             <label className="block text-xs font-semibold text-gray-400 mb-2">시작 시간 (초)</label>
             <input
               type="number"
-              value={selectedDialogue.start_time}
-              onChange={(e) => handleDialogueUpdate('startTime', parseFloat(e.target.value) || 0)}
+              value={localDialogueStartTime}
+              onChange={(e) => setLocalDialogueStartTime(e.target.value)}
+              onBlur={(e) => {
+                const value = e.target.value === '' ? 0 : Math.max(0, parseFloat(e.target.value) || 0);
+                setLocalDialogueStartTime(value.toString());
+                handleDialogueUpdate('startTime', value);
+              }}
               step="0.1"
               min="0"
               className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-green-500"
@@ -707,8 +739,13 @@ export default function InspectorPanel({
             <label className="block text-xs font-semibold text-gray-400 mb-2">지속 시간 (초)</label>
             <input
               type="number"
-              value={selectedDialogue.duration}
-              onChange={(e) => handleDialogueUpdate('duration', parseFloat(e.target.value) || 0.1)}
+              value={localDialogueDuration}
+              onChange={(e) => setLocalDialogueDuration(e.target.value)}
+              onBlur={(e) => {
+                const value = e.target.value === '' ? 0.1 : Math.max(0.1, parseFloat(e.target.value) || 0.1);
+                setLocalDialogueDuration(value.toString());
+                handleDialogueUpdate('duration', value);
+              }}
               step="0.1"
               min="0.1"
               className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-green-500"
