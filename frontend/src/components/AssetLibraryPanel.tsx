@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Asset, assetsAPI } from '../lib/api';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 interface AssetLibraryPanelProps {
   onAssetSelect: (assetId: string) => void;
@@ -169,78 +170,86 @@ export default function AssetLibraryPanel({ onAssetSelect, onAssetUpdated }: Ass
   const categories = ['all', 'primitive', 'model', 'person', 'train', 'facility', 'sign'];
 
   return (
-    <div
-      className="h-full flex flex-col bg-gray-800 text-white select-none"
-      onContextMenu={(e) => e.preventDefault()}
+    <PanelGroup
+      direction="vertical"
+      className="h-full bg-gray-800 text-white select-none"
+      onContextMenu={(e: React.MouseEvent) => e.preventDefault()}
     >
-      {/* Header */}
-      <div className="p-4 border-b border-gray-700">
-        <h3 className="text-lg font-semibold mb-3">에셋 라이브러리</h3>
+      {/* Header Panel */}
+      <Panel defaultSize={35} minSize={20} maxSize={50}>
+        <div className="h-full overflow-y-auto p-4 border-b border-gray-700">
+          <h3 className="text-lg font-semibold mb-3">에셋 라이브러리</h3>
 
-        {/* Category Filter */}
-        <div className="flex flex-wrap gap-2 mb-3">
-          {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1 rounded text-sm ${
-                selectedCategory === cat
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              }`}
+          {/* Category Filter */}
+          <div className="flex flex-wrap gap-2 mb-3">
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-3 py-1 rounded text-sm ${
+                  selectedCategory === cat
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                {cat === 'all' ? '전체' : cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Upload Button */}
+          <button
+            onClick={() => setShowUploadModal(true)}
+            className="w-full px-3 py-2 bg-green-600 hover:bg-green-700 rounded text-sm font-medium"
+          >
+            + 에셋 추가
+          </button>
+        </div>
+      </Panel>
+
+      {/* Resize Handle */}
+      <PanelResizeHandle className="h-1 bg-gray-700 hover:bg-blue-500 transition-colors cursor-row-resize" />
+
+      {/* Asset List Panel */}
+      <Panel defaultSize={65} minSize={50}>
+        <div className="h-full overflow-y-auto p-4 space-y-2">
+          {filteredAssets.map(asset => (
+            <div
+              key={asset.id}
+              className="p-3 bg-gray-700 rounded hover:bg-gray-600 cursor-pointer flex justify-between items-center select-none"
+              onClick={(e) => handleAssetClick(e, asset.id)}
+              onContextMenu={(e) => e.preventDefault()}
             >
-              {cat === 'all' ? '전체' : cat}
-            </button>
+              <div className="pointer-events-none">
+                <p className="font-medium">{asset.name}</p>
+                <p className="text-xs text-gray-400">
+                  {asset.type === 'model' && asset.file_format && (
+                    <span className="bg-blue-500 px-2 py-0.5 rounded mr-2">
+                      {asset.file_format.toUpperCase()}
+                    </span>
+                  )}
+                  {asset.type === 'image' && asset.file_format && (
+                    <span className="bg-purple-500 px-2 py-0.5 rounded mr-2">
+                      {asset.file_format.toUpperCase()}
+                    </span>
+                  )}
+                  {asset.type === 'text' && (
+                    <span className="bg-green-500 px-2 py-0.5 rounded mr-2">
+                      TEXT
+                    </span>
+                  )}
+                  {asset.type === 'primitive' && (
+                    <span className="bg-gray-500 px-2 py-0.5 rounded mr-2">
+                      PRIMITIVE
+                    </span>
+                  )}
+                  {asset.category}
+                </p>
+              </div>
+            </div>
           ))}
         </div>
-
-        {/* Upload Button */}
-        <button
-          onClick={() => setShowUploadModal(true)}
-          className="w-full px-3 py-2 bg-green-600 hover:bg-green-700 rounded text-sm font-medium"
-        >
-          + 에셋 추가
-        </button>
-      </div>
-
-      {/* Asset List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
-        {filteredAssets.map(asset => (
-          <div
-            key={asset.id}
-            className="p-3 bg-gray-700 rounded hover:bg-gray-600 cursor-pointer flex justify-between items-center select-none"
-            onClick={(e) => handleAssetClick(e, asset.id)}
-            onContextMenu={(e) => e.preventDefault()}
-          >
-            <div className="pointer-events-none">
-              <p className="font-medium">{asset.name}</p>
-              <p className="text-xs text-gray-400">
-                {asset.type === 'model' && asset.file_format && (
-                  <span className="bg-blue-500 px-2 py-0.5 rounded mr-2">
-                    {asset.file_format.toUpperCase()}
-                  </span>
-                )}
-                {asset.type === 'image' && asset.file_format && (
-                  <span className="bg-purple-500 px-2 py-0.5 rounded mr-2">
-                    {asset.file_format.toUpperCase()}
-                  </span>
-                )}
-                {asset.type === 'text' && (
-                  <span className="bg-green-500 px-2 py-0.5 rounded mr-2">
-                    TEXT
-                  </span>
-                )}
-                {asset.type === 'primitive' && (
-                  <span className="bg-gray-500 px-2 py-0.5 rounded mr-2">
-                    PRIMITIVE
-                  </span>
-                )}
-                {asset.category}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
+      </Panel>
 
       {/* Context Menu */}
       {contextMenu && (
@@ -286,7 +295,7 @@ export default function AssetLibraryPanel({ onAssetSelect, onAssetUpdated }: Ass
 
       {/* Edit Modal */}
       {editModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70]">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000]">
           <div className="bg-gray-800 p-6 rounded-lg w-96">
             <h3 className="text-lg font-semibold mb-4">에셋 이름 변경</h3>
 
@@ -340,7 +349,7 @@ export default function AssetLibraryPanel({ onAssetSelect, onAssetUpdated }: Ass
 
       {/* Upload Modal */}
       {showUploadModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70]">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000]">
           <div className="bg-gray-800 p-6 rounded-lg w-[480px]">
             <h3 className="text-lg font-semibold mb-4">에셋 추가</h3>
 
@@ -526,6 +535,6 @@ export default function AssetLibraryPanel({ onAssetSelect, onAssetUpdated }: Ass
           </div>
         </div>
       )}
-    </div>
+    </PanelGroup>
   );
 }
