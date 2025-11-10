@@ -123,11 +123,32 @@ export default function AssetLibraryPanel({ onAssetSelect, onAssetUpdated }: Ass
     e.preventDefault();
     e.stopPropagation();
 
-    const rect = (e.target as HTMLElement).getBoundingClientRect();
+    // Context menu dimensions (approximate)
+    const menuWidth = 200;
+    const menuHeight = 150;
+
+    // Calculate position with boundary checks
+    let x = e.clientX;
+    let y = e.clientY;
+
+    // Adjust if menu would go off right edge
+    if (x + menuWidth > window.innerWidth) {
+      x = window.innerWidth - menuWidth - 10;
+    }
+
+    // Adjust if menu would go off bottom edge
+    if (y + menuHeight > window.innerHeight) {
+      y = window.innerHeight - menuHeight - 10;
+    }
+
+    // Ensure menu doesn't go off left or top edge
+    x = Math.max(10, x);
+    y = Math.max(10, y);
+
     setContextMenu({
       assetId,
-      x: e.clientX,
-      y: e.clientY,
+      x,
+      y,
     });
   };
 

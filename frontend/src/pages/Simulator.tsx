@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { projectsAPI, scenesAPI, backgroundMapsAPI, assetsAPI, type Project, type Scene, type SceneObject, type Dialogue, type BackgroundObject, type Asset } from '../lib/api';
+import { projectsAPI, scenesAPI, backgroundMapsAPI, assetsAPI, type Project, type Scene, type SceneObject, type Dialogue, type BackgroundObject, type Asset, type BackgroundMap } from '../lib/api';
 import ThreeViewer from '../components/ThreeViewer';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
@@ -13,6 +13,7 @@ export default function Simulator() {
   const [currentSceneIndex, setCurrentSceneIndex] = useState(0);
   const [objects, setObjects] = useState<SceneObject[]>([]);
   const [backgroundObjects, setBackgroundObjects] = useState<BackgroundObject[]>([]);
+  const [backgroundMap, setBackgroundMap] = useState<BackgroundMap | null>(null);
   const [dialogues, setDialogues] = useState<Dialogue[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,43 +117,53 @@ export default function Simulator() {
       setObjects(objectsData);
       setDialogues(dialoguesData);
 
-      // Load background objects if background map is set
+      // Load background map and objects if background map is set
       if (scene.background_map_id) {
-        const bgObjects = await backgroundMapsAPI.getObjects(scene.background_map_id);
+        const [bgMap, bgObjects] = await Promise.all([
+          backgroundMapsAPI.getById(scene.background_map_id),
+          backgroundMapsAPI.getObjects(scene.background_map_id),
+        ]);
+        setBackgroundMap(bgMap);
         setBackgroundObjects(bgObjects);
       } else {
+        setBackgroundMap(null);
         setBackgroundObjects([]);
       }
 
-      // Calculate scene duration based on dialogues and keyframes
-      let maxTime = 10; // Minimum 10 seconds
+      // Use scene duration if available, otherwise calculate from dialogues and keyframes
+      if (scene.duration !== undefined && scene.duration !== null && scene.duration > 0) {
+        setSceneDuration(scene.duration);
+      } else {
+        // Calculate scene duration based on dialogues and keyframes
+        let maxTime = 10; // Minimum 10 seconds
 
-      // Check dialogues
-      dialoguesData.forEach(dlg => {
-        const endTime = dlg.start_time + dlg.duration;
-        if (endTime > maxTime) {
-          maxTime = endTime;
-        }
-      });
-
-      // Check keyframes in scene objects
-      objectsData.forEach(obj => {
-        if (obj.path_data) {
-          try {
-            const keyframes = JSON.parse(obj.path_data);
-            keyframes.forEach((kf: any) => {
-              if (kf.time > maxTime) {
-                maxTime = kf.time;
-              }
-            });
-          } catch (e) {
-            console.error('Failed to parse path_data for duration calculation:', e);
+        // Check dialogues
+        dialoguesData.forEach(dlg => {
+          const endTime = dlg.start_time + dlg.duration;
+          if (endTime > maxTime) {
+            maxTime = endTime;
           }
-        }
-      });
+        });
 
-      // Add 5 second buffer
-      setSceneDuration(Math.max(10, maxTime + 5));
+        // Check keyframes in scene objects
+        objectsData.forEach(obj => {
+          if (obj.path_data) {
+            try {
+              const keyframes = JSON.parse(obj.path_data);
+              keyframes.forEach((kf: any) => {
+                if (kf.time > maxTime) {
+                  maxTime = kf.time;
+                }
+              });
+            } catch (e) {
+              console.error('Failed to parse path_data for duration calculation:', e);
+            }
+          }
+        });
+
+        // Add 5 second buffer
+        setSceneDuration(Math.max(10, maxTime + 5));
+      }
     } catch (error) {
       console.error('Failed to load scene data:', error);
     }
@@ -315,19 +326,23 @@ export default function Simulator() {
           </header>
         </Panel>
 
-        {/* Main 3D Viewer - Resizable */}
+        {/* Main 3D Viewer with Scene List - Resizable */}
         <PanelResizeHandle className="h-1 bg-gray-700 hover:bg-blue-500 transition-colors cursor-row-resize" />
         <Panel defaultSize={75} minSize={50}>
-          <main className="h-full relative">
-            <ThreeViewer
-              objects={[...backgroundObjects, ...displayObjects]}
-              selectedObjectId={selectedObjectId}
-              onObjectSelect={handleObjectSelect}
-              onObjectTransform={handleObjectTransform}
-              currentTime={currentTime}
-              isPlaying={isPlaying}
-              assets={assets}
-            />
+          <PanelGroup direction="horizontal">
+            {/* 3D Viewer */}
+            <Panel defaultSize={80} minSize={60}>
+              <main className="h-full relative">
+                <ThreeViewer
+                  objects={[...backgroundObjects, ...displayObjects]}
+                  selectedObjectId={selectedObjectId}
+                  onObjectSelect={handleObjectSelect}
+                  onObjectTransform={handleObjectTransform}
+                  currentTime={currentTime}
+                  isPlaying={isPlaying}
+                  assets={assets}
+                  gridSize={backgroundMap ? { width: backgroundMap.grid_width, depth: backgroundMap.grid_depth } : undefined}
+                />
 
             {/* Pause Instruction */}
             {!isPlaying && (
@@ -337,28 +352,69 @@ export default function Simulator() {
               </div>
             )}
 
-            {/* Subtitles */}
-            {activeDialogues.length > 0 && (
-              <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 w-3/4 max-w-3xl">
-                {activeDialogues.map(dlg => {
-                  const speaker = dlg.speaker_name || (dlg.object_id ? displayObjects.find(obj => obj.id === dlg.object_id)?.name : null);
-                  return (
-                    <div
-                      key={dlg.id}
-                      className="bg-black bg-opacity-80 rounded-lg p-4 mb-2 animate-fade-in"
-                    >
-                      {speaker && (
-                        <div className="text-blue-400 font-semibold mb-1 text-sm">
-                          {speaker}
+                {/* Subtitles */}
+                {activeDialogues.length > 0 && (
+                  <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 w-3/4 max-w-3xl">
+                    {activeDialogues.map(dlg => {
+                      const speaker = dlg.speaker_name || (dlg.object_id ? displayObjects.find(obj => obj.id === dlg.object_id)?.name : null);
+                      return (
+                        <div
+                          key={dlg.id}
+                          className="bg-black bg-opacity-80 rounded-lg p-4 mb-2 animate-fade-in"
+                        >
+                          {speaker && (
+                            <div className="text-blue-400 font-semibold mb-1 text-sm">
+                              {speaker}
+                            </div>
+                          )}
+                          <div className="text-white text-lg">{dlg.text}</div>
                         </div>
-                      )}
-                      <div className="text-white text-lg">{dlg.text}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </main>
+                      );
+                    })}
+                  </div>
+                )}
+              </main>
+            </Panel>
+
+            {/* Scene List Panel */}
+            <PanelResizeHandle className="w-1 bg-gray-700 hover:bg-blue-500 transition-colors cursor-col-resize" />
+            <Panel defaultSize={20} minSize={15} maxSize={40}>
+              <aside className="h-full bg-gray-800 border-l border-gray-700 overflow-y-auto">
+                <div className="p-4">
+                  <h3 className="text-sm font-semibold text-gray-400 mb-3">장면 목록</h3>
+                  <div className="space-y-2">
+                    {scenes.map((scene, index) => (
+                      <button
+                        key={scene.id}
+                        onClick={() => {
+                          setCurrentSceneIndex(index);
+                          setCurrentTime(0);
+                          setIsPlaying(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded transition-colors ${
+                          currentSceneIndex === index
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{index + 1}. {scene.title}</p>
+                            {scene.description && (
+                              <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{scene.description}</p>
+                            )}
+                          </div>
+                          {currentSceneIndex === index && (
+                            <span className="ml-2 text-xs">▶️</span>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </aside>
+            </Panel>
+          </PanelGroup>
         </Panel>
 
         {/* Footer Controls - Resizable */}
@@ -374,13 +430,38 @@ export default function Simulator() {
                 step="0.1"
                 value={currentTime}
                 onChange={(e) => handleSeek(parseFloat(e.target.value))}
-                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                className="w-full h-3 rounded-lg cursor-pointer"
+                style={{
+                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${(currentTime / sceneDuration) * 100}%, #4b5563 ${(currentTime / sceneDuration) * 100}%, #4b5563 100%)`,
+                  WebkitAppearance: 'none',
+                  appearance: 'none',
+                }}
               />
               <div className="flex justify-between text-xs text-gray-400 mt-1">
                 <span>{formatTime(currentTime)}</span>
                 <span>{formatTime(sceneDuration)}</span>
               </div>
             </div>
+            <style>{`
+              input[type='range']::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 16px;
+                height: 16px;
+                border-radius: 50%;
+                background: #3b82f6;
+                cursor: pointer;
+                border: 2px solid white;
+              }
+              input[type='range']::-moz-range-thumb {
+                width: 16px;
+                height: 16px;
+                border-radius: 50%;
+                background: #3b82f6;
+                cursor: pointer;
+                border: 2px solid white;
+              }
+            `}</style>
 
             {/* Control Buttons */}
             <div className="flex items-center justify-center gap-4">

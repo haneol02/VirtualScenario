@@ -10,6 +10,8 @@ export default function Dashboard() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [newProjectTitle, setNewProjectTitle] = useState('');
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [editingProjectTitle, setEditingProjectTitle] = useState('');
 
   useEffect(() => {
     loadProjects();
@@ -52,6 +54,29 @@ export default function Dashboard() {
     } catch (error) {
       console.error('Failed to delete project:', error);
     }
+  };
+
+  const handleEditProject = (project: Project) => {
+    setEditingProjectId(project.id);
+    setEditingProjectTitle(project.title);
+  };
+
+  const handleSaveProjectTitle = async (projectId: string) => {
+    if (!editingProjectTitle.trim()) return;
+
+    try {
+      await projectsAPI.update(projectId, { title: editingProjectTitle });
+      await loadProjects();
+      setEditingProjectId(null);
+      setEditingProjectTitle('');
+    } catch (error) {
+      console.error('Failed to update project:', error);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingProjectId(null);
+    setEditingProjectTitle('');
   };
 
   if (loading) {
@@ -107,13 +132,34 @@ export default function Dashboard() {
                 className="bg-gray-800 rounded-lg p-5 border border-gray-700 hover:border-blue-500 transition-colors"
               >
                 <div className="flex items-start justify-between mb-3">
-                  <h3 className="text-lg font-semibold">{project.title}</h3>
+                  {editingProjectId === project.id ? (
+                    <input
+                      type="text"
+                      value={editingProjectTitle}
+                      onChange={(e) => setEditingProjectTitle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveProjectTitle(project.id);
+                        if (e.key === 'Escape') handleCancelEdit();
+                      }}
+                      onBlur={() => handleSaveProjectTitle(project.id)}
+                      className="flex-1 bg-gray-700 border border-blue-500 rounded px-2 py-1 text-lg font-semibold focus:outline-none"
+                      autoFocus
+                    />
+                  ) : (
+                    <h3
+                      className="text-lg font-semibold cursor-pointer hover:text-blue-400 transition-colors"
+                      onClick={() => handleEditProject(project)}
+                      title="클릭하여 제목 수정"
+                    >
+                      {project.title}
+                    </h3>
+                  )}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDeleteProject(project.id);
                     }}
-                    className="text-gray-400 hover:text-red-500 transition-colors"
+                    className="text-gray-400 hover:text-red-500 transition-colors ml-2"
                   >
                     🗑️
                   </button>

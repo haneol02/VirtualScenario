@@ -854,37 +854,28 @@ export default function BackgroundMapEditor() {
       )}
 
       {/* Add Object Dialog */}
-      {showAddObjectDialog && <AddObjectDialog onClose={() => setShowAddObjectDialog(false)} onAdd={handleAddObject} />}
+      {showAddObjectDialog && <AddObjectDialog onClose={() => setShowAddObjectDialog(false)} onAdd={handleAddObject} assets={assets} />}
     </div>
   );
 }
 
 // Add Object Dialog Component
-function AddObjectDialog({ onClose, onAdd }: {
+function AddObjectDialog({ onClose, onAdd, assets }: {
   onClose: () => void;
   onAdd: (data: { type: string; name: string; modelId?: string; color?: string }) => void;
+  assets: Asset[];
 }) {
-  const [objectType, setObjectType] = useState('primitive');
   const [objectName, setObjectName] = useState('');
-  const [primitiveType, setPrimitiveType] = useState('box');
+  const [objectModelId, setObjectModelId] = useState('');
   const [objectColor, setObjectColor] = useState('#6b7280');
-
-  const primitives = [
-    { id: 'primitive_box', name: '사각형', geometry: 'box' },
-    { id: 'primitive_sphere', name: '구', geometry: 'sphere' },
-    { id: 'primitive_cylinder', name: '원기둥', geometry: 'cylinder' },
-    { id: 'primitive_cone', name: '원뿔', geometry: 'cone' },
-    { id: 'primitive_plane', name: '평면', geometry: 'plane' },
-    { id: 'primitive_torus', name: '도넛', geometry: 'torus' },
-  ];
 
   const handleSubmit = () => {
     if (!objectName.trim()) return;
 
     onAdd({
-      type: objectType,
+      type: 'object',
       name: objectName,
-      modelId: objectType === 'primitive' ? `primitive_${primitiveType}` : undefined,
+      modelId: objectModelId || undefined,
       color: objectColor,
     });
   };
@@ -896,34 +887,6 @@ function AddObjectDialog({ onClose, onAdd }: {
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm mb-1">타입</label>
-            <select
-              value={objectType}
-              onChange={(e) => setObjectType(e.target.value)}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
-            >
-              <option value="primitive">3D 프리미티브</option>
-              <option value="facility">시설물</option>
-              <option value="sign">표지판</option>
-            </select>
-          </div>
-
-          {objectType === 'primitive' && (
-            <div>
-              <label className="block text-sm mb-1">도형</label>
-              <select
-                value={primitiveType}
-                onChange={(e) => setPrimitiveType(e.target.value)}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
-              >
-                {primitives.map(p => (
-                  <option key={p.id} value={p.geometry}>{p.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <div>
             <label className="block text-sm mb-1">이름 *</label>
             <input
               type="text"
@@ -931,7 +894,48 @@ function AddObjectDialog({ onClose, onAdd }: {
               onChange={(e) => setObjectName(e.target.value)}
               className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
               placeholder="예: 벤치"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSubmit();
+                if (e.key === 'Escape') onClose();
+              }}
             />
+          </div>
+
+          <div>
+            <label className="block text-sm mb-1">3D 모델 (선택사항)</label>
+            <select
+              value={objectModelId}
+              onChange={(e) => setObjectModelId(e.target.value)}
+              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+            >
+              <option value="">기본 (박스)</option>
+              <optgroup label="기본 도형">
+                {assets.filter(a => a.category === 'primitive').map(asset => (
+                  <option key={asset.id} value={asset.id}>
+                    {asset.name}
+                  </option>
+                ))}
+              </optgroup>
+              {assets.some(a => a.category === 'light') && (
+                <optgroup label="조명">
+                  {assets.filter(a => a.category === 'light').map(asset => (
+                    <option key={asset.id} value={asset.id}>
+                      💡 {asset.name}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {assets.some(a => a.category === 'model') && (
+                <optgroup label="업로드된 모델">
+                  {assets.filter(a => a.category === 'model').map(asset => (
+                    <option key={asset.id} value={asset.id}>
+                      {asset.name}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+            </select>
           </div>
 
           <div>

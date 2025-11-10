@@ -329,6 +329,12 @@ export default function SceneEditor() {
       ]);
       setObjects(objectsData);
       setDialogues(dialoguesData);
+
+      // Load scene duration if available, otherwise keep default
+      if (scene.duration !== undefined && scene.duration !== null) {
+        setMaxTime(scene.duration);
+        setIsManualMaxTime(true);
+      }
     } catch (error) {
       console.error('Failed to load scene data:', error);
     }
@@ -1442,9 +1448,18 @@ export default function SceneEditor() {
                   setSelectedDialogueId(id);
                   setSelectedObjectId(undefined); // Deselect object when dialogue selected
                 }}
-                onMaxTimeChange={(newMaxTime) => {
+                onMaxTimeChange={async (newMaxTime) => {
                   setMaxTime(newMaxTime);
                   setIsManualMaxTime(true); // Mark as manually set
+
+                  // Save duration to server
+                  if (selectedScene) {
+                    try {
+                      await scenesAPI.update(selectedScene.id, { duration: newMaxTime });
+                    } catch (error) {
+                      console.error('Failed to update scene duration:', error);
+                    }
+                  }
                 }}
                 onUpdateDialogue={handleUpdateDialogue}
                 onReorderObjects={handleReorderObjects}
