@@ -52,6 +52,7 @@ export default function TimelinePanel({
 }: TimelinePanelProps) {
   const [zoom, setZoom] = useState(1); // 1 = 1초당 50px
   const [localMaxTime, setLocalMaxTime] = useState(maxTime.toString()); // 로컬 상태로 maxTime 관리
+  const [localCurrentTime, setLocalCurrentTime] = useState(currentTime.toFixed(2)); // 현재 시간 입력창 관리
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -126,6 +127,15 @@ export default function TimelinePanel({
   // Layer reordering state
   const [draggedItem, setDraggedItem] = useState<{ type: 'object' | 'dialogue'; id: string; index: number } | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  // Sync local state with props
+  useEffect(() => {
+    setLocalCurrentTime(currentTime.toFixed(2));
+  }, [currentTime]);
+
+  useEffect(() => {
+    setLocalMaxTime(maxTime.toString());
+  }, [maxTime]);
 
   const pixelsPerSecond = 50 * zoom;
   const timelineWidth = maxTime * pixelsPerSecond;
@@ -458,6 +468,15 @@ export default function TimelinePanel({
             {isPlaying ? '⏸️ 일시정지' : '▶️ 재생'}
           </button>
 
+          {/* Reset to Start Button */}
+          <button
+            onClick={() => onTimeChange(0)}
+            className="px-3 py-1 bg-gray-600 hover:bg-gray-700 rounded text-sm font-medium"
+            title="처음으로 돌아가기"
+          >
+            ⏮️ 처음으로
+          </button>
+
           {/* Add Keyframe Button */}
           {selectedObjectId && (
             <button
@@ -471,9 +490,42 @@ export default function TimelinePanel({
 
           {/* Time Display */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-400">
-              {currentTime.toFixed(2)}s
-            </span>
+            <input
+              type="number"
+              value={localCurrentTime}
+              onChange={(e) => {
+                setLocalCurrentTime(e.target.value);
+              }}
+              onBlur={(e) => {
+                const val = e.target.value;
+                if (val === '' || isNaN(parseFloat(val))) {
+                  setLocalCurrentTime('0');
+                  onTimeChange(0);
+                } else {
+                  const newTime = parseFloat(val);
+                  if (newTime < 0) {
+                    setLocalCurrentTime('0');
+                    onTimeChange(0);
+                  } else if (newTime > maxTime) {
+                    setLocalCurrentTime(maxTime.toFixed(2));
+                    onTimeChange(maxTime);
+                  } else {
+                    onTimeChange(newTime);
+                  }
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.currentTarget.blur();
+                }
+              }}
+              className="w-20 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white focus:outline-none focus:border-blue-500"
+              step="0.1"
+              min="0"
+              max={maxTime}
+              title="현재 시간 (초)"
+            />
+            <span className="text-sm text-gray-400">s</span>
             <span className="text-gray-600">/</span>
             <input
               type="number"
@@ -539,7 +591,7 @@ export default function TimelinePanel({
       {/* Timeline Area */}
       <div ref={timelineRef} className="flex-1 flex overflow-auto">
         {/* Layer List (Left) */}
-        <div className="w-48 bg-gray-800 border-r border-gray-700 flex-shrink-0 select-none">
+        <div className="w-48 bg-gray-800 border-r border-gray-700 flex-shrink-0 select-none overflow-hidden">
           {/* Header matching Time Ruler */}
           <div className="h-8 bg-gray-800 border-b border-gray-700 flex items-center justify-between px-3 sticky top-0 z-10">
             <span className="text-xs font-semibold text-gray-400">속성</span>
@@ -586,7 +638,7 @@ export default function TimelinePanel({
                   } ${
                     selectedObjectId === obj.id
                       ? 'bg-blue-700 text-white'
-                      : 'hover:bg-gray-700 text-gray-300'
+                      : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
                   } ${draggedItem?.type === 'object' && draggedItem.index === index ? 'opacity-50' : ''} ${
                     dragOverIndex === index && draggedItem?.type === 'object' ? 'border-t-2 border-t-blue-400' : ''
                   }`}
@@ -663,7 +715,7 @@ export default function TimelinePanel({
                   } ${
                     selectedDialogueId === dlg.id
                       ? 'bg-green-700 text-white'
-                      : 'hover:bg-gray-700 text-gray-300'
+                      : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
                   } ${draggedItem?.type === 'dialogue' && draggedItem.index === index ? 'opacity-50' : ''} ${
                     dragOverIndex === index && draggedItem?.type === 'dialogue' ? 'border-t-2 border-t-green-400' : ''
                   }`}

@@ -707,6 +707,10 @@ export default function SceneEditor() {
   };
 
   const handlePlayPause = () => {
+    // If at the end (or very close to end), reset to start before playing
+    if (!isPlaying && currentTime >= maxTime - 0.1) {
+      setCurrentTime(0);
+    }
     setIsPlaying(prev => !prev);
   };
 
