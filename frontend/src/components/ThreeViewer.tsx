@@ -279,19 +279,23 @@ function SceneObjectMesh({
     }
   })() : false;
 
-  // Update currentShowNametag when obj.show_nametag changes (for non-keyframe objects only)
+  // Update currentShowNametag when obj.show_nametag changes
+  // Apply when: 1) no keyframes, OR 2) has keyframes but editing (not playing)
   useEffect(() => {
-    if (!hasKeyframes) {
+    if (!hasKeyframes || !isPlaying) {
       setCurrentShowNametag(obj.show_nametag ?? 1);
     }
-  }, [obj.show_nametag, hasKeyframes]);
+  }, [obj.show_nametag, hasKeyframes, isPlaying]);
 
-  // Apply visible from obj when no keyframes
+  // Apply visible from obj when: 1) no keyframes, OR 2) has keyframes but editing (not playing)
+  // This ensures checkbox toggles are immediately reflected in the mesh
   useEffect(() => {
-    if (meshRef.current && !hasKeyframes) {
-      meshRef.current.visible = ('visible' in obj && obj.visible !== undefined) ? obj.visible !== 0 : true;
+    if (meshRef.current && (!hasKeyframes || !isPlaying)) {
+      const newVisible = ('visible' in obj && obj.visible !== undefined) ? obj.visible !== 0 : true;
+      meshRef.current.visible = newVisible;
+      console.log('🔄 Applying DB visible to mesh:', { objectId: obj.id, visible: obj.visible, newVisible, isPlaying, hasKeyframes });
     }
-  }, [obj.visible, hasKeyframes]);
+  }, [obj.visible, hasKeyframes, isPlaying, obj.id]);
 
   // Register mesh ref to parent
   useEffect(() => {
@@ -300,9 +304,13 @@ function SceneObjectMesh({
     }
   }, [obj.id, onMeshCreated]);
 
-  // Keyframe animation based on currentTime
+  // Keyframe animation based on currentTime (ONLY during playback)
   useEffect(() => {
     if (!meshRef.current || currentTime === undefined || !('path_data' in obj) || !obj.path_data) return;
+
+    // Only apply keyframe animation during playback
+    // When editing (not playing), use DB values for immediate checkbox feedback
+    if (!isPlaying) return;
 
     // 재생 중에는 선택 여부와 관계없이 모든 오브젝트에 애니메이션 적용
     // TransformControls는 isPlaying 시 비활성화되어 있으므로 충돌 없음
@@ -389,10 +397,18 @@ function SceneObjectMesh({
 
       meshRef.current.visible = visibleValue === 1;
       setCurrentShowNametag(nametagValue);
+
+      console.log('🎬 Keyframe animation applied:', {
+        objectId: obj.id,
+        currentTime,
+        visibleValue,
+        nametagValue,
+        'prevKeyframe.time': prevKeyframe.time
+      });
     } catch (e) {
       console.error('Failed to apply keyframe animation:', e);
     }
-  }, [currentTime, obj]);
+  }, [currentTime, obj, isPlaying]);
 
   // 색상 결정 (color 필드 우선, 없으면 타입별 기본 색상)
   const getColor = () => {
