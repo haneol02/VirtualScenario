@@ -201,9 +201,13 @@ export function createAssetsRouter(db: DatabaseManager) {
   router.put('/:id', (req, res) => {
     try {
       const { id } = req.params;
-      const { name, category } = req.body;
+      const { name, category, metadata } = req.body;
 
-      const updatedAsset = db.updateAsset(id, { name, category });
+      const updatedAsset = db.updateAsset(id, {
+        name,
+        category,
+        metadata: metadata ? JSON.stringify(metadata) : undefined
+      });
       res.json(updatedAsset);
     } catch (error) {
       console.error('Failed to update asset:', error);

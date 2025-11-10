@@ -376,7 +376,7 @@ export const assetsAPI = {
     }).then(res => res.data);
   },
 
-  update: (id: string, data: { name?: string; category?: string }) =>
+  update: (id: string, data: { name?: string; category?: string; metadata?: any }) =>
     api.put<Asset>(`/assets/${id}`, data).then(res => res.data),
 
   delete: (id: string) =>
