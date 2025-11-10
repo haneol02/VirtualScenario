@@ -1,6 +1,7 @@
-import { useRef, useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useRef, useState, useEffect, forwardRef, useImperativeHandle, Suspense } from 'react';
 import { Canvas, useThree, useLoader } from '@react-three/fiber';
 import { OrbitControls, Grid, GizmoHelper, GizmoViewport, TransformControls, Html, Text } from '@react-three/drei';
+import { ErrorBoundary } from 'react-error-boundary';
 import * as THREE from 'three';
 import { SceneObject, BackgroundObject, Asset } from '../lib/api';
 import ModelLoader from './ModelLoader';
@@ -283,15 +284,19 @@ function SceneObjectMesh({
           )}
         </group>
       ) : isImage ? (
-        // Render Image
-        <ImagePlane
-          meshRef={meshRef}
-          imagePath={`${window.location.protocol}//${window.location.hostname}:3001${asset.file_path}`}
-          initialTransform={initialTransform}
-          isSelected={isSelected}
-          onSelect={onSelect}
-          obj={obj}
-        />
+        // Render Image with error handling
+        <Suspense fallback={<ImageFallback meshRef={meshRef} initialTransform={initialTransform} obj={obj} />}>
+          <ErrorBoundary FallbackComponent={() => <ImageFallback meshRef={meshRef} initialTransform={initialTransform} obj={obj} />}>
+            <ImagePlane
+              meshRef={meshRef}
+              imagePath={`${window.location.protocol}//${window.location.hostname}:3001${asset.file_path}`}
+              initialTransform={initialTransform}
+              isSelected={isSelected}
+              onSelect={onSelect}
+              obj={obj}
+            />
+          </ErrorBoundary>
+        </Suspense>
       ) : isText ? (
         // Render 3D Text
         <Text3DObject
@@ -390,6 +395,40 @@ function SceneObjectMesh({
         />
       )}
     </>
+  );
+}
+
+// Image Fallback Component (when image fails to load)
+function ImageFallback({
+  meshRef,
+  initialTransform,
+  obj
+}: {
+  meshRef: any;
+  initialTransform: any;
+  obj: SceneObject | BackgroundObject;
+}) {
+  return (
+    <mesh
+      ref={meshRef}
+      position={initialTransform.position as [number, number, number]}
+      rotation={[
+        (initialTransform.rotation[0] * Math.PI) / 180,
+        (initialTransform.rotation[1] * Math.PI) / 180,
+        (initialTransform.rotation[2] * Math.PI) / 180,
+      ]}
+      scale={initialTransform.scale as [number, number, number]}
+    >
+      <planeGeometry args={[2, 2]} />
+      <meshStandardMaterial color="#ff6b6b" side={THREE.DoubleSide} />
+
+      {/* Error indicator */}
+      <Html center position={[0, 0, 0.01]} distanceFactor={10} zIndexRange={[100, 0]}>
+        <div className="bg-red-900 bg-opacity-90 text-white px-3 py-1 rounded text-xs pointer-events-none select-none whitespace-nowrap">
+          ⚠️ 이미지 로드 실패
+        </div>
+      </Html>
+    </mesh>
   );
 }
 
