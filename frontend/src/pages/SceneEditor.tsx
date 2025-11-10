@@ -133,7 +133,7 @@ export default function SceneEditor() {
     // Skip auto-calculation if user manually set maxTime
     if (isManualMaxTime) return;
 
-    let calculatedMaxTime = 30; // Default 30 seconds
+    let calculatedMaxTime = 1; // Default 1 second (minimum)
 
     // Check all keyframes
     objects.forEach(obj => {
@@ -160,7 +160,7 @@ export default function SceneEditor() {
     });
 
     // Add 5 seconds buffer
-    setMaxTime(Math.max(30, calculatedMaxTime + 5));
+    setMaxTime(Math.max(1, calculatedMaxTime + 5));
   }, [objects, dialogues, isManualMaxTime]);
 
   // Animation playback loop

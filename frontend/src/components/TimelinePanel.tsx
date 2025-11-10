@@ -434,9 +434,9 @@ export default function TimelinePanel({
                   onMaxTimeChange(30); // 기본값
                 } else {
                   const newMaxTime = parseFloat(val);
-                  if (newMaxTime < 10) {
-                    setLocalMaxTime('10');
-                    onMaxTimeChange(10);
+                  if (newMaxTime < 1) {
+                    setLocalMaxTime('1');
+                    onMaxTimeChange(1);
                   } else if (newMaxTime > 600) {
                     setLocalMaxTime('600');
                     onMaxTimeChange(600);
@@ -451,12 +451,13 @@ export default function TimelinePanel({
                 }
               }}
               className="w-16 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white focus:outline-none focus:border-blue-500"
-              min="10"
+              min="1"
               max="600"
-              step="5"
-              title="장면 길이 (초)"
+              step="1"
+              title="장면 길이 (최소 1초)"
             />
             <span className="text-sm text-gray-400">s</span>
+            <span className="text-xs text-gray-500 ml-1">(최소 1초)</span>
           </div>
         </div>
 
