@@ -267,19 +267,29 @@ function SceneObjectMesh({
   // Track show_nametag from keyframe
   const [currentShowNametag, setCurrentShowNametag] = useState<number>(obj.show_nametag ?? 1);
 
+  // Check if object has keyframes
+  const hasKeyframes = ('path_data' in obj && obj.path_data) ? (() => {
+    try {
+      const keyframes = JSON.parse(obj.path_data);
+      return keyframes && keyframes.length > 0;
+    } catch {
+      return false;
+    }
+  })() : false;
+
   // Update currentShowNametag when obj.show_nametag changes (for non-keyframe objects only)
   useEffect(() => {
-    if (!('path_data' in obj) || !obj.path_data) {
+    if (!hasKeyframes) {
       setCurrentShowNametag(obj.show_nametag ?? 1);
     }
-  }, [obj.show_nametag, obj]);
+  }, [obj.show_nametag, hasKeyframes]);
 
   // Apply visible from obj when no keyframes
   useEffect(() => {
-    if (meshRef.current && (!('path_data' in obj) || !obj.path_data)) {
+    if (meshRef.current && !hasKeyframes) {
       meshRef.current.visible = ('visible' in obj && obj.visible !== undefined) ? obj.visible !== 0 : true;
     }
-  }, [obj]);
+  }, [obj.visible, hasKeyframes]);
 
   // Register mesh ref to parent
   useEffect(() => {
@@ -370,17 +380,17 @@ function SceneObjectMesh({
         THREE.MathUtils.lerp(prevScale[2], nextScale[2], t)
       );
 
-      // Apply visible and show_nametag from keyframe (use current keyframe's value)
-      if (prevKeyframe.visible !== undefined) {
-        meshRef.current.visible = prevKeyframe.visible === 1;
-      }
-      if (prevKeyframe.show_nametag !== undefined) {
-        setCurrentShowNametag(prevKeyframe.show_nametag);
-      }
+      // Apply visible and show_nametag from prevKeyframe (hold previous value until next keyframe)
+      // Use prevKeyframe value with fallback to defaults
+      const visibleValue = prevKeyframe.visible !== undefined ? prevKeyframe.visible : 1;
+      const nametagValue = prevKeyframe.show_nametag !== undefined ? prevKeyframe.show_nametag : 1;
+
+      meshRef.current.visible = visibleValue === 1;
+      setCurrentShowNametag(nametagValue);
     } catch (e) {
       console.error('Failed to apply keyframe animation:', e);
     }
-  }, [currentTime, obj, isSelected, isPlaying]);
+  }, [currentTime, obj]);
 
   // 색상 결정 (color 필드 우선, 없으면 타입별 기본 색상)
   const getColor = () => {
