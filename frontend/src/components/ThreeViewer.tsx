@@ -20,6 +20,7 @@ interface ThreeViewerProps {
   assets?: Asset[];  // Asset library for model file paths
   currentTime?: number;  // Current playback time for animation
   isPlaying?: boolean;  // Is timeline playing
+  gridSize?: { width: number; depth: number };  // Custom grid size
   onObjectSelect?: (objectId: string) => void;
   onObjectTransform?: (objectId: string, transform: {
     position: [number, number, number];
@@ -551,7 +552,13 @@ function Text3DObject({
 }
 
 // 배경 렌더링 컴포넌트
-function BackgroundEnvironment({ backgroundType = 'grid' }: { backgroundType?: string }) {
+function BackgroundEnvironment({
+  backgroundType = 'grid',
+  gridSize = { width: 20, depth: 20 }
+}: {
+  backgroundType?: string;
+  gridSize?: { width: number; depth: number };
+}) {
   // 배경별 색상 설정
   const getBackgroundColors = () => {
     switch (backgroundType) {
@@ -594,7 +601,7 @@ function BackgroundEnvironment({ backgroundType = 'grid' }: { backgroundType?: s
     <>
       {/* 그리드 */}
       <Grid
-        args={[20, 20]}
+        args={[gridSize.width, gridSize.depth]}
         cellSize={1}
         cellThickness={0.5}
         cellColor={colors.cellColor}
@@ -609,7 +616,7 @@ function BackgroundEnvironment({ backgroundType = 'grid' }: { backgroundType?: s
 
       {/* 바닥면 (배경에 따라 색상 변경) */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
-        <planeGeometry args={[20, 20]} />
+        <planeGeometry args={[gridSize.width, gridSize.depth]} />
         <meshStandardMaterial color={colors.groundColor} opacity={0.2} transparent />
       </mesh>
     </>
@@ -623,6 +630,7 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
   assets = [],
   currentTime,
   isPlaying,
+  gridSize = { width: 20, depth: 20 },
   onObjectSelect,
   onObjectTransform
 }, ref) => {
@@ -700,7 +708,7 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
         <pointLight position={[-10, 10, -10]} intensity={0.5} />
 
         {/* 배경 환경 */}
-        <BackgroundEnvironment backgroundType={backgroundType} />
+        <BackgroundEnvironment backgroundType={backgroundType} gridSize={gridSize} />
 
         {/* 오브젝트 렌더링 */}
         {objects

@@ -1109,6 +1109,16 @@ export default function SceneEditor() {
                 assets={assets}
                 currentTime={currentTime}
                 isPlaying={isPlaying}
+                gridSize={
+                  selectedScene.background_map_id
+                    ? (() => {
+                        const bgMap = backgroundMaps.find(m => m.id === selectedScene.background_map_id);
+                        return bgMap?.grid_size
+                          ? JSON.parse(bgMap.grid_size)
+                          : { width: 20, depth: 20 };
+                      })()
+                    : { width: 20, depth: 20 }
+                }
                 onObjectSelect={(id) => setSelectedObjectId(id)}
                 onObjectTransform={handleObjectTransform}
               />
