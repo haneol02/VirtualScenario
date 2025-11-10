@@ -430,9 +430,27 @@ export default function TimelinePanel({
               type="number"
               value={maxTime.toFixed(0)}
               onChange={(e) => {
-                const newMaxTime = parseFloat(e.target.value);
-                if (newMaxTime >= 10 && newMaxTime <= 600) {
-                  onMaxTimeChange(newMaxTime);
+                // 입력 중에는 검증하지 않음
+                const val = e.target.value;
+                if (val !== '') {
+                  const newMaxTime = parseFloat(val);
+                  if (!isNaN(newMaxTime)) {
+                    onMaxTimeChange(newMaxTime);
+                  }
+                }
+              }}
+              onBlur={(e) => {
+                // 포커스 해제 시 범위 검증 및 조정
+                const val = e.target.value;
+                if (val === '' || isNaN(parseFloat(val))) {
+                  onMaxTimeChange(30); // 기본값
+                } else {
+                  const newMaxTime = parseFloat(val);
+                  if (newMaxTime < 10) {
+                    onMaxTimeChange(10);
+                  } else if (newMaxTime > 600) {
+                    onMaxTimeChange(600);
+                  }
                 }
               }}
               className="w-16 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white focus:outline-none focus:border-blue-500"

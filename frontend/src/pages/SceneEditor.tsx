@@ -1682,6 +1682,12 @@ export default function SceneEditor() {
                     type="number"
                     value={newDialogueStartTime}
                     onChange={(e) => setNewDialogueStartTime(e.target.value)}
+                    onBlur={(e) => {
+                      // 포커스 해제 시 빈 문자열이거나 음수면 0으로 설정
+                      if (e.target.value === '' || parseFloat(e.target.value) < 0) {
+                        setNewDialogueStartTime('0');
+                      }
+                    }}
                     step="0.1"
                     min="0"
                     className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:outline-none focus:border-green-500"
@@ -1693,6 +1699,12 @@ export default function SceneEditor() {
                     type="number"
                     value={newDialogueDuration}
                     onChange={(e) => setNewDialogueDuration(e.target.value)}
+                    onBlur={(e) => {
+                      // 포커스 해제 시 빈 문자열이거나 0.1 미만이면 0.1로 설정
+                      if (e.target.value === '' || parseFloat(e.target.value) < 0.1) {
+                        setNewDialogueDuration('0.1');
+                      }
+                    }}
                     step="0.1"
                     min="0.1"
                     className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:outline-none focus:border-green-500"
