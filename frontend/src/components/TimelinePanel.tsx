@@ -801,7 +801,7 @@ export default function TimelinePanel({
       {/* Timeline Area */}
       <div ref={timelineRef} className="flex-1 flex overflow-auto">
         {/* Layer List (Left) */}
-        <div className="w-48 bg-gray-800 border-r border-gray-700 flex-shrink-0 select-none overflow-hidden">
+        <div className="w-48 bg-gray-800 border-r border-gray-700 flex-shrink-0 select-none overflow-y-auto">
           {/* Header matching Time Ruler */}
           <div className="h-8 bg-gray-800 border-b border-gray-700 flex items-center justify-between px-3 sticky top-0 z-10">
             <span className="text-xs font-semibold text-gray-400">속성</span>
