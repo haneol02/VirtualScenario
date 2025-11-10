@@ -142,12 +142,25 @@ export default function TimelinePanel({
   // Initialize manual layers from existing dialogues
   useEffect(() => {
     const existingManualLayers = new Set<number>();
+
+    // Add layers from existing dialogues
     dialogues.forEach(d => {
       if (d.layer_index >= 1) {
         existingManualLayers.add(d.layer_index);
       }
     });
-    setManualLayers(Array.from(existingManualLayers).sort((a, b) => a - b));
+
+    // Merge with current manual layers to preserve empty layers
+    manualLayers.forEach(layerIndex => {
+      existingManualLayers.add(layerIndex);
+    });
+
+    const newManualLayers = Array.from(existingManualLayers).sort((a, b) => a - b);
+
+    // Only update if there's a difference
+    if (JSON.stringify(newManualLayers) !== JSON.stringify(manualLayers)) {
+      setManualLayers(newManualLayers);
+    }
   }, [dialogues]);
 
   // Layer management functions
