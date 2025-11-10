@@ -1240,10 +1240,10 @@ export default function SceneEditor() {
 
             {/* Main Area - 3D Viewer */}
             <Panel id="main-panel" order={2} minSize={30}>
-              <main className="h-full flex flex-col items-center justify-center bg-gray-900 relative">
+              <main className="h-full flex flex-col bg-gray-900 relative">
         {selectedScene ? (
           <>
-            <div className="flex-1 w-full">
+            <div className="h-full w-full">
               <ThreeViewer
                 ref={threeViewerRef}
                 objects={[

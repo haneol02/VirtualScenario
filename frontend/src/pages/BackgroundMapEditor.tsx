@@ -676,10 +676,10 @@ export default function BackgroundMapEditor() {
         {/* Main Area - 3D Editor */}
         <PanelResizeHandle className="w-1 bg-gray-700 hover:bg-blue-500 transition-colors cursor-col-resize" />
         <Panel id="bg-main-panel" order={2} minSize={30}>
-          <main className="h-full flex flex-col items-center justify-center bg-gray-900 relative">
+          <main className="h-full flex flex-col bg-gray-900 relative">
             {selectedMap ? (
               <>
-                <div className="flex-1 w-full">
+                <div className="h-full w-full">
                   <ThreeViewer
                     ref={threeViewerRef}
                     objects={objects}
