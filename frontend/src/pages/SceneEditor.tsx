@@ -802,6 +802,79 @@ export default function SceneEditor() {
     }
   };
 
+  // Update visible/show_nametag at current time (modify existing keyframe or create new one)
+  const handleUpdateKeyframeVisibility = async (objectId: string, visible: number, showNametag: number) => {
+    if (!selectedScene) return;
+
+    const obj = objects.find(o => o.id === objectId);
+    if (!obj) return;
+
+    const currentTransform = threeViewerRef.current?.getObjectTransform(objectId);
+    const keyframes: PathKeyframe[] = obj.path_data ? JSON.parse(obj.path_data) : [];
+
+    // Find keyframe at exactly current time (with small tolerance)
+    const tolerance = 0.01;
+    const existingIndex = keyframes.findIndex(kf => Math.abs(kf.time - currentTime) < tolerance);
+
+    let updatedKeyframes: PathKeyframe[];
+    const previousPathData = obj.path_data;
+
+    if (existingIndex >= 0) {
+      // MODIFY existing keyframe at current time
+      updatedKeyframes = [...keyframes];
+      updatedKeyframes[existingIndex] = {
+        ...updatedKeyframes[existingIndex],
+        visible,
+        show_nametag: showNametag
+      };
+      console.log('✏️ Modified keyframe at', currentTime + 's:', { visible, show_nametag });
+    } else {
+      // CREATE new keyframe at current time
+      const position = currentTransform?.position ?? [obj.position_x, obj.position_y, obj.position_z] as [number, number, number];
+      const rotation = currentTransform?.rotation ?? [obj.rotation_x, obj.rotation_y, obj.rotation_z] as [number, number, number];
+      const scale = currentTransform?.scale ?? [obj.scale_x, obj.scale_y, obj.scale_z] as [number, number, number];
+
+      const newKeyframe: PathKeyframe = {
+        time: currentTime,
+        position,
+        rotation,
+        scale,
+        visible,
+        show_nametag: showNametag
+      };
+
+      updatedKeyframes = [...keyframes, newKeyframe].sort((a, b) => a.time - b.time);
+      console.log('➕ Created new keyframe at', currentTime + 's:', { visible, show_nametag });
+    }
+
+    try {
+      await scenesAPI.updateObject(selectedScene.id, objectId, {
+        pathData: updatedKeyframes.length > 0 ? updatedKeyframes : null
+      });
+      await handleSelectScene(selectedScene);
+
+      // Record undo action
+      pushAction({
+        type: 'update_keyframe_visibility',
+        undo: async () => {
+          await scenesAPI.updateObject(selectedScene.id, objectId, {
+            pathData: previousPathData ? JSON.parse(previousPathData) : null
+          });
+          await handleSelectScene(selectedScene);
+        },
+        redo: async () => {
+          await scenesAPI.updateObject(selectedScene.id, objectId, {
+            pathData: updatedKeyframes
+          });
+          await handleSelectScene(selectedScene);
+        },
+        data: { objectId, currentTime, visible, showNametag }
+      });
+    } catch (error) {
+      console.error('Failed to update keyframe visibility:', error);
+    }
+  };
+
   const handlePlayPause = () => {
     // If at the end (or very close to end), reset to start before playing
     if (!isPlaying && currentTime >= maxTime - 0.1) {
@@ -1417,6 +1490,7 @@ export default function SceneEditor() {
                       }
                     }}
                     onTransformChange={handleObjectTransform}
+                    onUpdateVisibility={handleUpdateKeyframeVisibility}
                   />
                 </Panel>
               </>
