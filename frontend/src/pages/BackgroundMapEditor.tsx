@@ -24,6 +24,12 @@ export default function BackgroundMapEditor() {
   const [newMapName, setNewMapName] = useState('');
   const [newMapDescription, setNewMapDescription] = useState('');
   const [newMapIcon, setNewMapIcon] = useState('🗺️');
+  const [newMapGridWidth, setNewMapGridWidth] = useState('20');
+  const [newMapGridDepth, setNewMapGridDepth] = useState('20');
+
+  // Local state for grid size inputs
+  const [localGridWidth, setLocalGridWidth] = useState('20');
+  const [localGridDepth, setLocalGridDepth] = useState('20');
 
   // Undo/Redo system
   const { pushAction, undo, redo, canUndo, canRedo } = useUndoRedo();
@@ -83,6 +89,15 @@ export default function BackgroundMapEditor() {
   useEffect(() => {
     if (selectedMap) {
       loadObjects();
+      // Update local grid size state
+      if (selectedMap.grid_size) {
+        const gridSize = JSON.parse(selectedMap.grid_size);
+        setLocalGridWidth(gridSize.width.toString());
+        setLocalGridDepth(gridSize.depth.toString());
+      } else {
+        setLocalGridWidth('20');
+        setLocalGridDepth('20');
+      }
     }
   }, [selectedMap]);
 
@@ -117,16 +132,32 @@ export default function BackgroundMapEditor() {
   const handleCreateMap = async () => {
     if (!newMapName.trim()) return;
 
+    const width = parseInt(newMapGridWidth);
+    const depth = parseInt(newMapGridDepth);
+
+    // Validate grid size
+    if (isNaN(width) || width < 5 || width > 200) {
+      alert('가로 크기는 5~200 사이여야 합니다.');
+      return;
+    }
+    if (isNaN(depth) || depth < 5 || depth > 200) {
+      alert('세로 크기는 5~200 사이여야 합니다.');
+      return;
+    }
+
     try {
       await backgroundMapsAPI.create({
         name: newMapName,
         description: newMapDescription,
         icon: newMapIcon,
+        gridSize: JSON.stringify({ width, depth }),
       });
 
       setNewMapName('');
       setNewMapDescription('');
       setNewMapIcon('🗺️');
+      setNewMapGridWidth('20');
+      setNewMapGridDepth('20');
       setShowCreateMapDialog(false);
 
       await loadBackgroundMaps();
@@ -138,6 +169,24 @@ export default function BackgroundMapEditor() {
   const handleSelectMap = (map: BackgroundMap) => {
     setSelectedMap(map);
     setSelectedObjectId(undefined);
+  };
+
+  const applyGridSize = async (width: number, depth: number) => {
+    if (!selectedMap) return;
+
+    const newGridSize = JSON.stringify({ width, depth });
+
+    try {
+      await backgroundMapsAPI.update(selectedMap.id, {
+        gridSize: newGridSize
+      });
+      await loadBackgroundMaps();
+      // Re-select the map to update the state
+      const updatedMap = await backgroundMapsAPI.get(selectedMap.id);
+      setSelectedMap(updatedMap);
+    } catch (error) {
+      console.error('Failed to update grid size:', error);
+    }
   };
 
   const handleDeleteMap = async (id: string) => {
@@ -366,34 +415,33 @@ export default function BackgroundMapEditor() {
                       type="number"
                       min="5"
                       max="200"
-                      value={
-                        selectedMap.grid_size
-                          ? JSON.parse(selectedMap.grid_size).width
-                          : 20
-                      }
-                      onChange={async (e) => {
-                        const newWidth = parseInt(e.target.value);
-                        if (isNaN(newWidth) || newWidth < 5 || newWidth > 200) return;
+                      value={localGridWidth}
+                      onChange={(e) => {
+                        // 입력 중에는 자유롭게 입력 가능
+                        setLocalGridWidth(e.target.value);
+                      }}
+                      onBlur={async (e) => {
+                        // 포커스 해제 시 범위 검증 및 적용
+                        const val = e.target.value;
+                        if (val === '' || isNaN(parseInt(val))) {
+                          setLocalGridWidth('20');
+                          return;
+                        }
 
-                        const currentSize = selectedMap.grid_size
-                          ? JSON.parse(selectedMap.grid_size)
-                          : { width: 20, depth: 20 };
-
-                        const newGridSize = JSON.stringify({
-                          width: newWidth,
-                          depth: currentSize.depth
-                        });
-
-                        try {
-                          await backgroundMapsAPI.update(selectedMap.id, {
-                            gridSize: newGridSize
-                          });
-                          await loadBackgroundMaps();
-                          // Re-select the map to update the state
-                          const updatedMap = await backgroundMapsAPI.get(selectedMap.id);
-                          setSelectedMap(updatedMap);
-                        } catch (error) {
-                          console.error('Failed to update grid size:', error);
+                        const newWidth = parseInt(val);
+                        if (newWidth < 5) {
+                          setLocalGridWidth('5');
+                          await applyGridSize(5, parseInt(localGridDepth));
+                        } else if (newWidth > 200) {
+                          setLocalGridWidth('200');
+                          await applyGridSize(200, parseInt(localGridDepth));
+                        } else {
+                          await applyGridSize(newWidth, parseInt(localGridDepth));
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.currentTarget.blur();
                         }
                       }}
                       className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
@@ -405,34 +453,33 @@ export default function BackgroundMapEditor() {
                       type="number"
                       min="5"
                       max="200"
-                      value={
-                        selectedMap.grid_size
-                          ? JSON.parse(selectedMap.grid_size).depth
-                          : 20
-                      }
-                      onChange={async (e) => {
-                        const newDepth = parseInt(e.target.value);
-                        if (isNaN(newDepth) || newDepth < 5 || newDepth > 200) return;
+                      value={localGridDepth}
+                      onChange={(e) => {
+                        // 입력 중에는 자유롭게 입력 가능
+                        setLocalGridDepth(e.target.value);
+                      }}
+                      onBlur={async (e) => {
+                        // 포커스 해제 시 범위 검증 및 적용
+                        const val = e.target.value;
+                        if (val === '' || isNaN(parseInt(val))) {
+                          setLocalGridDepth('20');
+                          return;
+                        }
 
-                        const currentSize = selectedMap.grid_size
-                          ? JSON.parse(selectedMap.grid_size)
-                          : { width: 20, depth: 20 };
-
-                        const newGridSize = JSON.stringify({
-                          width: currentSize.width,
-                          depth: newDepth
-                        });
-
-                        try {
-                          await backgroundMapsAPI.update(selectedMap.id, {
-                            gridSize: newGridSize
-                          });
-                          await loadBackgroundMaps();
-                          // Re-select the map to update the state
-                          const updatedMap = await backgroundMapsAPI.get(selectedMap.id);
-                          setSelectedMap(updatedMap);
-                        } catch (error) {
-                          console.error('Failed to update grid size:', error);
+                        const newDepth = parseInt(val);
+                        if (newDepth < 5) {
+                          setLocalGridDepth('5');
+                          await applyGridSize(parseInt(localGridWidth), 5);
+                        } else if (newDepth > 200) {
+                          setLocalGridDepth('200');
+                          await applyGridSize(parseInt(localGridWidth), 200);
+                        } else {
+                          await applyGridSize(parseInt(localGridWidth), newDepth);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.currentTarget.blur();
                         }
                       }}
                       className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
@@ -685,11 +732,51 @@ export default function BackgroundMapEditor() {
                   placeholder="배경 맵 설명"
                 />
               </div>
+
+              <div>
+                <label className="block text-sm mb-2">맵 크기 (그리드)</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">가로 (Width)</label>
+                    <input
+                      type="number"
+                      min="5"
+                      max="200"
+                      value={newMapGridWidth}
+                      onChange={(e) => setNewMapGridWidth(e.target.value)}
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
+                      placeholder="20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">세로 (Depth)</label>
+                    <input
+                      type="number"
+                      min="5"
+                      max="200"
+                      value={newMapGridDepth}
+                      onChange={(e) => setNewMapGridDepth(e.target.value)}
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
+                      placeholder="20"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  범위: 5 ~ 200
+                </p>
+              </div>
             </div>
 
             <div className="flex gap-2 mt-6">
               <button
-                onClick={() => setShowCreateMapDialog(false)}
+                onClick={() => {
+                  setShowCreateMapDialog(false);
+                  setNewMapName('');
+                  setNewMapDescription('');
+                  setNewMapIcon('🗺️');
+                  setNewMapGridWidth('20');
+                  setNewMapGridDepth('20');
+                }}
                 className="flex-1 bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded"
               >
                 취소
