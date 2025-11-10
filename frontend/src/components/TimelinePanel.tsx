@@ -819,7 +819,6 @@ export default function TimelinePanel({
               title="장면 길이 - 수정하면 이 장면에만 적용됩니다"
             />
             <span className="text-sm text-gray-400">s</span>
-            <span className="text-xs text-blue-400 ml-2 px-2 py-0.5 bg-blue-500/10 rounded">📝 장면별 개별 설정</span>
           </div>
         </div>
 
@@ -898,7 +897,9 @@ export default function TimelinePanel({
                   }`}
                 >
                   {/* Object Name */}
-                  <div className="text-sm font-medium mb-1 leading-tight truncate">{obj.name}</div>
+                  <div className="text-sm font-medium mb-1 h-5 overflow-hidden">
+                    <div className="truncate">{obj.name}</div>
+                  </div>
 
                   {/* Icons Row */}
                   <div className="flex items-center gap-1.5 text-xs">
@@ -958,15 +959,15 @@ export default function TimelinePanel({
                   }`}
                 >
                   {/* Layer Info */}
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-gray-300 flex items-center gap-2">
-                      <span>대화/자막 레이어 [{isManualLayer ? actualLayerIndex : '메인'}]</span>
+                  <div className="flex items-center justify-between mb-1 h-5">
+                    <div className="text-sm font-medium text-gray-300 flex items-center gap-2 overflow-hidden">
+                      <span className="truncate whitespace-nowrap">대화/자막 레이어 [{isManualLayer ? actualLayerIndex : '메인'}]</span>
                       {isManualLayer && (
-                        <span className="px-1.5 py-0.5 bg-blue-600 text-white text-[9px] font-semibold rounded">
+                        <span className="px-1.5 py-0.5 bg-blue-600 text-white text-[9px] font-semibold rounded flex-shrink-0">
                           수동
                         </span>
                       )}
-                    </span>
+                    </div>
                     <div className="flex items-center gap-2">
                       <span className="px-1.5 py-0.5 bg-green-600 text-white text-[10px] font-semibold rounded">
                         {layer.length}개

@@ -153,45 +153,9 @@ export default function SceneEditor() {
     }
   }, [selectedScene?.background_map_id]);
 
-  // Auto-calculate maxTime based on keyframes and dialogues (only if scene has no manual duration)
-  useEffect(() => {
-    // Skip auto-calculation if:
-    // 1. User manually set maxTime in this session, OR
-    // 2. Selected scene has a saved duration
-    if (isManualMaxTime) return;
-    if (selectedScene?.duration !== undefined && selectedScene?.duration !== null && selectedScene.duration > 0) return;
-
-    let calculatedMaxTime = 1; // Default 1 second (minimum)
-
-    // Check all keyframes
-    objects.forEach(obj => {
-      if (obj.path_data) {
-        try {
-          const keyframes: PathKeyframe[] = JSON.parse(obj.path_data);
-          keyframes.forEach(kf => {
-            if (kf.time > calculatedMaxTime) {
-              calculatedMaxTime = kf.time;
-            }
-          });
-        } catch (e) {
-          console.error('Failed to parse path_data:', e);
-        }
-      }
-    });
-
-    // Check all dialogues
-    dialogues.forEach(dlg => {
-      const endTime = dlg.start_time + dlg.duration;
-      if (endTime > calculatedMaxTime) {
-        calculatedMaxTime = endTime;
-      }
-    });
-
-    // Add 5 seconds buffer
-    const newMaxTime = Math.max(1, calculatedMaxTime + 5);
-    setMaxTime(newMaxTime);
-    console.log(`🤖 자동 계산: ${newMaxTime}초 (키프레임/대화 기반)`);
-  }, [objects, dialogues, isManualMaxTime, selectedScene?.duration]);
+  // DISABLED: Auto-calculate maxTime
+  // 사용자가 직접 입력한 값을 유지하기 위해 자동 계산 기능을 비활성화했습니다.
+  // 장면 길이는 타임라인 패널에서 수동으로만 설정됩니다.
 
   // Animation playback loop
   useEffect(() => {
@@ -337,15 +301,16 @@ export default function SceneEditor() {
 
       // Load scene duration - each scene has independent duration
       if (scene.duration !== undefined && scene.duration !== null && scene.duration > 0) {
-        // Scene has manually set duration
+        // Scene has set duration - use it
         setMaxTime(scene.duration);
         setIsManualMaxTime(true);
-        console.log(`✅ 장면 "${scene.title}" 로드: 수동 설정 길이 ${scene.duration}초`);
+        console.log(`✅ 장면 "${scene.title}" 로드: 길이 ${scene.duration}초`);
       } else {
-        // No duration set - enable auto-calculation for this scene
-        setIsManualMaxTime(false);
-        console.log(`✅ 장면 "${scene.title}" 로드: 자동 계산 모드`);
-        // maxTime will be auto-calculated by useEffect based on keyframes/dialogues
+        // No duration set - use default 30 seconds
+        const defaultDuration = 30;
+        setMaxTime(defaultDuration);
+        setIsManualMaxTime(false); // Allow user to change it
+        console.log(`✅ 장면 "${scene.title}" 로드: 기본 길이 ${defaultDuration}초 (수정 가능)`);
       }
     } catch (error) {
       console.error('Failed to load scene data:', error);
@@ -1075,20 +1040,20 @@ export default function SceneEditor() {
                         <>
                           <button
                             onClick={(e) => handleStartEditScene(scene, e)}
-                            className="text-gray-400 hover:text-blue-400 text-sm"
+                            className="text-gray-400 hover:text-blue-400 text-xs"
                             title="이름 편집"
                           >
-                            ✏️
+                            편집
                           </button>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeleteScene(scene.id);
                             }}
-                            className="text-gray-400 hover:text-red-500 text-sm"
+                            className="text-gray-400 hover:text-red-500 text-xs"
                             title="삭제"
                           >
-                            🗑️
+                            삭제
                           </button>
                         </>
                       )}
@@ -1099,12 +1064,12 @@ export default function SceneEditor() {
                   )}
                   <div className="flex items-center gap-2 text-xs text-gray-500">
                     {scene.participant_count && (
-                      <span>👥 {scene.participant_count}명</span>
+                      <span>{scene.participant_count}명</span>
                     )}
                     {scene.duration !== undefined && scene.duration !== null && scene.duration > 0 && (
                       <>
                         {scene.participant_count && <span>•</span>}
-                        <span className="text-blue-400">⏱️ {scene.duration}초</span>
+                        <span className="text-blue-400">{scene.duration}초</span>
                       </>
                     )}
                   </div>
