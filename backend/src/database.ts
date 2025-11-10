@@ -175,6 +175,21 @@ export class DatabaseManager {
         console.error('Migration error:', error);
       }
     }
+
+    // Check if duration column exists in scenes
+    const scenesInfoForDuration = this.db.pragma('table_info(scenes)') as any[];
+    const hasDurationInScenes = scenesInfoForDuration.some((col: any) => col.name === 'duration');
+
+    if (!hasDurationInScenes) {
+      console.log('Running migration: add_duration_to_scenes...');
+      try {
+        this.db.exec('ALTER TABLE scenes ADD COLUMN duration REAL DEFAULT 30');
+        this.db.exec('UPDATE scenes SET duration = 30 WHERE duration IS NULL');
+        console.log('✅ Migration completed: duration field added to scenes (default 30 seconds)');
+      } catch (error) {
+        console.error('Migration error:', error);
+      }
+    }
   }
 
   // Projects
@@ -336,8 +351,8 @@ export class DatabaseManager {
 
   createScene(data: any) {
     const stmt = this.db.prepare(`
-      INSERT INTO scenes (id, project_id, order_index, title, description, participant_count)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO scenes (id, project_id, order_index, title, description, participant_count, duration)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
     return stmt.run(
       data.id,
@@ -345,7 +360,8 @@ export class DatabaseManager {
       data.order,
       data.title,
       data.description || null,
-      data.participantCount || null
+      data.participantCount || null,
+      data.duration || 30
     );
   }
 
