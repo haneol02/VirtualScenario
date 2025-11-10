@@ -11,6 +11,8 @@ export interface ThreeViewerHandle {
     position: [number, number, number];
     rotation: [number, number, number];
     scale: [number, number, number];
+    visible: number;
+    show_nametag: number;
   } | null;
 }
 
@@ -918,6 +920,10 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
       const mesh = objectRefs.current.get(objectId);
       if (!mesh) return null;
 
+      // Find object in props to get visible and show_nametag
+      const obj = objects.find(o => o.id === objectId);
+      if (!obj) return null;
+
       return {
         position: mesh.position.toArray() as [number, number, number],
         rotation: [
@@ -926,9 +932,13 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
           (mesh.rotation.z * 180) / Math.PI,
         ] as [number, number, number],
         scale: mesh.scale.toArray() as [number, number, number],
+        // Use actual visible state from Three.js mesh (reflects current state)
+        visible: mesh.visible ? 1 : 0,
+        // Use DB value (already updated by toggle handlers)
+        show_nametag: obj.show_nametag ?? 1,
       };
     }
-  }), []);
+  }), [objects]);
 
   const handleTransformEnd = (objectId: string, transform: any) => {
     onObjectTransform?.(objectId, transform);
