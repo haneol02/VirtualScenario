@@ -12,7 +12,8 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3002'], // Frontend URLs
+  origin: true, // Allow all origins in development (change in production)
+  credentials: true
 }));
 app.use(express.json());
 
@@ -40,8 +41,10 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 });
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Server running on:`);
+  console.log(`   - Local:   http://localhost:${PORT}`);
+  console.log(`   - Network: http://0.0.0.0:${PORT}`);
   console.log(`📊 API endpoint: http://localhost:${PORT}/api`);
 });
 
