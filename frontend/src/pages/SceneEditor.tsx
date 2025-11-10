@@ -1255,6 +1255,7 @@ export default function SceneEditor() {
                 isPlaying={isPlaying}
                 selectedObjectId={selectedObjectId}
                 selectedDialogueId={selectedDialogueId}
+                sceneId={selectedScene.id}
                 onTimeChange={setCurrentTime}
                 onPlayPause={handlePlayPause}
                 onAddKeyframe={handleAddKeyframe}
@@ -1277,6 +1278,7 @@ export default function SceneEditor() {
                 onReorderDialogues={handleReorderDialogues}
                 onDeleteObject={handleDeleteObject}
                 onDeleteDialogue={handleDeleteDialogue}
+                onRefresh={() => handleSelectScene(selectedScene)}
               />
             </Panel>
           </>

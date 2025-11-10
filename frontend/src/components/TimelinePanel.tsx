@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { SceneObject, PathKeyframe, Dialogue } from '../lib/api';
+import { SceneObject, PathKeyframe, Dialogue, scenesAPI } from '../lib/api';
 
 interface TimelinePanelProps {
   objects: SceneObject[];
@@ -9,6 +9,7 @@ interface TimelinePanelProps {
   isPlaying: boolean;
   selectedObjectId?: string;
   selectedDialogueId?: string;
+  sceneId: string;  // Add sceneId for API calls
   onTimeChange: (time: number) => void;
   onPlayPause: () => void;
   onAddKeyframe: (objectId: string, time: number) => void;
@@ -22,6 +23,7 @@ interface TimelinePanelProps {
   onReorderDialogues: (orderedIds: string[]) => void;
   onDeleteObject: (objectId: string) => void;
   onDeleteDialogue: (dialogueId: string) => void;
+  onRefresh: () => void;  // Add refresh callback
 }
 
 export default function TimelinePanel({
@@ -32,6 +34,7 @@ export default function TimelinePanel({
   isPlaying,
   selectedObjectId,
   selectedDialogueId,
+  sceneId,
   onTimeChange,
   onPlayPause,
   onAddKeyframe,
@@ -45,6 +48,7 @@ export default function TimelinePanel({
   onReorderDialogues,
   onDeleteObject,
   onDeleteDialogue,
+  onRefresh,
 }: TimelinePanelProps) {
   const [zoom, setZoom] = useState(1); // 1 = 1초당 50px
   const [localMaxTime, setLocalMaxTime] = useState(maxTime.toString()); // 로컬 상태로 maxTime 관리
@@ -173,6 +177,58 @@ export default function TimelinePanel({
 
   const handleTimelineMouseUp = () => {
     setIsDragging(false);
+  };
+
+  // Object property toggle handlers
+  const handleToggleVisible = async (e: React.MouseEvent, objectId: string) => {
+    e.stopPropagation(); // Prevent object selection
+    if (isPlaying) return;
+
+    const obj = objects.find(o => o.id === objectId);
+    if (!obj) return;
+
+    try {
+      await scenesAPI.updateObject(sceneId, objectId, {
+        visible: obj.visible === 0 ? true : false
+      });
+      onRefresh();
+    } catch (error) {
+      console.error('Failed to toggle visible:', error);
+    }
+  };
+
+  const handleToggleNametag = async (e: React.MouseEvent, objectId: string) => {
+    e.stopPropagation(); // Prevent object selection
+    if (isPlaying) return;
+
+    const obj = objects.find(o => o.id === objectId);
+    if (!obj) return;
+
+    try {
+      await scenesAPI.updateObject(sceneId, objectId, {
+        showNametag: obj.show_nametag === 0 ? true : false
+      });
+      onRefresh();
+    } catch (error) {
+      console.error('Failed to toggle nametag:', error);
+    }
+  };
+
+  const handleToggleLocked = async (e: React.MouseEvent, objectId: string) => {
+    e.stopPropagation(); // Prevent object selection
+    if (isPlaying) return;
+
+    const obj = objects.find(o => o.id === objectId);
+    if (!obj) return;
+
+    try {
+      await scenesAPI.updateObject(sceneId, objectId, {
+        locked: ('locked' in obj && obj.locked === 1) ? false : true
+      });
+      onRefresh();
+    } catch (error) {
+      console.error('Failed to toggle locked:', error);
+    }
   };
 
   // Dialogue drag handlers
@@ -522,6 +578,37 @@ export default function TimelinePanel({
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="truncate flex-1">{obj.name}</div>
+
+                  {/* Status Icons */}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {/* Visible Toggle */}
+                    <button
+                      onClick={(e) => handleToggleVisible(e, obj.id)}
+                      className="p-1 hover:bg-gray-600 rounded transition-colors"
+                      title={obj.visible === 0 ? "숨김 상태 (클릭하여 표시)" : "표시 중 (클릭하여 숨김)"}
+                    >
+                      {obj.visible === 0 ? '👁️‍🗨️' : '👁️'}
+                    </button>
+
+                    {/* Nametag Toggle */}
+                    <button
+                      onClick={(e) => handleToggleNametag(e, obj.id)}
+                      className="p-1 hover:bg-gray-600 rounded transition-colors"
+                      title={obj.show_nametag === 0 ? "네임태그 숨김 (클릭하여 표시)" : "네임태그 표시 중 (클릭하여 숨김)"}
+                    >
+                      {obj.show_nametag === 0 ? '🏷️' : '📛'}
+                    </button>
+
+                    {/* Locked Toggle */}
+                    <button
+                      onClick={(e) => handleToggleLocked(e, obj.id)}
+                      className="p-1 hover:bg-gray-600 rounded transition-colors"
+                      title={('locked' in obj && obj.locked === 1) ? "잠금 상태 (클릭하여 해제)" : "잠금 해제 (클릭하여 잠금)"}
+                    >
+                      {('locked' in obj && obj.locked === 1) ? '🔒' : '🔓'}
+                    </button>
+                  </div>
+
                   <span className="px-1.5 py-0.5 bg-blue-600 text-white text-xs font-semibold rounded flex-shrink-0">
                     오브젝트
                   </span>
