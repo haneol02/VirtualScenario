@@ -97,17 +97,13 @@ export default function InspectorPanel({
       // Sync color
       setLocalColor(selectedObject.color || '#ffffff');
 
-      // Sync light intensity (only if different to avoid overwriting user input)
+      // Sync light intensity - always update to reflect latest asset metadata
       if (selectedObject.model_id?.startsWith('light_')) {
         const asset = assets.find(a => a.id === selectedObject.model_id);
         if (asset && asset.metadata) {
           const metadata = typeof asset.metadata === 'string' ? JSON.parse(asset.metadata) : asset.metadata;
-          const assetIntensity = (metadata.intensity || 1.0).toFixed(1);
-          const currentIntensity = parseFloat(localIntensity).toFixed(1);
-          // Only update if values are different (avoid overwriting during user interaction)
-          if (assetIntensity !== currentIntensity) {
-            setLocalIntensity(assetIntensity);
-          }
+          const assetIntensity = (metadata.intensity || 1.0).toString();
+          setLocalIntensity(assetIntensity);
         }
       }
 
@@ -129,7 +125,7 @@ export default function InspectorPanel({
         interpolated.scale[2].toFixed(3),
       ]);
     }
-  }, [selectedObject, currentTime]);
+  }, [selectedObject, currentTime, assets]);
 
   useEffect(() => {
     if (selectedDialogue) {
