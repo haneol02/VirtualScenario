@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -10,6 +10,7 @@ interface UserGuideModalProps {
 export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps) {
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -49,7 +50,7 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div ref={contentRef} className="flex-1 overflow-y-auto p-6">
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
@@ -63,9 +64,16 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
                   h1: ({ node, ...props }) => (
                     <h1 className="text-3xl font-bold text-white mb-4 mt-8 pb-2 border-b border-gray-700" {...props} />
                   ),
-                  h2: ({ node, ...props }) => (
-                    <h2 className="text-2xl font-bold text-white mb-3 mt-6" {...props} />
-                  ),
+                  h2: ({ node, children, ...props }) => {
+                    // Convert heading text to id (e.g., "시작하기" -> "시작하기")
+                    const text = children?.toString() || '';
+                    const id = text.toLowerCase().replace(/\s+/g, '-');
+                    return (
+                      <h2 id={id} className="text-2xl font-bold text-white mb-3 mt-6" {...props}>
+                        {children}
+                      </h2>
+                    );
+                  },
                   h3: ({ node, ...props }) => (
                     <h3 className="text-xl font-semibold text-white mb-2 mt-4" {...props} />
                   ),
@@ -91,9 +99,30 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
                       <code className="block bg-gray-800 text-gray-300 p-4 rounded-lg mb-4 overflow-x-auto" {...props} />
                     ),
                   // Customize links
-                  a: ({ node, ...props }) => (
-                    <a className="text-blue-400 hover:text-blue-300 underline" {...props} />
-                  ),
+                  a: ({ node, href, children, ...props }) => {
+                    // Handle anchor links for table of contents
+                    if (href?.startsWith('#')) {
+                      return (
+                        <a
+                          href={href}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            const id = href.slice(1);
+                            const element = document.getElementById(id);
+                            if (element && contentRef.current) {
+                              // Smooth scroll to the element
+                              element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                          }}
+                          className="text-blue-400 hover:text-blue-300 underline cursor-pointer"
+                          {...props}
+                        >
+                          {children}
+                        </a>
+                      );
+                    }
+                    return <a href={href} className="text-blue-400 hover:text-blue-300 underline" {...props}>{children}</a>;
+                  },
                   // Customize blockquotes
                   blockquote: ({ node, ...props }) => (
                     <blockquote className="border-l-4 border-blue-500 pl-4 italic text-gray-400 my-4" {...props} />
