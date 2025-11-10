@@ -242,6 +242,13 @@ export default function TimelinePanel({
       }
     }
 
+    // Ensure at least one auto layer exists (main layer must always be present)
+    if (layers.filter((_, i) => layerTypes[i] === 'auto').length === 0) {
+      layers.push([]);
+      layerTypes.push('auto');
+      layerIndices.push(0);
+    }
+
     // Then add manual layers (they go below, in order)
     for (const layerIndex of manualLayers.sort((a, b) => a - b)) {
       const dialoguesForLayer = manualDialogues.filter(d => d.layer_index === layerIndex);
