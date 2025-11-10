@@ -39,15 +39,34 @@ export class DatabaseManager {
     }
 
     // Check if order_index column exists in scene_objects
-    const tableInfo = this.db.pragma('table_info(scene_objects)') as any[];
-    const hasOrderIndex = tableInfo.some((col: any) => col.name === 'order_index');
+    const sceneObjectsInfo = this.db.pragma('table_info(scene_objects)') as any[];
+    const hasOrderIndex = sceneObjectsInfo.some((col: any) => col.name === 'order_index');
 
     if (!hasOrderIndex) {
       console.log('Running migration: add_order_fields...');
       try {
         this.db.exec('ALTER TABLE scene_objects ADD COLUMN order_index INTEGER DEFAULT 0');
-        this.db.exec('ALTER TABLE dialogues ADD COLUMN order_index INTEGER DEFAULT 0');
-        console.log('✅ Migration completed: order_index fields added');
+        console.log('✅ Migration completed: order_index field added to scene_objects');
+      } catch (error) {
+        console.error('Migration error:', error);
+      }
+    }
+
+    // Check if speaker_name and order_index columns exist in dialogues
+    const dialoguesInfo = this.db.pragma('table_info(dialogues)') as any[];
+    const hasSpeakerName = dialoguesInfo.some((col: any) => col.name === 'speaker_name');
+    const hasDialogueOrderIndex = dialoguesInfo.some((col: any) => col.name === 'order_index');
+
+    if (!hasSpeakerName || !hasDialogueOrderIndex) {
+      console.log('Running migration: add_dialogue_columns...');
+      try {
+        if (!hasSpeakerName) {
+          this.db.exec('ALTER TABLE dialogues ADD COLUMN speaker_name TEXT');
+        }
+        if (!hasDialogueOrderIndex) {
+          this.db.exec('ALTER TABLE dialogues ADD COLUMN order_index INTEGER NOT NULL DEFAULT 0');
+        }
+        console.log('✅ Migration completed: speaker_name and order_index fields added to dialogues');
       } catch (error) {
         console.error('Migration error:', error);
       }

@@ -140,7 +140,8 @@ export default function TimelinePanel({
   const getTimeFromMouseX = (clientX: number) => {
     if (!timelineRef.current) return 0;
     const rect = timelineRef.current.getBoundingClientRect();
-    const x = clientX - rect.left - 192; // Subtract layer list width (w-48 = 192px)
+    const scrollLeft = timelineRef.current.scrollLeft;
+    const x = clientX - rect.left + scrollLeft - 192; // Subtract layer list width (w-48 = 192px) and add scroll offset
     return Math.max(0, Math.min((x / pixelsPerSecond), maxTime));
   };
 
