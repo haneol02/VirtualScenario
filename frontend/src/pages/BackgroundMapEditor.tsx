@@ -741,7 +741,10 @@ export default function BackgroundMapEditor() {
                 selectedObject={selectedObject}
                 sceneId={selectedMap.id}
                 assets={assets}
-                onUpdate={loadObjects}
+                onUpdate={async () => {
+                  await loadObjects();
+                  await loadAssets();
+                }}
                 onDelete={(id, type) => {
                   if (type === 'object') {
                     handleDeleteObject(id);
