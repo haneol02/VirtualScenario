@@ -381,20 +381,7 @@ export default function TimelinePanel({
     return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
   }, [isDragging]);
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'k' || e.key === 'K') {
-        // Add keyframe at current time for selected object
-        if (selectedObjectId) {
-          onAddKeyframe(selectedObjectId, currentTime);
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedObjectId, currentTime, onAddKeyframe]);
+  // Keyboard shortcuts (removed K key handling - it's handled in SceneEditor)
 
   return (
     <div className="h-full bg-gray-850 border-t border-gray-700 flex flex-col select-none">

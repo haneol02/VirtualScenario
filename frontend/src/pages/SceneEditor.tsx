@@ -285,7 +285,7 @@ export default function SceneEditor() {
   const handleCreateObject = async (modelId?: string) => {
     // Prevent editing during playback
     if (isPlaying) {
-      alert('재생 중에는 편집할 수 없습니다');
+      console.warn('Cannot edit during playback');
       return;
     }
 
@@ -338,10 +338,11 @@ export default function SceneEditor() {
         },
       });
 
-      // Update with additional properties (color, nametag)
+      // Update with additional properties (color, nametag, pathData)
       await scenesAPI.updateObject(selectedScene.id, createdObject.id, {
         color: sourceObject.color,
         showNametag: sourceObject.show_nametag === 1,
+        pathData: sourceObject.path_data ? JSON.parse(sourceObject.path_data) : null,
       });
 
       await handleSelectScene(selectedScene);
@@ -367,7 +368,7 @@ export default function SceneEditor() {
   const handleDeleteObject = async (objectId: string) => {
     // Prevent editing during playback
     if (isPlaying) {
-      alert('재생 중에는 편집할 수 없습니다');
+      console.warn('Cannot edit during playback');
       return;
     }
 
@@ -410,7 +411,7 @@ export default function SceneEditor() {
   const handleCreateDialogue = async () => {
     // Prevent editing during playback
     if (isPlaying) {
-      alert('재생 중에는 편집할 수 없습니다');
+      console.warn('Cannot edit during playback');
       return;
     }
 
@@ -439,7 +440,7 @@ export default function SceneEditor() {
   const handleDeleteDialogue = async (dialogueId: string) => {
     // Prevent editing during playback
     if (isPlaying) {
-      alert('재생 중에는 편집할 수 없습니다');
+      console.warn('Cannot edit during playback');
       return;
     }
 
@@ -601,6 +602,12 @@ export default function SceneEditor() {
   };
 
   const handleUpdateKeyframe = async (objectId: string, keyframeIndex: number, newTime: number) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
     if (!selectedScene) return;
 
     const obj = objects.find(o => o.id === objectId);
@@ -1213,6 +1220,7 @@ export default function SceneEditor() {
                     sceneId={selectedScene.id}
                     assets={assets}
                     currentTime={currentTime}
+                    isPlaying={isPlaying}
                     onUpdate={() => handleSelectScene(selectedScene)}
                     onDelete={(id, type) => {
                       if (type === 'object') {

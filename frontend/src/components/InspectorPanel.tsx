@@ -10,6 +10,7 @@ interface InspectorPanelProps {
   onDelete: (id: string, type: 'object' | 'dialogue') => void;
   objectType?: 'scene' | 'background';  // 'scene' for SceneObject, 'background' for BackgroundObject
   currentTime?: number;  // Current animation time for keyframe interpolation
+  isPlaying?: boolean;  // Is timeline playing
 }
 
 export default function InspectorPanel({
@@ -21,6 +22,7 @@ export default function InspectorPanel({
   onDelete,
   objectType = 'scene',  // Default to 'scene' for backward compatibility
   currentTime = 0,
+  isPlaying = false,
 }: InspectorPanelProps) {
   // Local state for Korean input handling
   const [localObjectName, setLocalObjectName] = useState('');
@@ -180,6 +182,12 @@ export default function InspectorPanel({
   }
 
   const handleTransformChange = async (field: string, value: number) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
     if (!selectedObject) return;
 
     const transform = {
@@ -209,6 +217,12 @@ export default function InspectorPanel({
   };
 
   const handleNameChange = async (newName: string) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
     if (!selectedObject || !newName.trim()) return;
 
     try {
@@ -220,6 +234,12 @@ export default function InspectorPanel({
   };
 
   const handleNametagToggle = async (checked: boolean) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
     if (!selectedObject) return;
 
     try {
@@ -231,6 +251,12 @@ export default function InspectorPanel({
   };
 
   const handleModelChange = async (modelId: string) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
     if (!selectedObject) return;
 
     try {
@@ -250,6 +276,12 @@ export default function InspectorPanel({
   };
 
   const handleDialogueUpdate = async (field: string, value: any) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
     if (!selectedDialogue) return;
 
     const data: any = {};
