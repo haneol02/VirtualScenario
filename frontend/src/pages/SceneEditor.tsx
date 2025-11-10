@@ -643,6 +643,9 @@ export default function SceneEditor() {
     const position = currentTransform?.position ?? [obj.position_x, obj.position_y, obj.position_z] as [number, number, number];
     const rotation = currentTransform?.rotation ?? [obj.rotation_x, obj.rotation_y, obj.rotation_z] as [number, number, number];
     const scale = currentTransform?.scale ?? [obj.scale_x, obj.scale_y, obj.scale_z] as [number, number, number];
+    // Use actual visible/show_nametag from 3D viewer (reflects current state after toggles)
+    const visible = currentTransform?.visible ?? obj.visible ?? 1;
+    const show_nametag = currentTransform?.show_nametag ?? obj.show_nametag ?? 1;
 
     // Parse existing keyframes
     const existingKeyframes: PathKeyframe[] = obj.path_data ? JSON.parse(obj.path_data) : [];
@@ -656,8 +659,8 @@ export default function SceneEditor() {
       position,
       rotation,
       scale,
-      visible: obj.visible ?? 1,
-      show_nametag: obj.show_nametag ?? 1
+      visible,
+      show_nametag
     };
     const updatedKeyframes = [...existingKeyframes, newKeyframe].sort((a, b) => a.time - b.time);
 
