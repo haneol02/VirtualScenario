@@ -48,6 +48,9 @@ export default function SceneEditor() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isManualMaxTime, setIsManualMaxTime] = useState(false); // 수동으로 maxTime 설정했는지 플래그
 
+  // Copy/Paste state
+  const [copiedObject, setCopiedObject] = useState<SceneObject | null>(null);
+
   // Undo/Redo system
   const { pushAction, undo, redo, canUndo, canRedo } = useUndoRedo();
 
@@ -105,11 +108,29 @@ export default function SceneEditor() {
           }
         }
       }
+      // Copy (Ctrl+C)
+      else if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        if (selectedObjectId) {
+          e.preventDefault();
+          const obj = objects.find(o => o.id === selectedObjectId);
+          if (obj) {
+            setCopiedObject(obj);
+            console.log('오브젝트 복사됨:', obj.name);
+          }
+        }
+      }
+      // Paste (Ctrl+V)
+      else if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+        if (copiedObject && selectedScene) {
+          e.preventDefault();
+          handlePasteObject(copiedObject);
+        }
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo, isPlaying, selectedObjectId, selectedDialogueId, currentTime, objects, selectedScene]);
+  }, [undo, redo, isPlaying, selectedObjectId, selectedDialogueId, currentTime, objects, selectedScene, copiedObject]);
 
   useEffect(() => {
     if (projectId) {
@@ -393,6 +414,49 @@ export default function SceneEditor() {
       });
     } catch (error) {
       console.error('Failed to duplicate object:', error);
+    }
+  };
+
+  const handlePasteObject = async (sourceObject: SceneObject) => {
+    if (!selectedScene) return;
+
+    try {
+      // Create with basic info
+      const createdObject = await scenesAPI.createObject(selectedScene.id, {
+        type: sourceObject.type,
+        name: sourceObject.name + ' (붙여넣기)',
+        model_id: sourceObject.model_id || undefined,
+        transform: {
+          position: [sourceObject.position_x + 1, sourceObject.position_y, sourceObject.position_z], // Offset slightly
+          rotation: [sourceObject.rotation_x, sourceObject.rotation_y, sourceObject.rotation_z],
+          scale: [sourceObject.scale_x, sourceObject.scale_y, sourceObject.scale_z],
+        },
+      });
+
+      // Update with additional properties (color, nametag, pathData)
+      await scenesAPI.updateObject(selectedScene.id, createdObject.id, {
+        color: sourceObject.color,
+        showNametag: sourceObject.show_nametag === 1,
+        pathData: sourceObject.path_data ? JSON.parse(sourceObject.path_data) : null,
+      });
+
+      await handleSelectScene(selectedScene);
+      setSelectedObjectId(createdObject.id); // Select the pasted object
+
+      // Record undo action
+      pushAction({
+        type: 'create_object',
+        undo: async () => {
+          await scenesAPI.deleteObject(selectedScene.id, createdObject.id);
+          await handleSelectScene(selectedScene);
+        },
+        redo: async () => {
+          await handleSelectScene(selectedScene);
+        },
+        data: { objectId: createdObject.id, objectName: createdObject.name }
+      });
+    } catch (error) {
+      console.error('Failed to paste object:', error);
     }
   };
 
@@ -1302,7 +1366,11 @@ export default function SceneEditor() {
                 <div><kbd className="px-1 bg-gray-700 rounded text-white">Space</kbd> 재생/일시정지</div>
                 <div><kbd className="px-1 bg-gray-700 rounded text-white">K</kbd> 키프레임 추가</div>
                 <div><kbd className="px-1 bg-gray-700 rounded text-white">Delete</kbd> 삭제</div>
+                <div><kbd className="px-1 bg-gray-700 rounded text-white">Ctrl+C</kbd> 복사</div>
+                <div><kbd className="px-1 bg-gray-700 rounded text-white">Ctrl+V</kbd> 붙여넣기</div>
                 <div><kbd className="px-1 bg-gray-700 rounded text-white">Ctrl+D</kbd> 복제</div>
+                <div><kbd className="px-1 bg-gray-700 rounded text-white">Ctrl+Z</kbd> 실행 취소</div>
+                <div><kbd className="px-1 bg-gray-700 rounded text-white">Ctrl+Shift+Z</kbd> 다시 실행</div>
                 <div><kbd className="px-1 bg-gray-700 rounded text-white">Esc</kbd> 선택 해제</div>
               </div>
             </div>
