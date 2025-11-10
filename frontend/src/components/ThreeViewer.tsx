@@ -687,20 +687,22 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
         <BackgroundEnvironment backgroundType={backgroundType} />
 
         {/* 오브젝트 렌더링 */}
-        {objects.map((obj) => (
-          <SceneObjectMesh
-            key={obj.id}
-            obj={obj}
-            isSelected={selectedObjectId === obj.id}
-            onSelect={() => onObjectSelect?.(obj.id)}
-            transformMode={transformMode}
-            onTransformEnd={(transform) => handleTransformEnd(obj.id, transform)}
-            asset={getAssetForObject(obj)}
-            currentTime={currentTime}
-            isPlaying={isPlaying}
-            onMeshCreated={handleMeshCreated}
-          />
-        ))}
+        {objects
+          .filter(obj => !('visible' in obj) || obj.visible !== 0)  // visible이 없거나 0이 아닌 경우만 렌더링
+          .map((obj) => (
+            <SceneObjectMesh
+              key={obj.id}
+              obj={obj}
+              isSelected={selectedObjectId === obj.id}
+              onSelect={() => onObjectSelect?.(obj.id)}
+              transformMode={transformMode}
+              onTransformEnd={(transform) => handleTransformEnd(obj.id, transform)}
+              asset={getAssetForObject(obj)}
+              currentTime={currentTime}
+              isPlaying={isPlaying}
+              onMeshCreated={handleMeshCreated}
+            />
+          ))}
 
         {/* 카메라 컨트롤 */}
         <OrbitControls
@@ -758,7 +760,7 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
       )}
 
       {/* 안내 텍스트 */}
-      <div className="absolute bottom-4 left-4 bg-gray-900 bg-opacity-75 text-white p-3 rounded-lg text-xs pointer-events-none z-10">
+      <div className="absolute bottom-4 left-4 bg-gray-900 bg-opacity-75 text-white p-3 rounded-lg text-xs pointer-events-none select-none z-10">
         <p className="mb-1">🖱️ <strong>마우스 좌클릭</strong>: 회전</p>
         <p className="mb-1">🖱️ <strong>마우스 우클릭</strong>: 팬</p>
         <p className="mb-1">🖱️ <strong>마우스 휠</strong>: 줌</p>
@@ -773,7 +775,7 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
       </div>
 
       {/* 객체 수 표시 */}
-      <div className="absolute top-4 right-4 bg-gray-900 bg-opacity-75 text-white px-4 py-2 rounded-lg text-sm pointer-events-none z-10">
+      <div className="absolute top-4 right-4 bg-gray-900 bg-opacity-75 text-white px-4 py-2 rounded-lg text-sm pointer-events-none select-none z-10">
         📦 오브젝트: <strong>{objects.length}</strong>개
       </div>
     </div>
