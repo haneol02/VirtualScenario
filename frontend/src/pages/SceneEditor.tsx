@@ -1308,7 +1308,7 @@ export default function SceneEditor() {
                 dlg => currentTime >= dlg.start_time && currentTime <= dlg.start_time + dlg.duration
               );
               return activeDialogues.length > 0 && (
-                <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 space-y-2 z-40 max-w-3xl w-full px-4 select-none">
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 space-y-2 z-40 max-w-3xl w-full px-4 select-none pointer-events-none">
                   {activeDialogues.map(dlg => {
                     // speaker_name 우선, 없으면 object_id로 찾기
                     const speaker = dlg.speaker_name ||
@@ -1316,15 +1316,15 @@ export default function SceneEditor() {
                     return (
                       <div
                         key={dlg.id}
-                        className="bg-black bg-opacity-75 text-white px-6 py-3 rounded-lg shadow-2xl animate-fade-in"
+                        className="bg-black bg-opacity-80 text-white px-5 py-2.5 rounded-lg shadow-2xl animate-fade-in border border-gray-700"
                         onDragStart={(e) => e.preventDefault()}
                       >
                         {speaker && (
-                          <div className="text-sm font-semibold text-blue-300 mb-1">
+                          <div className="text-xs font-semibold text-blue-300 mb-1">
                             {speaker}
                           </div>
                         )}
-                        <div className="text-lg">
+                        <div className="text-base leading-snug">
                           {dlg.text}
                         </div>
                       </div>
@@ -1335,40 +1335,43 @@ export default function SceneEditor() {
             })()}
 
             {/* Undo/Redo Controls & Shortcuts Help */}
-            <div className="absolute top-4 left-4 bg-gray-900 bg-opacity-90 rounded-lg px-3 py-2 border border-gray-700 z-10 select-none"
-              onDragStart={(e) => e.preventDefault()}>
-              {/* Undo/Redo Buttons */}
-              <div className="flex items-center gap-2 mb-3">
-                <button
-                  onClick={undo}
-                  disabled={!canUndo}
-                  className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                    canUndo
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
-                      : 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                  }`}
-                  title="실행 취소 (Ctrl+Z)"
-                >
-                  ↶
-                </button>
-                <button
-                  onClick={redo}
-                  disabled={!canRedo}
-                  className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                    canRedo
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
-                      : 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                  }`}
-                  title="다시 실행 (Ctrl+Shift+Z)"
-                >
-                  ↷
-                </button>
-                <div className="border-l border-gray-600 h-6 mx-1"></div>
-                <div className="text-xs font-semibold text-white">단축키</div>
+            <div className="absolute top-4 left-4 bg-gray-900 bg-opacity-95 rounded-lg border border-gray-700 z-10 select-none max-h-[calc(100%-2rem)] overflow-y-auto shadow-xl"
+              onDragStart={(e) => e.preventDefault()}
+              style={{ maxWidth: '280px' }}>
+              {/* Undo/Redo Buttons - Always visible */}
+              <div className="px-3 py-2 border-b border-gray-700 bg-gray-800 sticky top-0">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={undo}
+                    disabled={!canUndo}
+                    className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                      canUndo
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
+                        : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                    }`}
+                    title="실행 취소 (Ctrl+Z)"
+                  >
+                    ↶
+                  </button>
+                  <button
+                    onClick={redo}
+                    disabled={!canRedo}
+                    className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                      canRedo
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
+                        : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                    }`}
+                    title="다시 실행 (Ctrl+Shift+Z)"
+                  >
+                    ↷
+                  </button>
+                  <div className="border-l border-gray-600 h-6 mx-1"></div>
+                  <div className="text-xs font-semibold text-white">단축키</div>
+                </div>
               </div>
 
-              {/* Keyboard Shortcuts */}
-              <div className="text-xs text-gray-400 space-y-0.5">
+              {/* Keyboard Shortcuts - Scrollable */}
+              <div className="px-3 py-2 text-xs text-gray-400 space-y-0.5">
                 <div><kbd className="px-1 bg-gray-700 rounded text-white">Space</kbd> 재생/일시정지</div>
                 <div><kbd className="px-1 bg-gray-700 rounded text-white">K</kbd> 키프레임 추가</div>
                 <div><kbd className="px-1 bg-gray-700 rounded text-white">Delete</kbd> 삭제</div>

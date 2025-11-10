@@ -150,11 +150,8 @@ export default function TimelinePanel({
       }
     });
 
-    // Merge with current manual layers to preserve empty layers
-    manualLayers.forEach(layerIndex => {
-      existingManualLayers.add(layerIndex);
-    });
-
+    // DON'T merge with current manual layers - only keep layers that have dialogues
+    // This prevents empty layers from persisting
     const newManualLayers = Array.from(existingManualLayers).sort((a, b) => a - b);
 
     // Only update if there's a difference
@@ -255,11 +252,13 @@ export default function TimelinePanel({
       }
     }
 
-    // Ensure at least one auto layer exists (main layer must always be present)
-    if (layers.filter((_, i) => layerTypes[i] === 'auto').length === 0) {
-      layers.push([]);
-      layerTypes.push('auto');
-      layerIndices.push(0);
+    // Ensure EXACTLY one auto layer exists at the beginning (main layer must always be present)
+    // Insert at the beginning if no auto layers exist
+    const autoLayerCount = layers.filter((_, i) => layerTypes[i] === 'auto').length;
+    if (autoLayerCount === 0) {
+      layers.unshift([]);
+      layerTypes.unshift('auto');
+      layerIndices.unshift(0);
     }
 
     // Then add manual layers (they go below, in order)
@@ -433,6 +432,28 @@ export default function TimelinePanel({
       return Math.round(time * 2) / 2;
     };
 
+    // Helper function to check if dialogue would overlap with others in a layer
+    const wouldOverlapInLayer = (
+      targetLayerIndex: number,
+      startTime: number,
+      duration: number,
+      excludeDialogueIds: string[]
+    ): boolean => {
+      const targetLayer = dialogueLayers[targetLayerIndex];
+      if (!targetLayer) return false;
+
+      const endTime = startTime + duration;
+
+      return targetLayer.some(d => {
+        // Skip if this dialogue is being moved
+        if (excludeDialogueIds.includes(d.id)) return false;
+
+        const dEnd = d.start_time + d.duration;
+        // Check for overlap: dialogues overlap if one starts before the other ends
+        return !(startTime >= dEnd || endTime <= d.start_time);
+      });
+    };
+
     const handleMouseMove = (e: MouseEvent) => {
       const deltaX = e.clientX - dialogueDrag.startX;
       const deltaTime = deltaX / pixelsPerSecond;
@@ -456,8 +477,21 @@ export default function TimelinePanel({
         const snappedStartTime = snapToHalfSecond(rawStartTime);
         const newStartTime = Math.max(0, Math.min(snappedStartTime, maxTime - dialogueDrag.initialDuration));
 
-        // Update preview state with layer change
-        setDialogueDrag(prev => prev ? { ...prev, previewStartTime: newStartTime, previewLayerIndex: newLayerIndex } : null);
+        // Check if layer change would cause overlap
+        let finalLayerIndex = newLayerIndex;
+        if (newLayerIndex !== dialogueDrag.initialLayerIndex) {
+          const excludeIds = dialogueDrag.selectedIds || [dialogueDrag.dialogueId];
+
+          // Check if new position would overlap in target layer
+          if (wouldOverlapInLayer(newLayerIndex, newStartTime, dialogueDrag.initialDuration, excludeIds)) {
+            // Overlap detected! Don't allow layer change
+            finalLayerIndex = dialogueDrag.initialLayerIndex;
+            // Keep hovered layer visual feedback but prevent actual change
+          }
+        }
+
+        // Update preview state with validated layer change
+        setDialogueDrag(prev => prev ? { ...prev, previewStartTime: newStartTime, previewLayerIndex: finalLayerIndex } : null);
       } else if (dialogueDrag.mode === 'resize-left') {
         const rawStartTime = dialogueDrag.initialStartTime + deltaTime;
         const snappedStartTime = snapToHalfSecond(rawStartTime);
