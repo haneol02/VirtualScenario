@@ -42,6 +42,7 @@ export default function SceneEditor() {
   const [currentTime, setCurrentTime] = useState(0);
   const [maxTime, setMaxTime] = useState(30); // 기본 30초
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isManualMaxTime, setIsManualMaxTime] = useState(false); // 수동으로 maxTime 설정했는지 플래그
 
   // Undo/Redo system
   const { pushAction, undo, redo, canUndo, canRedo } = useUndoRedo();
@@ -96,10 +97,7 @@ export default function SceneEditor() {
         if (selectedObjectId && selectedScene) {
           const obj = objects.find(o => o.id === selectedObjectId);
           if (obj) {
-            setNewObjectName(obj.name + ' (복사본)');
-            setNewObjectType(obj.type);
-            setNewObjectModelId(obj.model_id || '');
-            handleCreateObject();
+            handleDuplicateObject(obj);
           }
         }
       }
@@ -130,8 +128,11 @@ export default function SceneEditor() {
     }
   }, [selectedScene?.background_map_id]);
 
-  // Auto-calculate maxTime based on keyframes and dialogues
+  // Auto-calculate maxTime based on keyframes and dialogues (only if not manually set)
   useEffect(() => {
+    // Skip auto-calculation if user manually set maxTime
+    if (isManualMaxTime) return;
+
     let calculatedMaxTime = 30; // Default 30 seconds
 
     // Check all keyframes
@@ -160,7 +161,7 @@ export default function SceneEditor() {
 
     // Add 5 seconds buffer
     setMaxTime(Math.max(30, calculatedMaxTime + 5));
-  }, [objects, dialogues]);
+  }, [objects, dialogues, isManualMaxTime]);
 
   // Animation playback loop
   useEffect(() => {
@@ -282,6 +283,12 @@ export default function SceneEditor() {
   };
 
   const handleCreateObject = async (modelId?: string) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      alert('재생 중에는 편집할 수 없습니다');
+      return;
+    }
+
     if (!newObjectName.trim() || !selectedScene) return;
 
     try {
@@ -315,7 +322,55 @@ export default function SceneEditor() {
     }
   };
 
+  const handleDuplicateObject = async (sourceObject: SceneObject) => {
+    if (!selectedScene) return;
+
+    try {
+      // Create with basic info
+      const createdObject = await scenesAPI.createObject(selectedScene.id, {
+        type: sourceObject.type,
+        name: sourceObject.name + ' (복사본)',
+        model_id: sourceObject.model_id || undefined,
+        transform: {
+          position: [sourceObject.position_x + 1, sourceObject.position_y, sourceObject.position_z], // Offset slightly
+          rotation: [sourceObject.rotation_x, sourceObject.rotation_y, sourceObject.rotation_z],
+          scale: [sourceObject.scale_x, sourceObject.scale_y, sourceObject.scale_z],
+        },
+      });
+
+      // Update with additional properties (color, nametag)
+      await scenesAPI.updateObject(selectedScene.id, createdObject.id, {
+        color: sourceObject.color,
+        showNametag: sourceObject.show_nametag === 1,
+      });
+
+      await handleSelectScene(selectedScene);
+      setSelectedObjectId(createdObject.id); // Select the duplicated object
+
+      // Record undo action
+      pushAction({
+        type: 'create_object',
+        undo: async () => {
+          await scenesAPI.deleteObject(selectedScene.id, createdObject.id);
+          await handleSelectScene(selectedScene);
+        },
+        redo: async () => {
+          await handleSelectScene(selectedScene);
+        },
+        data: { objectId: createdObject.id, objectName: createdObject.name }
+      });
+    } catch (error) {
+      console.error('Failed to duplicate object:', error);
+    }
+  };
+
   const handleDeleteObject = async (objectId: string) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      alert('재생 중에는 편집할 수 없습니다');
+      return;
+    }
+
     if (!confirm('정말로 이 오브젝트를 삭제하시겠습니까?') || !selectedScene) return;
 
     // Save object data for undo
@@ -353,6 +408,12 @@ export default function SceneEditor() {
   };
 
   const handleCreateDialogue = async () => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      alert('재생 중에는 편집할 수 없습니다');
+      return;
+    }
+
     if (!newDialogueText.trim() || !selectedScene) return;
 
     try {
@@ -376,6 +437,12 @@ export default function SceneEditor() {
   };
 
   const handleDeleteDialogue = async (dialogueId: string) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      alert('재생 중에는 편집할 수 없습니다');
+      return;
+    }
+
     if (!confirm('정말로 이 대화를 삭제하시겠습니까?') || !selectedScene) return;
 
     try {
@@ -391,6 +458,12 @@ export default function SceneEditor() {
     rotation: [number, number, number];
     scale: [number, number, number];
   }, recordUndo: boolean = true) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
     if (!selectedScene) return;
 
     // Save previous state for undo
@@ -418,6 +491,7 @@ export default function SceneEditor() {
 
         if (existingKeyframeIndex >= 0) {
           // Update existing keyframe
+          console.log(`✏️ 키프레임 업데이트: ${currentTime.toFixed(1)}초`);
           updatedKeyframes[existingKeyframeIndex] = {
             time: currentTime,
             position: transform.position,
@@ -426,6 +500,7 @@ export default function SceneEditor() {
           };
         } else {
           // Create new keyframe at current time
+          console.log(`➕ 키프레임 자동 생성: ${currentTime.toFixed(1)}초`);
           updatedKeyframes.push({
             time: currentTime,
             position: transform.position,
@@ -468,6 +543,12 @@ export default function SceneEditor() {
 
   // Timeline handlers
   const handleAddKeyframe = async (objectId: string, time: number) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
     if (!selectedScene) return;
 
     const obj = objects.find(o => o.id === objectId);
@@ -571,6 +652,12 @@ export default function SceneEditor() {
   };
 
   const handleDeleteKeyframe = async (objectId: string, keyframeIndex: number) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
     if (!selectedScene) return;
 
     const obj = objects.find(o => o.id === objectId);
@@ -1168,7 +1255,10 @@ export default function SceneEditor() {
                   setSelectedDialogueId(id);
                   setSelectedObjectId(undefined); // Deselect object when dialogue selected
                 }}
-                onMaxTimeChange={setMaxTime}
+                onMaxTimeChange={(newMaxTime) => {
+                  setMaxTime(newMaxTime);
+                  setIsManualMaxTime(true); // Mark as manually set
+                }}
                 onUpdateDialogue={handleUpdateDialogue}
                 onReorderObjects={handleReorderObjects}
                 onReorderDialogues={handleReorderDialogues}

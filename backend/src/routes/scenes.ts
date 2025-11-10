@@ -54,7 +54,7 @@ export function createScenesRouter(db: DatabaseManager) {
   router.post('/:id/objects', (req, res) => {
     try {
       const sceneId = req.params.id;
-      const { type, name, assetId, model_id, metadata } = req.body;
+      const { type, name, assetId, model_id, color, metadata } = req.body;
 
       const objectId = uuidv4();
       const transform = req.body.transform || {
@@ -69,6 +69,7 @@ export function createScenesRouter(db: DatabaseManager) {
         type,
         name,
         assetId: model_id || assetId,  // model_id를 우선 사용, fallback으로 assetId
+        color: color || '#6b7280',
         transform,
         pathData: null,
         metadata
@@ -84,8 +85,8 @@ export function createScenesRouter(db: DatabaseManager) {
   // PUT /api/scenes/:sceneId/objects/:id - 오브젝트 수정
   router.put('/:sceneId/objects/:id', (req, res) => {
     try {
-      const { name, modelId, showNametag, transform, pathData, metadata } = req.body;
-      db.updateSceneObject(req.params.id, { name, modelId, showNametag, transform, pathData, metadata });
+      const { name, modelId, color, showNametag, transform, pathData, metadata } = req.body;
+      db.updateSceneObject(req.params.id, { name, modelId, color, showNametag, transform, pathData, metadata });
       const object = db.getSceneObject(req.params.id);
       res.json(object);
     } catch (error: any) {

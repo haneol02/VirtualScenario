@@ -394,7 +394,7 @@ export default function TimelinePanel({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedObjectId, currentTime, objects, onAddKeyframe]);
+  }, [selectedObjectId, currentTime, onAddKeyframe]);
 
   return (
     <div className="h-full bg-gray-850 border-t border-gray-700 flex flex-col select-none">

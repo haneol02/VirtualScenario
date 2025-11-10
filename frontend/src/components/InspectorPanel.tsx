@@ -402,6 +402,30 @@ export default function InspectorPanel({
 
           <hr className="border-gray-700" />
 
+          {/* Keyframe Warning */}
+          {'path_data' in selectedObject && selectedObject.path_data && (() => {
+            try {
+              const keyframes: PathKeyframe[] = JSON.parse(selectedObject.path_data);
+              return keyframes.length > 0 && (
+                <div className="bg-yellow-900 bg-opacity-30 border border-yellow-600 rounded-lg p-3 text-xs">
+                  <div className="flex items-start gap-2">
+                    <span className="text-yellow-500 text-lg">⚠️</span>
+                    <div className="flex-1">
+                      <div className="text-yellow-200 font-semibold mb-1">키프레임 애니메이션 활성</div>
+                      <div className="text-yellow-300 text-xs">
+                        Transform 값은 현재 시간({currentTime.toFixed(1)}초)의 보간값입니다.
+                        <br />
+                        DB 기본값을 수정하려면 모든 키프레임을 삭제하세요.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            } catch (e) {
+              return null;
+            }
+          })()}
+
           {/* Position */}
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-2">Position</label>
