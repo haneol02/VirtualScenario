@@ -687,20 +687,22 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
         <BackgroundEnvironment backgroundType={backgroundType} />
 
         {/* 오브젝트 렌더링 */}
-        {objects.map((obj) => (
-          <SceneObjectMesh
-            key={obj.id}
-            obj={obj}
-            isSelected={selectedObjectId === obj.id}
-            onSelect={() => onObjectSelect?.(obj.id)}
-            transformMode={transformMode}
-            onTransformEnd={(transform) => handleTransformEnd(obj.id, transform)}
-            asset={getAssetForObject(obj)}
-            currentTime={currentTime}
-            isPlaying={isPlaying}
-            onMeshCreated={handleMeshCreated}
-          />
-        ))}
+        {objects
+          .filter(obj => !('visible' in obj) || obj.visible !== 0)  // visible이 없거나 0이 아닌 경우만 렌더링
+          .map((obj) => (
+            <SceneObjectMesh
+              key={obj.id}
+              obj={obj}
+              isSelected={selectedObjectId === obj.id}
+              onSelect={() => onObjectSelect?.(obj.id)}
+              transformMode={transformMode}
+              onTransformEnd={(transform) => handleTransformEnd(obj.id, transform)}
+              asset={getAssetForObject(obj)}
+              currentTime={currentTime}
+              isPlaying={isPlaying}
+              onMeshCreated={handleMeshCreated}
+            />
+          ))}
 
         {/* 카메라 컨트롤 */}
         <OrbitControls

@@ -282,10 +282,35 @@ export default function InspectorPanel({
     if (!selectedObject) return;
 
     try {
-      await scenesAPI.updateObject(sceneId, selectedObject.id, { showNametag: checked });
+      if (objectType === 'background') {
+        await backgroundMapsAPI.updateObject(selectedObject.id, { showNametag: checked });
+      } else {
+        await scenesAPI.updateObject(sceneId, selectedObject.id, { showNametag: checked });
+      }
       onUpdate();
     } catch (error) {
       console.error('Failed to update nametag:', error);
+    }
+  };
+
+  const handleVisibleToggle = async (checked: boolean) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
+    if (!selectedObject) return;
+
+    try {
+      if (objectType === 'background') {
+        await backgroundMapsAPI.updateObject(selectedObject.id, { visible: checked });
+      } else {
+        await scenesAPI.updateObject(sceneId, selectedObject.id, { visible: checked });
+      }
+      onUpdate();
+    } catch (error) {
+      console.error('Failed to update visibility:', error);
     }
   };
 
@@ -460,6 +485,20 @@ export default function InspectorPanel({
                 기본 박스 사용 중. 위에서 다른 모델을 선택하세요.
               </div>
             )}
+          </div>
+
+          {/* Visible Toggle */}
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="visible"
+              checked={'visible' in selectedObject ? selectedObject.visible !== 0 : true}
+              onChange={(e) => handleVisibleToggle(e.target.checked)}
+              className="w-4 h-4"
+            />
+            <label htmlFor="visible" className="text-sm text-gray-300 cursor-pointer">
+              오브젝트 보이기
+            </label>
           </div>
 
           {/* Nametag Toggle */}
