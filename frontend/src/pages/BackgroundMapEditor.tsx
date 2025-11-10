@@ -364,7 +364,7 @@ export default function BackgroundMapEditor() {
     <div className="h-screen bg-gray-900 text-white">
       <PanelGroup direction="horizontal">
         {/* Left Sidebar - Background Maps & Objects/Assets */}
-        <Panel defaultSize={20} minSize={15} maxSize={40}>
+        <Panel id="bg-sidebar-panel" order={1} defaultSize={20} minSize={15} maxSize={40}>
           <aside className="h-full bg-gray-800 border-r border-gray-700 flex flex-col">
             <div className="p-4 border-b border-gray-700">
               <button
@@ -615,7 +615,7 @@ export default function BackgroundMapEditor() {
 
         {/* Main Area - 3D Editor */}
         <PanelResizeHandle className="w-1 bg-gray-700 hover:bg-blue-500 transition-colors cursor-col-resize" />
-        <Panel defaultSize={60} minSize={30}>
+        <Panel id="bg-main-panel" order={2} minSize={30}>
           <main className="h-full flex flex-col items-center justify-center bg-gray-900 relative">
             {selectedMap ? (
               <>
@@ -676,7 +676,7 @@ export default function BackgroundMapEditor() {
         {selectedMap && (
           <>
             <PanelResizeHandle className="w-1 bg-gray-700 hover:bg-blue-500 transition-colors cursor-col-resize" />
-            <Panel defaultSize={20} minSize={15} maxSize={40}>
+            <Panel id="bg-inspector-panel" order={3} minSize={15} maxSize={40}>
               <InspectorPanel
                 selectedObject={selectedObject}
                 sceneId={selectedMap.id}
