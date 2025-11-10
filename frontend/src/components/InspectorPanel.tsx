@@ -374,6 +374,11 @@ export default function InspectorPanel({
               value={localObjectName}
               onChange={(e) => setLocalObjectName(e.target.value)}
               onBlur={(e) => handleNameChange(localObjectName)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.currentTarget.blur();
+                }
+              }}
               className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
               placeholder="오브젝트 이름"
             />
@@ -522,6 +527,11 @@ export default function InspectorPanel({
                       }
                       handleTransformBlur();
                     }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.currentTarget.blur();
+                      }
+                    }}
                     step="0.1"
                     className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
                   />
@@ -555,6 +565,11 @@ export default function InspectorPanel({
                       }
                       handleTransformBlur();
                     }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.currentTarget.blur();
+                      }
+                    }}
                     step="1"
                     className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
                   />
@@ -587,6 +602,11 @@ export default function InspectorPanel({
                         setLocalScale(newScale);
                       }
                       handleTransformBlur();
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.currentTarget.blur();
+                      }
                     }}
                     step="0.1"
                     min="0.1"
@@ -699,6 +719,11 @@ export default function InspectorPanel({
               value={localSpeakerName}
               onChange={(e) => setLocalSpeakerName(e.target.value)}
               onBlur={(e) => handleDialogueUpdate('speakerName', localSpeakerName)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.currentTarget.blur();
+                }
+              }}
               placeholder="예: 승무원, 승객 등"
               className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-green-500"
             />
@@ -711,6 +736,11 @@ export default function InspectorPanel({
               value={localDialogueText}
               onChange={(e) => setLocalDialogueText(e.target.value)}
               onBlur={(e) => handleDialogueUpdate('text', localDialogueText)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.currentTarget.blur();
+                }
+              }}
               rows={3}
               className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-green-500 resize-none"
             />
@@ -727,6 +757,11 @@ export default function InspectorPanel({
                 const value = e.target.value === '' ? 0 : Math.max(0, parseFloat(e.target.value) || 0);
                 setLocalDialogueStartTime(value.toString());
                 handleDialogueUpdate('startTime', value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.currentTarget.blur();
+                }
               }}
               step="0.1"
               min="0"
@@ -745,6 +780,11 @@ export default function InspectorPanel({
                 const value = e.target.value === '' ? 0.1 : Math.max(0.1, parseFloat(e.target.value) || 0.1);
                 setLocalDialogueDuration(value.toString());
                 handleDialogueUpdate('duration', value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.currentTarget.blur();
+                }
               }}
               step="0.1"
               min="0.1"

@@ -47,6 +47,7 @@ export default function TimelinePanel({
   onDeleteDialogue,
 }: TimelinePanelProps) {
   const [zoom, setZoom] = useState(1); // 1 = 1초당 50px
+  const [localMaxTime, setLocalMaxTime] = useState(maxTime.toString()); // 로컬 상태로 maxTime 관리
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -362,6 +363,11 @@ export default function TimelinePanel({
     setDragOverIndex(null);
   };
 
+  // Sync local maxTime when prop changes
+  useEffect(() => {
+    setLocalMaxTime(maxTime.toString());
+  }, [maxTime]);
+
   // Close context menu on click outside
   useEffect(() => {
     const handleClick = () => setContextMenu(null);
@@ -415,29 +421,33 @@ export default function TimelinePanel({
             <span className="text-gray-600">/</span>
             <input
               type="number"
-              value={maxTime.toFixed(0)}
+              value={localMaxTime}
               onChange={(e) => {
-                // 입력 중에는 검증하지 않음
-                const val = e.target.value;
-                if (val !== '') {
-                  const newMaxTime = parseFloat(val);
-                  if (!isNaN(newMaxTime)) {
-                    onMaxTimeChange(newMaxTime);
-                  }
-                }
+                // 입력 중에는 자유롭게 입력 가능
+                setLocalMaxTime(e.target.value);
               }}
               onBlur={(e) => {
                 // 포커스 해제 시 범위 검증 및 조정
                 const val = e.target.value;
                 if (val === '' || isNaN(parseFloat(val))) {
+                  setLocalMaxTime('30');
                   onMaxTimeChange(30); // 기본값
                 } else {
                   const newMaxTime = parseFloat(val);
                   if (newMaxTime < 10) {
+                    setLocalMaxTime('10');
                     onMaxTimeChange(10);
                   } else if (newMaxTime > 600) {
+                    setLocalMaxTime('600');
                     onMaxTimeChange(600);
+                  } else {
+                    onMaxTimeChange(newMaxTime);
                   }
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.currentTarget.blur();
                 }
               }}
               className="w-16 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white focus:outline-none focus:border-blue-500"
@@ -619,7 +629,7 @@ export default function TimelinePanel({
                         key={idx}
                         className={`absolute top-1/2 transform -translate-x-1/2 -translate-y-1/2 timeline-interactive ${
                           isPlaying ? 'cursor-not-allowed pointer-events-none opacity-50' : 'cursor-move'
-                        } ${isDragging ? 'z-50' : 'z-10'}`}
+                        } ${isDragging ? 'z-[10000]' : 'z-10'}`}
                         style={{ left: `${displayTime * pixelsPerSecond}px` }}
                         onClick={(e) => {
                           if (isPlaying) return;
@@ -785,7 +795,7 @@ export default function TimelinePanel({
       {/* Context Menu */}
       {contextMenu && (
         <div
-          className="fixed bg-gray-800 border border-gray-600 rounded shadow-lg py-1 z-50 min-w-48 select-none"
+          className="fixed bg-gray-800 border border-gray-600 rounded shadow-lg py-1 z-[10000] min-w-48 select-none"
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onClick={(e) => e.stopPropagation()}
           onDragStart={(e) => e.preventDefault()}
@@ -906,7 +916,7 @@ export default function TimelinePanel({
       {/* Keyframe Edit Modal */}
       {keyframeEditModal && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000]"
           onClick={() => setKeyframeEditModal(null)}
         >
           <div

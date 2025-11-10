@@ -245,7 +245,7 @@ export default function AssetLibraryPanel({ onAssetSelect, onAssetUpdated }: Ass
       {/* Context Menu */}
       {contextMenu && (
         <div
-          className="fixed bg-gray-900 border border-gray-600 rounded-lg shadow-xl py-1 z-50 min-w-[160px]"
+          className="fixed bg-gray-900 border border-gray-600 rounded-lg shadow-xl py-1 z-[10000] min-w-[160px]"
           style={{
             left: `${contextMenu.x}px`,
             top: `${contextMenu.y}px`,

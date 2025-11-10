@@ -1117,7 +1117,7 @@ export default function SceneEditor() {
                 <div className="absolute inset-0 z-40 bg-transparent cursor-not-allowed" />
 
                 {/* Warning message */}
-                <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-yellow-500 bg-opacity-50 text-black px-6 py-3 rounded-lg shadow-2xl z-50 font-semibold flex items-center gap-2 select-none pointer-events-none"
+                <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-yellow-500 bg-opacity-50 text-black px-6 py-3 rounded-lg shadow-2xl z-[10000] font-semibold flex items-center gap-2 select-none pointer-events-none"
                   onDragStart={(e) => e.preventDefault()}>
                   <span className="text-2xl">⚠️</span>
                   <span>재생 중에는 편집할 수 없습니다</span>
@@ -1621,7 +1621,7 @@ export default function SceneEditor() {
 
       {/* Create Scene Dialog */}
       {showCreateDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000]">
           <div className="bg-gray-800 rounded-lg p-6 w-96 border border-gray-700">
             <h2 className="text-xl font-bold mb-4">새 장면 추가</h2>
             <input
@@ -1657,7 +1657,7 @@ export default function SceneEditor() {
 
       {/* Create Object Dialog */}
       {showObjectDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000]">
           <div className="bg-gray-800 rounded-lg p-6 w-96 border border-gray-700">
             <h2 className="text-xl font-bold mb-4">새 오브젝트 추가</h2>
             <div className="space-y-3 mb-4">
@@ -1732,7 +1732,7 @@ export default function SceneEditor() {
 
       {/* Create Dialogue Dialog */}
       {showDialogueDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000]">
           <div className="bg-gray-800 rounded-lg p-6 w-96 border border-gray-700">
             <h2 className="text-xl font-bold mb-4">새 대화 추가</h2>
             <div className="space-y-3 mb-4">

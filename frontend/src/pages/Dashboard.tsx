@@ -141,7 +141,7 @@ export default function Dashboard() {
 
       {/* Create Project Dialog */}
       {showCreateDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000]">
           <div className="bg-gray-800 rounded-lg p-6 w-96 border border-gray-700">
             <h2 className="text-xl font-bold mb-4">새 프로젝트 생성</h2>
             <input

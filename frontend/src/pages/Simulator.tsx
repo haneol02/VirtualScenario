@@ -331,7 +331,7 @@ export default function Simulator() {
 
             {/* Pause Instruction */}
             {!isPlaying && (
-              <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 bg-opacity-90 text-white px-6 py-3 rounded-lg shadow-2xl z-50 font-medium flex items-center gap-2 select-none pointer-events-none">
+              <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 bg-opacity-90 text-white px-6 py-3 rounded-lg shadow-2xl z-[10000] font-medium flex items-center gap-2 select-none pointer-events-none">
                 <span className="text-2xl">ℹ️</span>
                 <span>일시정지 중 - 오브젝트를 클릭하고 드래그하여 동선을 설명할 수 있습니다</span>
               </div>
