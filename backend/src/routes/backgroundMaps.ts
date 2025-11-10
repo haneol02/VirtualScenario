@@ -109,8 +109,8 @@ export function createBackgroundMapsRouter(db: DatabaseManager) {
   // PUT /api/background-objects/:id - 오브젝트 수정
   router.put('/objects/:id', (req, res) => {
     try {
-      const { name, type, modelId, color, showNametag, transform, metadata } = req.body;
-      db.updateBackgroundObject(req.params.id, { name, type, modelId, color, showNametag, transform, metadata });
+      const { name, type, modelId, color, visible, locked, showNametag, transform, metadata } = req.body;
+      db.updateBackgroundObject(req.params.id, { name, type, modelId, color, visible, locked, showNametag, transform, metadata });
       const obj = db.getBackgroundObject(req.params.id);
       res.json(obj);
     } catch (error: any) {

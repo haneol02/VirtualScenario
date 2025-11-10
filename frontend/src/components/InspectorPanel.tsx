@@ -314,6 +314,27 @@ export default function InspectorPanel({
     }
   };
 
+  const handleLockedToggle = async (checked: boolean) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
+    if (!selectedObject) return;
+
+    try {
+      if (objectType === 'background') {
+        await backgroundMapsAPI.updateObject(selectedObject.id, { locked: checked });
+      } else {
+        await scenesAPI.updateObject(sceneId, selectedObject.id, { locked: checked });
+      }
+      onUpdate();
+    } catch (error) {
+      console.error('Failed to update locked:', error);
+    }
+  };
+
   const handleModelChange = async (modelId: string) => {
     // Prevent editing during playback
     if (isPlaying) {
@@ -512,6 +533,20 @@ export default function InspectorPanel({
             />
             <label htmlFor="nametag" className="text-sm text-gray-300 cursor-pointer">
               네임태그 표시
+            </label>
+          </div>
+
+          {/* Locked Toggle */}
+          <div className="flex items-center gap-2 select-none" onDragStart={(e) => e.preventDefault()}>
+            <input
+              type="checkbox"
+              id="locked"
+              checked={'locked' in selectedObject ? selectedObject.locked === 1 : false}
+              onChange={(e) => handleLockedToggle(e.target.checked)}
+              className="w-4 h-4"
+            />
+            <label htmlFor="locked" className="text-sm text-gray-300 cursor-pointer">
+              🔒 오브젝트 잠금
             </label>
           </div>
 

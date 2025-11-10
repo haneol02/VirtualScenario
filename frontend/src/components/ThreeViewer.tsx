@@ -240,6 +240,10 @@ function SceneObjectMesh({
           scale={initialTransform.scale as [number, number, number]}
           onClick={(e) => {
             e.stopPropagation();
+            // Prevent selection if object is locked
+            if ('locked' in obj && obj.locked === 1) {
+              return;
+            }
             onSelect();
           }}
         >
@@ -312,6 +316,10 @@ function SceneObjectMesh({
           scale={initialTransform.scale as [number, number, number]}
           onClick={(e) => {
             e.stopPropagation();
+            // Prevent selection if object is locked
+            if ('locked' in obj && obj.locked === 1) {
+              return;
+            }
             onSelect();
           }}
         >
@@ -414,6 +422,10 @@ function ImagePlane({
       scale={initialTransform.scale as [number, number, number]}
       onClick={(e) => {
         e.stopPropagation();
+        // Prevent selection if object is locked
+        if ('locked' in obj && obj.locked === 1) {
+          return;
+        }
         onSelect();
       }}
     >
@@ -489,6 +501,10 @@ function Text3DObject({
       scale={initialTransform.scale as [number, number, number]}
       onClick={(e) => {
         e.stopPropagation();
+        // Prevent selection if object is locked
+        if ('locked' in obj && obj.locked === 1) {
+          return;
+        }
         onSelect();
       }}
     >

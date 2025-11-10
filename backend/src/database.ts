@@ -73,6 +73,54 @@ export class DatabaseManager {
     }
 
     // 에셋 클린업 로직 제거 - 업로드한 모델들이 서버 재시작 시 삭제되는 문제 해결
+
+    // Check if visible column exists in scene_objects and background_objects
+    const sceneObjectsInfoForVisible = this.db.pragma('table_info(scene_objects)') as any[];
+    const hasVisibleInSceneObjects = sceneObjectsInfoForVisible.some((col: any) => col.name === 'visible');
+
+    const backgroundObjectsInfoForVisible = this.db.pragma('table_info(background_objects)') as any[];
+    const hasVisibleInBackgroundObjects = backgroundObjectsInfoForVisible.some((col: any) => col.name === 'visible');
+
+    if (!hasVisibleInSceneObjects || !hasVisibleInBackgroundObjects) {
+      console.log('Running migration: add_visible_column...');
+      try {
+        if (!hasVisibleInSceneObjects) {
+          this.db.exec('ALTER TABLE scene_objects ADD COLUMN visible INTEGER DEFAULT 1');
+          this.db.exec('UPDATE scene_objects SET visible = 1 WHERE visible IS NULL');
+        }
+        if (!hasVisibleInBackgroundObjects) {
+          this.db.exec('ALTER TABLE background_objects ADD COLUMN visible INTEGER DEFAULT 1');
+          this.db.exec('UPDATE background_objects SET visible = 1 WHERE visible IS NULL');
+        }
+        console.log('✅ Migration completed: visible field added to scene_objects and background_objects');
+      } catch (error) {
+        console.error('Migration error:', error);
+      }
+    }
+
+    // Check if locked column exists in scene_objects and background_objects
+    const sceneObjectsInfoForLocked = this.db.pragma('table_info(scene_objects)') as any[];
+    const hasLockedInSceneObjects = sceneObjectsInfoForLocked.some((col: any) => col.name === 'locked');
+
+    const backgroundObjectsInfoForLocked = this.db.pragma('table_info(background_objects)') as any[];
+    const hasLockedInBackgroundObjects = backgroundObjectsInfoForLocked.some((col: any) => col.name === 'locked');
+
+    if (!hasLockedInSceneObjects || !hasLockedInBackgroundObjects) {
+      console.log('Running migration: add_locked_column...');
+      try {
+        if (!hasLockedInSceneObjects) {
+          this.db.exec('ALTER TABLE scene_objects ADD COLUMN locked INTEGER DEFAULT 0');
+          this.db.exec('UPDATE scene_objects SET locked = 0 WHERE locked IS NULL');
+        }
+        if (!hasLockedInBackgroundObjects) {
+          this.db.exec('ALTER TABLE background_objects ADD COLUMN locked INTEGER DEFAULT 0');
+          this.db.exec('UPDATE background_objects SET locked = 0 WHERE locked IS NULL');
+        }
+        console.log('✅ Migration completed: locked field added to scene_objects and background_objects');
+      } catch (error) {
+        console.error('Migration error:', error);
+      }
+    }
   }
 
   // Projects
@@ -246,6 +294,10 @@ export class DatabaseManager {
     if (data.visible !== undefined) {
       fields.push('visible = ?');
       values.push(data.visible ? 1 : 0);
+    }
+    if (data.locked !== undefined) {
+      fields.push('locked = ?');
+      values.push(data.locked ? 1 : 0);
     }
     if (data.transform !== undefined) {
       if (data.transform.position) {
@@ -503,6 +555,10 @@ export class DatabaseManager {
     if (data.visible !== undefined) {
       fields.push('visible = ?');
       values.push(data.visible ? 1 : 0);
+    }
+    if (data.locked !== undefined) {
+      fields.push('locked = ?');
+      values.push(data.locked ? 1 : 0);
     }
 
     // Handle transform data (can be nested object or direct fields)

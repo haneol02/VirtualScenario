@@ -1100,7 +1100,11 @@ export default function SceneEditor() {
             <div className="flex-1 w-full">
               <ThreeViewer
                 ref={threeViewerRef}
-                objects={[...backgroundObjects, ...objects]}
+                objects={[
+                  // Background objects are always locked in Scene Editor
+                  ...backgroundObjects.map(obj => ({ ...obj, locked: 1 })),
+                  ...objects
+                ]}
                 selectedObjectId={selectedObjectId}
                 assets={assets}
                 currentTime={currentTime}

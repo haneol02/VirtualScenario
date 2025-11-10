@@ -48,6 +48,7 @@ export interface SceneObject {
   model_id?: string;
   color: string;
   visible?: number;  // 1=보이기, 0=숨기기 (기본값 1)
+  locked?: number;  // 1=잠금, 0=잠금해제 (기본값 0)
   show_nametag: number;  // 1=표시, 0=숨김
   position_x: number;
   position_y: number;
@@ -81,6 +82,7 @@ export interface BackgroundObject {
   model_id?: string;
   color: string;
   visible?: number;  // 1=보이기, 0=숨기기 (기본값 1)
+  locked?: number;  // 1=잠금, 0=잠금해제 (기본값 0)
   show_nametag: number;  // 1=표시, 0=숨김
   position_x: number;
   position_y: number;
@@ -169,6 +171,7 @@ export const scenesAPI = {
     modelId?: string | null;
     color?: string;
     visible?: boolean;
+    locked?: boolean;
     showNametag?: boolean;
     transform?: {
       position?: [number, number, number];
@@ -273,6 +276,7 @@ export const backgroundMapsAPI = {
     modelId?: string;
     color?: string;
     visible?: boolean;
+    locked?: boolean;
     showNametag?: boolean;
     transform?: {
       position?: [number, number, number];
