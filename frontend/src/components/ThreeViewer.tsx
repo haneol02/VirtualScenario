@@ -267,6 +267,20 @@ function SceneObjectMesh({
   // Track show_nametag from keyframe
   const [currentShowNametag, setCurrentShowNametag] = useState<number>(obj.show_nametag ?? 1);
 
+  // Update currentShowNametag when obj.show_nametag changes (for non-keyframe objects)
+  useEffect(() => {
+    if (!('path_data' in obj) || !obj.path_data || !isPlaying) {
+      setCurrentShowNametag(obj.show_nametag ?? 1);
+    }
+  }, [obj.show_nametag, obj, isPlaying]);
+
+  // Apply visible from obj when not playing or no keyframes
+  useEffect(() => {
+    if (meshRef.current && (!('path_data' in obj) || !obj.path_data || !isPlaying)) {
+      meshRef.current.visible = ('visible' in obj && obj.visible !== undefined) ? obj.visible !== 0 : true;
+    }
+  }, [obj, isPlaying]);
+
   // Register mesh ref to parent
   useEffect(() => {
     if (meshRef.current && onMeshCreated) {
