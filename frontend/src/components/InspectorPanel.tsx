@@ -875,18 +875,15 @@ export default function InspectorPanel({
 
           {/* Text */}
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-2 select-none" onDragStart={(e) => e.preventDefault()}>대화 내용</label>
+            <label className="block text-xs font-semibold text-gray-400 mb-2 select-none" onDragStart={(e) => e.preventDefault()}>
+              대화 내용 <span className="text-gray-500 text-xs">(Enter로 줄넘김)</span>
+            </label>
             <textarea
               value={localDialogueText}
               onChange={(e) => setLocalDialogueText(e.target.value)}
               onBlur={(e) => handleDialogueUpdate('text', localDialogueText)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.currentTarget.blur();
-                }
-              }}
-              rows={3}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-green-500 resize-none"
+              rows={4}
+              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-green-500 resize-y"
             />
           </div>
 
