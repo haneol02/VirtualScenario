@@ -6,6 +6,7 @@ import { useUndoRedo } from '../hooks/useUndoRedo';
 import TimelinePanel from '../components/TimelinePanel';
 import AssetLibraryPanel from '../components/AssetLibraryPanel';
 import InspectorPanel from '../components/InspectorPanel';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 export default function SceneEditor() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -41,6 +42,7 @@ export default function SceneEditor() {
   const [currentTime, setCurrentTime] = useState(0);
   const [maxTime, setMaxTime] = useState(30); // 기본 30초
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isManualMaxTime, setIsManualMaxTime] = useState(false); // 수동으로 maxTime 설정했는지 플래그
 
   // Undo/Redo system
   const { pushAction, undo, redo, canUndo, canRedo } = useUndoRedo();
@@ -95,10 +97,7 @@ export default function SceneEditor() {
         if (selectedObjectId && selectedScene) {
           const obj = objects.find(o => o.id === selectedObjectId);
           if (obj) {
-            setNewObjectName(obj.name + ' (복사본)');
-            setNewObjectType(obj.type);
-            setNewObjectModelId(obj.model_id || '');
-            handleCreateObject();
+            handleDuplicateObject(obj);
           }
         }
       }
@@ -129,8 +128,11 @@ export default function SceneEditor() {
     }
   }, [selectedScene?.background_map_id]);
 
-  // Auto-calculate maxTime based on keyframes and dialogues
+  // Auto-calculate maxTime based on keyframes and dialogues (only if not manually set)
   useEffect(() => {
+    // Skip auto-calculation if user manually set maxTime
+    if (isManualMaxTime) return;
+
     let calculatedMaxTime = 30; // Default 30 seconds
 
     // Check all keyframes
@@ -159,7 +161,7 @@ export default function SceneEditor() {
 
     // Add 5 seconds buffer
     setMaxTime(Math.max(30, calculatedMaxTime + 5));
-  }, [objects, dialogues]);
+  }, [objects, dialogues, isManualMaxTime]);
 
   // Animation playback loop
   useEffect(() => {
@@ -281,6 +283,12 @@ export default function SceneEditor() {
   };
 
   const handleCreateObject = async (modelId?: string) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
     if (!newObjectName.trim() || !selectedScene) return;
 
     try {
@@ -314,7 +322,56 @@ export default function SceneEditor() {
     }
   };
 
+  const handleDuplicateObject = async (sourceObject: SceneObject) => {
+    if (!selectedScene) return;
+
+    try {
+      // Create with basic info
+      const createdObject = await scenesAPI.createObject(selectedScene.id, {
+        type: sourceObject.type,
+        name: sourceObject.name + ' (복사본)',
+        model_id: sourceObject.model_id || undefined,
+        transform: {
+          position: [sourceObject.position_x + 1, sourceObject.position_y, sourceObject.position_z], // Offset slightly
+          rotation: [sourceObject.rotation_x, sourceObject.rotation_y, sourceObject.rotation_z],
+          scale: [sourceObject.scale_x, sourceObject.scale_y, sourceObject.scale_z],
+        },
+      });
+
+      // Update with additional properties (color, nametag, pathData)
+      await scenesAPI.updateObject(selectedScene.id, createdObject.id, {
+        color: sourceObject.color,
+        showNametag: sourceObject.show_nametag === 1,
+        pathData: sourceObject.path_data ? JSON.parse(sourceObject.path_data) : null,
+      });
+
+      await handleSelectScene(selectedScene);
+      setSelectedObjectId(createdObject.id); // Select the duplicated object
+
+      // Record undo action
+      pushAction({
+        type: 'create_object',
+        undo: async () => {
+          await scenesAPI.deleteObject(selectedScene.id, createdObject.id);
+          await handleSelectScene(selectedScene);
+        },
+        redo: async () => {
+          await handleSelectScene(selectedScene);
+        },
+        data: { objectId: createdObject.id, objectName: createdObject.name }
+      });
+    } catch (error) {
+      console.error('Failed to duplicate object:', error);
+    }
+  };
+
   const handleDeleteObject = async (objectId: string) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
     if (!confirm('정말로 이 오브젝트를 삭제하시겠습니까?') || !selectedScene) return;
 
     // Save object data for undo
@@ -352,6 +409,12 @@ export default function SceneEditor() {
   };
 
   const handleCreateDialogue = async () => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
     if (!newDialogueText.trim() || !selectedScene) return;
 
     try {
@@ -375,6 +438,12 @@ export default function SceneEditor() {
   };
 
   const handleDeleteDialogue = async (dialogueId: string) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
     if (!confirm('정말로 이 대화를 삭제하시겠습니까?') || !selectedScene) return;
 
     try {
@@ -390,6 +459,12 @@ export default function SceneEditor() {
     rotation: [number, number, number];
     scale: [number, number, number];
   }, recordUndo: boolean = true) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
     if (!selectedScene) return;
 
     // Save previous state for undo
@@ -417,6 +492,7 @@ export default function SceneEditor() {
 
         if (existingKeyframeIndex >= 0) {
           // Update existing keyframe
+          console.log(`✏️ 키프레임 업데이트: ${currentTime.toFixed(1)}초`);
           updatedKeyframes[existingKeyframeIndex] = {
             time: currentTime,
             position: transform.position,
@@ -425,6 +501,7 @@ export default function SceneEditor() {
           };
         } else {
           // Create new keyframe at current time
+          console.log(`➕ 키프레임 자동 생성: ${currentTime.toFixed(1)}초`);
           updatedKeyframes.push({
             time: currentTime,
             position: transform.position,
@@ -467,6 +544,12 @@ export default function SceneEditor() {
 
   // Timeline handlers
   const handleAddKeyframe = async (objectId: string, time: number) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
     if (!selectedScene) return;
 
     const obj = objects.find(o => o.id === objectId);
@@ -519,6 +602,12 @@ export default function SceneEditor() {
   };
 
   const handleUpdateKeyframe = async (objectId: string, keyframeIndex: number, newTime: number) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
     if (!selectedScene) return;
 
     const obj = objects.find(o => o.id === objectId);
@@ -570,6 +659,12 @@ export default function SceneEditor() {
   };
 
   const handleDeleteKeyframe = async (objectId: string, keyframeIndex: number) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
     if (!selectedScene) return;
 
     const obj = objects.find(o => o.id === objectId);
@@ -725,11 +820,14 @@ export default function SceneEditor() {
   }
 
   return (
-    <div className="h-screen bg-gray-900 text-white flex flex-col">
-      {/* Top Section: Sidebar + Main Area */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Tabbed */}
-        <aside className="w-80 bg-gray-800 border-r border-gray-700 flex flex-col">
+    <div className="h-screen bg-gray-900 text-white">
+      <PanelGroup direction="vertical">
+        {/* Top Section: Sidebar + Main Area + Inspector */}
+        <Panel defaultSize={75} minSize={30}>
+          <PanelGroup direction="horizontal">
+            {/* Left Sidebar - Tabbed */}
+            <Panel defaultSize={20} minSize={15} maxSize={40}>
+              <aside className="w-full h-full bg-gray-800 border-r border-gray-700 flex flex-col">
         {/* Header */}
         <div className="p-4 border-b border-gray-700">
           <button
@@ -989,9 +1087,14 @@ export default function SceneEditor() {
           )}
         </div>
       </aside>
+            </Panel>
 
-      {/* Main Area - 3D Viewer */}
-      <main className="flex-1 flex flex-col items-center justify-center bg-gray-900 relative">
+            {/* Resize Handle */}
+            <PanelResizeHandle className="w-1 bg-gray-700 hover:bg-blue-500 transition-colors cursor-col-resize" />
+
+            {/* Main Area - 3D Viewer */}
+            <Panel defaultSize={60} minSize={30}>
+              <main className="h-full flex flex-col items-center justify-center bg-gray-900 relative">
         {selectedScene ? (
           <>
             <div className="flex-1 w-full">
@@ -1104,58 +1207,76 @@ export default function SceneEditor() {
           </div>
         )}
       </main>
+            </Panel>
 
-        {/* Inspector Panel (Right) */}
+            {/* Resize Handle & Inspector Panel (Right) */}
+            {selectedScene && (
+              <>
+                <PanelResizeHandle className="w-1 bg-gray-700 hover:bg-blue-500 transition-colors cursor-col-resize" />
+                <Panel defaultSize={20} minSize={15} maxSize={40}>
+                  <InspectorPanel
+                    selectedObject={selectedObjectId ? objects.find(obj => obj.id === selectedObjectId) : undefined}
+                    selectedDialogue={selectedDialogueId ? dialogues.find(dlg => dlg.id === selectedDialogueId) : undefined}
+                    sceneId={selectedScene.id}
+                    assets={assets}
+                    currentTime={currentTime}
+                    isPlaying={isPlaying}
+                    onUpdate={() => handleSelectScene(selectedScene)}
+                    onDelete={(id, type) => {
+                      if (type === 'object') {
+                        handleDeleteObject(id);
+                      } else {
+                        handleDeleteDialogue(id);
+                      }
+                    }}
+                  />
+                </Panel>
+              </>
+            )}
+          </PanelGroup>
+        </Panel>
+        {/* End of Top Section */}
+
+        {/* Timeline Panel (Bottom) */}
         {selectedScene && (
-          <InspectorPanel
-            selectedObject={selectedObjectId ? objects.find(obj => obj.id === selectedObjectId) : undefined}
-            selectedDialogue={selectedDialogueId ? dialogues.find(dlg => dlg.id === selectedDialogueId) : undefined}
-            sceneId={selectedScene.id}
-            assets={assets}
-            onUpdate={() => handleSelectScene(selectedScene)}
-            onDelete={(id, type) => {
-              if (type === 'object') {
-                handleDeleteObject(id);
-              } else {
-                handleDeleteDialogue(id);
-              }
-            }}
-          />
+          <>
+            <PanelResizeHandle className="h-1 bg-gray-700 hover:bg-blue-500 transition-colors cursor-row-resize" />
+            <Panel defaultSize={25} minSize={15} maxSize={50}>
+              <TimelinePanel
+                objects={objects}
+                dialogues={dialogues}
+                currentTime={currentTime}
+                maxTime={maxTime}
+                isPlaying={isPlaying}
+                selectedObjectId={selectedObjectId}
+                selectedDialogueId={selectedDialogueId}
+                onTimeChange={setCurrentTime}
+                onPlayPause={handlePlayPause}
+                onAddKeyframe={handleAddKeyframe}
+                onUpdateKeyframe={handleUpdateKeyframe}
+                onDeleteKeyframe={handleDeleteKeyframe}
+                onSelectObject={(id) => {
+                  setSelectedObjectId(id);
+                  setSelectedDialogueId(undefined); // Deselect dialogue when object selected
+                }}
+                onSelectDialogue={(id) => {
+                  setSelectedDialogueId(id);
+                  setSelectedObjectId(undefined); // Deselect object when dialogue selected
+                }}
+                onMaxTimeChange={(newMaxTime) => {
+                  setMaxTime(newMaxTime);
+                  setIsManualMaxTime(true); // Mark as manually set
+                }}
+                onUpdateDialogue={handleUpdateDialogue}
+                onReorderObjects={handleReorderObjects}
+                onReorderDialogues={handleReorderDialogues}
+                onDeleteObject={handleDeleteObject}
+                onDeleteDialogue={handleDeleteDialogue}
+              />
+            </Panel>
+          </>
         )}
-      </div>
-      {/* End of Top Section */}
-
-      {/* Timeline Panel (Bottom) */}
-      {selectedScene && (
-        <TimelinePanel
-          objects={objects}
-          dialogues={dialogues}
-          currentTime={currentTime}
-          maxTime={maxTime}
-          isPlaying={isPlaying}
-          selectedObjectId={selectedObjectId}
-          selectedDialogueId={selectedDialogueId}
-          onTimeChange={setCurrentTime}
-          onPlayPause={handlePlayPause}
-          onAddKeyframe={handleAddKeyframe}
-          onUpdateKeyframe={handleUpdateKeyframe}
-          onDeleteKeyframe={handleDeleteKeyframe}
-          onSelectObject={(id) => {
-            setSelectedObjectId(id);
-            setSelectedDialogueId(undefined); // Deselect dialogue when object selected
-          }}
-          onSelectDialogue={(id) => {
-            setSelectedDialogueId(id);
-            setSelectedObjectId(undefined); // Deselect object when dialogue selected
-          }}
-          onMaxTimeChange={setMaxTime}
-          onUpdateDialogue={handleUpdateDialogue}
-          onReorderObjects={handleReorderObjects}
-          onReorderDialogues={handleReorderDialogues}
-          onDeleteObject={handleDeleteObject}
-          onDeleteDialogue={handleDeleteDialogue}
-        />
-      )}
+      </PanelGroup>
 
       {/* Floating Action Buttons */}
       {selectedScene && (
@@ -1660,6 +1781,12 @@ export default function SceneEditor() {
                     type="number"
                     value={newDialogueStartTime}
                     onChange={(e) => setNewDialogueStartTime(e.target.value)}
+                    onBlur={(e) => {
+                      // 포커스 해제 시 빈 문자열이거나 음수면 0으로 설정
+                      if (e.target.value === '' || parseFloat(e.target.value) < 0) {
+                        setNewDialogueStartTime('0');
+                      }
+                    }}
                     step="0.1"
                     min="0"
                     className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:outline-none focus:border-green-500"
@@ -1671,6 +1798,12 @@ export default function SceneEditor() {
                     type="number"
                     value={newDialogueDuration}
                     onChange={(e) => setNewDialogueDuration(e.target.value)}
+                    onBlur={(e) => {
+                      // 포커스 해제 시 빈 문자열이거나 0.1 미만이면 0.1로 설정
+                      if (e.target.value === '' || parseFloat(e.target.value) < 0.1) {
+                        setNewDialogueDuration('0.1');
+                      }
+                    }}
                     step="0.1"
                     min="0.1"
                     className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 focus:outline-none focus:border-green-500"

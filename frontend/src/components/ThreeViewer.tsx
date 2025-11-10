@@ -609,6 +609,25 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
   const [transformMode, setTransformMode] = useState<TransformMode>('translate');
   const objectRefs = useRef<Map<string, THREE.Mesh>>(new Map());
 
+  // Keyboard shortcuts for transform mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+
+      if (e.key === 'g' || e.key === 'G') {
+        setTransformMode('translate');
+      } else if (e.key === 'r' || e.key === 'R') {
+        setTransformMode('rotate');
+      } else if (e.key === 's' || e.key === 'S') {
+        setTransformMode('scale');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Expose getObjectTransform method to parent
   useImperativeHandle(ref, () => ({
     getObjectTransform: (objectId: string) => {

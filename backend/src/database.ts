@@ -39,15 +39,34 @@ export class DatabaseManager {
     }
 
     // Check if order_index column exists in scene_objects
-    const tableInfo = this.db.pragma('table_info(scene_objects)') as any[];
-    const hasOrderIndex = tableInfo.some((col: any) => col.name === 'order_index');
+    const sceneObjectsInfo = this.db.pragma('table_info(scene_objects)') as any[];
+    const hasOrderIndex = sceneObjectsInfo.some((col: any) => col.name === 'order_index');
 
     if (!hasOrderIndex) {
       console.log('Running migration: add_order_fields...');
       try {
         this.db.exec('ALTER TABLE scene_objects ADD COLUMN order_index INTEGER DEFAULT 0');
-        this.db.exec('ALTER TABLE dialogues ADD COLUMN order_index INTEGER DEFAULT 0');
-        console.log('✅ Migration completed: order_index fields added');
+        console.log('✅ Migration completed: order_index field added to scene_objects');
+      } catch (error) {
+        console.error('Migration error:', error);
+      }
+    }
+
+    // Check if speaker_name and order_index columns exist in dialogues
+    const dialoguesInfo = this.db.pragma('table_info(dialogues)') as any[];
+    const hasSpeakerName = dialoguesInfo.some((col: any) => col.name === 'speaker_name');
+    const hasDialogueOrderIndex = dialoguesInfo.some((col: any) => col.name === 'order_index');
+
+    if (!hasSpeakerName || !hasDialogueOrderIndex) {
+      console.log('Running migration: add_dialogue_columns...');
+      try {
+        if (!hasSpeakerName) {
+          this.db.exec('ALTER TABLE dialogues ADD COLUMN speaker_name TEXT');
+        }
+        if (!hasDialogueOrderIndex) {
+          this.db.exec('ALTER TABLE dialogues ADD COLUMN order_index INTEGER NOT NULL DEFAULT 0');
+        }
+        console.log('✅ Migration completed: speaker_name and order_index fields added to dialogues');
       } catch (error) {
         console.error('Migration error:', error);
       }
@@ -181,12 +200,12 @@ export class DatabaseManager {
 
     const stmt = this.db.prepare(`
       INSERT INTO scene_objects (
-        id, scene_id, type, name, model_id,
+        id, scene_id, type, name, model_id, color,
         position_x, position_y, position_z,
         rotation_x, rotation_y, rotation_z,
         scale_x, scale_y, scale_z,
         path_data, metadata, order_index
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     return stmt.run(
       data.id,
@@ -194,6 +213,7 @@ export class DatabaseManager {
       data.type,
       data.name,
       data.assetId || null,
+      data.color || '#6b7280',
       data.transform.position[0], data.transform.position[1], data.transform.position[2],
       data.transform.rotation[0], data.transform.rotation[1], data.transform.rotation[2],
       data.transform.scale[0], data.transform.scale[1], data.transform.scale[2],
@@ -214,6 +234,10 @@ export class DatabaseManager {
     if (data.modelId !== undefined) {
       fields.push('model_id = ?');
       values.push(data.modelId || null);
+    }
+    if (data.color !== undefined) {
+      fields.push('color = ?');
+      values.push(data.color);
     }
     if (data.showNametag !== undefined) {
       fields.push('show_nametag = ?');

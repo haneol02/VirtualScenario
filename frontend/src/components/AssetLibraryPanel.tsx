@@ -286,7 +286,7 @@ export default function AssetLibraryPanel({ onAssetSelect, onAssetUpdated }: Ass
 
       {/* Edit Modal */}
       {editModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70]">
           <div className="bg-gray-800 p-6 rounded-lg w-96">
             <h3 className="text-lg font-semibold mb-4">에셋 이름 변경</h3>
 
@@ -340,7 +340,7 @@ export default function AssetLibraryPanel({ onAssetSelect, onAssetUpdated }: Ass
 
       {/* Upload Modal */}
       {showUploadModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70]">
           <div className="bg-gray-800 p-6 rounded-lg w-[480px]">
             <h3 className="text-lg font-semibold mb-4">에셋 추가</h3>
 

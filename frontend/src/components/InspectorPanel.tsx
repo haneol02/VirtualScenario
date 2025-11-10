@@ -9,6 +9,8 @@ interface InspectorPanelProps {
   onUpdate: () => void;
   onDelete: (id: string, type: 'object' | 'dialogue') => void;
   objectType?: 'scene' | 'background';  // 'scene' for SceneObject, 'background' for BackgroundObject
+  currentTime?: number;  // Current animation time for keyframe interpolation
+  isPlaying?: boolean;  // Is timeline playing
 }
 
 export default function InspectorPanel({
@@ -19,6 +21,8 @@ export default function InspectorPanel({
   onUpdate,
   onDelete,
   objectType = 'scene',  // Default to 'scene' for backward compatibility
+  currentTime = 0,
+  isPlaying = false,
 }: InspectorPanelProps) {
   // Local state for Korean input handling
   const [localObjectName, setLocalObjectName] = useState('');
@@ -85,9 +89,92 @@ export default function InspectorPanel({
     return () => window.removeEventListener('click', handleClick);
   }, []);
 
+  // Calculate interpolated transform based on keyframes and currentTime
+  const getInterpolatedTransform = (obj: SceneObject | BackgroundObject) => {
+    // Default transform from database
+    const defaultTransform = {
+      position: [obj.position_x, obj.position_y, obj.position_z] as [number, number, number],
+      rotation: [obj.rotation_x, obj.rotation_y, obj.rotation_z] as [number, number, number],
+      scale: [obj.scale_x, obj.scale_y, obj.scale_z] as [number, number, number],
+    };
+
+    // Check if object is SceneObject and has keyframes
+    if (!('path_data' in obj) || !obj.path_data) {
+      return defaultTransform;
+    }
+
+    try {
+      const keyframes: PathKeyframe[] = JSON.parse(obj.path_data);
+      if (keyframes.length === 0) {
+        return defaultTransform;
+      }
+
+      // Find surrounding keyframes
+      let prevKf: PathKeyframe | null = null;
+      let nextKf: PathKeyframe | null = null;
+
+      for (let i = 0; i < keyframes.length; i++) {
+        if (keyframes[i].time <= currentTime) {
+          prevKf = keyframes[i];
+        }
+        if (keyframes[i].time > currentTime && !nextKf) {
+          nextKf = keyframes[i];
+          break;
+        }
+      }
+
+      // If before first keyframe, use first keyframe
+      if (!prevKf && nextKf) {
+        return {
+          position: nextKf.position,
+          rotation: nextKf.rotation,
+          scale: nextKf.scale || [1, 1, 1],
+        };
+      }
+
+      // If after last keyframe, use last keyframe
+      if (prevKf && !nextKf) {
+        return {
+          position: prevKf.position,
+          rotation: prevKf.rotation,
+          scale: prevKf.scale || [1, 1, 1],
+        };
+      }
+
+      // Interpolate between keyframes
+      if (prevKf && nextKf) {
+        const t = (currentTime - prevKf.time) / (nextKf.time - prevKf.time);
+        const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+        return {
+          position: [
+            lerp(prevKf.position[0], nextKf.position[0], t),
+            lerp(prevKf.position[1], nextKf.position[1], t),
+            lerp(prevKf.position[2], nextKf.position[2], t),
+          ] as [number, number, number],
+          rotation: [
+            lerp(prevKf.rotation[0], nextKf.rotation[0], t),
+            lerp(prevKf.rotation[1], nextKf.rotation[1], t),
+            lerp(prevKf.rotation[2], nextKf.rotation[2], t),
+          ] as [number, number, number],
+          scale: [
+            lerp((prevKf.scale || [1, 1, 1])[0], (nextKf.scale || [1, 1, 1])[0], t),
+            lerp((prevKf.scale || [1, 1, 1])[1], (nextKf.scale || [1, 1, 1])[1], t),
+            lerp((prevKf.scale || [1, 1, 1])[2], (nextKf.scale || [1, 1, 1])[2], t),
+          ] as [number, number, number],
+        };
+      }
+
+      return defaultTransform;
+    } catch (e) {
+      console.error('Failed to parse path_data:', e);
+      return defaultTransform;
+    }
+  };
+
   if (!selectedObject && !selectedDialogue) {
     return (
-      <aside className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col items-center justify-center text-gray-500 select-none relative z-[60]">
+      <aside className="w-full h-full bg-gray-800 border-l border-gray-700 flex flex-col items-center justify-center text-gray-500 select-none relative z-[60]">
         <div className="text-6xl mb-4">🔍</div>
         <p className="text-sm">오브젝트 또는 대화를 선택하세요</p>
       </aside>
@@ -95,6 +182,12 @@ export default function InspectorPanel({
   }
 
   const handleTransformChange = async (field: string, value: number) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
     if (!selectedObject) return;
 
     const transform = {
@@ -124,6 +217,12 @@ export default function InspectorPanel({
   };
 
   const handleNameChange = async (newName: string) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
     if (!selectedObject || !newName.trim()) return;
 
     try {
@@ -135,6 +234,12 @@ export default function InspectorPanel({
   };
 
   const handleNametagToggle = async (checked: boolean) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
     if (!selectedObject) return;
 
     try {
@@ -146,6 +251,12 @@ export default function InspectorPanel({
   };
 
   const handleModelChange = async (modelId: string) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
     if (!selectedObject) return;
 
     try {
@@ -165,6 +276,12 @@ export default function InspectorPanel({
   };
 
   const handleDialogueUpdate = async (field: string, value: any) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
     if (!selectedDialogue) return;
 
     const data: any = {};
@@ -179,7 +296,7 @@ export default function InspectorPanel({
   };
 
   return (
-    <aside className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col overflow-y-auto relative z-[60]">
+    <aside className="w-full h-full bg-gray-800 border-l border-gray-700 flex flex-col overflow-y-auto relative z-[60]">
       {/* Header */}
       <div className="p-4 border-b border-gray-700 flex items-center justify-between select-none">
         <h3 className="text-lg font-semibold text-white">인스펙터</h3>
@@ -317,36 +434,64 @@ export default function InspectorPanel({
 
           <hr className="border-gray-700" />
 
+          {/* Keyframe Warning */}
+          {'path_data' in selectedObject && selectedObject.path_data && (() => {
+            try {
+              const keyframes: PathKeyframe[] = JSON.parse(selectedObject.path_data);
+              return keyframes.length > 0 && (
+                <div className="bg-yellow-900 bg-opacity-30 border border-yellow-600 rounded-lg p-3 text-xs">
+                  <div className="flex items-start gap-2">
+                    <span className="text-yellow-500 text-lg">⚠️</span>
+                    <div className="flex-1">
+                      <div className="text-yellow-200 font-semibold mb-1">키프레임 애니메이션 활성</div>
+                      <div className="text-yellow-300 text-xs">
+                        Transform 값은 현재 시간({currentTime.toFixed(1)}초)의 보간값입니다.
+                        <br />
+                        DB 기본값을 수정하려면 모든 키프레임을 삭제하세요.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            } catch (e) {
+              return null;
+            }
+          })()}
+
           {/* Position */}
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-2">Position</label>
             <div className="grid grid-cols-3 gap-2">
-              {['x', 'y', 'z'].map((axis) => (
-                <div key={axis}>
-                  <label className="text-xs text-gray-500 block mb-1">{axis.toUpperCase()}</label>
-                  <input
-                    type="number"
-                    value={selectedObject[`position_${axis}` as keyof typeof selectedObject] as number}
-                    onChange={(e) => {
-                      // 빈 문자열이면 업데이트하지 않음 (입력 중 허용)
-                      if (e.target.value !== '') {
-                        const val = parseFloat(e.target.value);
-                        if (!isNaN(val)) {
-                          handleTransformChange(`position_${axis}`, val);
+              {['x', 'y', 'z'].map((axis, idx) => {
+                const interpolated = getInterpolatedTransform(selectedObject);
+                const value = interpolated.position[idx];
+                return (
+                  <div key={axis}>
+                    <label className="text-xs text-gray-500 block mb-1">{axis.toUpperCase()}</label>
+                    <input
+                      type="number"
+                      value={value.toFixed(3)}
+                      onChange={(e) => {
+                        // 빈 문자열이면 업데이트하지 않음 (입력 중 허용)
+                        if (e.target.value !== '') {
+                          const val = parseFloat(e.target.value);
+                          if (!isNaN(val)) {
+                            handleTransformChange(`position_${axis}`, val);
+                          }
                         }
-                      }
-                    }}
-                    onBlur={(e) => {
-                      // 포커스 해제 시 빈 문자열이면 0으로 설정
-                      if (e.target.value === '') {
-                        handleTransformChange(`position_${axis}`, 0);
-                      }
-                    }}
-                    step="0.1"
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-              ))}
+                      }}
+                      onBlur={(e) => {
+                        // 포커스 해제 시 빈 문자열이면 0으로 설정
+                        if (e.target.value === '') {
+                          handleTransformChange(`position_${axis}`, 0);
+                        }
+                      }}
+                      step="0.1"
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -354,32 +499,36 @@ export default function InspectorPanel({
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-2">Rotation (degrees)</label>
             <div className="grid grid-cols-3 gap-2">
-              {['x', 'y', 'z'].map((axis) => (
-                <div key={axis}>
-                  <label className="text-xs text-gray-500 block mb-1">{axis.toUpperCase()}</label>
-                  <input
-                    type="number"
-                    value={selectedObject[`rotation_${axis}` as keyof typeof selectedObject] as number}
-                    onChange={(e) => {
-                      // 빈 문자열이면 업데이트하지 않음 (입력 중 허용)
-                      if (e.target.value !== '') {
-                        const val = parseFloat(e.target.value);
-                        if (!isNaN(val)) {
-                          handleTransformChange(`rotation_${axis}`, val);
+              {['x', 'y', 'z'].map((axis, idx) => {
+                const interpolated = getInterpolatedTransform(selectedObject);
+                const value = interpolated.rotation[idx];
+                return (
+                  <div key={axis}>
+                    <label className="text-xs text-gray-500 block mb-1">{axis.toUpperCase()}</label>
+                    <input
+                      type="number"
+                      value={value.toFixed(2)}
+                      onChange={(e) => {
+                        // 빈 문자열이면 업데이트하지 않음 (입력 중 허용)
+                        if (e.target.value !== '') {
+                          const val = parseFloat(e.target.value);
+                          if (!isNaN(val)) {
+                            handleTransformChange(`rotation_${axis}`, val);
+                          }
                         }
-                      }
-                    }}
-                    onBlur={(e) => {
-                      // 포커스 해제 시 빈 문자열이면 0으로 설정
-                      if (e.target.value === '') {
-                        handleTransformChange(`rotation_${axis}`, 0);
-                      }
-                    }}
-                    step="1"
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-              ))}
+                      }}
+                      onBlur={(e) => {
+                        // 포커스 해제 시 빈 문자열이면 0으로 설정
+                        if (e.target.value === '') {
+                          handleTransformChange(`rotation_${axis}`, 0);
+                        }
+                      }}
+                      step="1"
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -387,33 +536,37 @@ export default function InspectorPanel({
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-2">Scale</label>
             <div className="grid grid-cols-3 gap-2">
-              {['x', 'y', 'z'].map((axis) => (
-                <div key={axis}>
-                  <label className="text-xs text-gray-500 block mb-1">{axis.toUpperCase()}</label>
-                  <input
-                    type="number"
-                    value={selectedObject[`scale_${axis}` as keyof typeof selectedObject] as number}
-                    onChange={(e) => {
-                      // 빈 문자열이면 업데이트하지 않음 (입력 중 허용)
-                      if (e.target.value !== '') {
-                        const val = parseFloat(e.target.value);
-                        if (!isNaN(val)) {
-                          handleTransformChange(`scale_${axis}`, val);
+              {['x', 'y', 'z'].map((axis, idx) => {
+                const interpolated = getInterpolatedTransform(selectedObject);
+                const value = interpolated.scale[idx];
+                return (
+                  <div key={axis}>
+                    <label className="text-xs text-gray-500 block mb-1">{axis.toUpperCase()}</label>
+                    <input
+                      type="number"
+                      value={value.toFixed(3)}
+                      onChange={(e) => {
+                        // 빈 문자열이면 업데이트하지 않음 (입력 중 허용)
+                        if (e.target.value !== '') {
+                          const val = parseFloat(e.target.value);
+                          if (!isNaN(val)) {
+                            handleTransformChange(`scale_${axis}`, val);
+                          }
                         }
-                      }
-                    }}
-                    onBlur={(e) => {
-                      // 포커스 해제 시 빈 문자열이거나 0.1 미만이면 0.1로 설정
-                      if (e.target.value === '' || parseFloat(e.target.value) < 0.1) {
-                        handleTransformChange(`scale_${axis}`, 0.1);
-                      }
-                    }}
-                    step="0.1"
-                    min="0.1"
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-              ))}
+                      }}
+                      onBlur={(e) => {
+                        // 포커스 해제 시 빈 문자열이거나 0.1 미만이면 0.1로 설정
+                        if (e.target.value === '' || parseFloat(e.target.value) < 0.1) {
+                          handleTransformChange(`scale_${axis}`, 0.1);
+                        }
+                      }}
+                      step="0.1"
+                      min="0.1"
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
 

@@ -152,6 +152,7 @@ export const scenesAPI = {
     name: string;
     assetId?: string;
     model_id?: string;
+    color?: string;
     transform?: {
       position: [number, number, number];
       rotation: [number, number, number];
@@ -164,6 +165,7 @@ export const scenesAPI = {
   updateObject: (sceneId: string, objectId: string, data: {
     name?: string;
     modelId?: string | null;
+    color?: string;
     showNametag?: boolean;
     transform?: {
       position?: [number, number, number];

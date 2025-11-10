@@ -93,10 +93,12 @@ CREATE TABLE IF NOT EXISTS dialogues (
   id TEXT PRIMARY KEY,
   scene_id TEXT NOT NULL,
   object_id TEXT,
+  speaker_name TEXT,
   text TEXT NOT NULL,
   start_time REAL NOT NULL,
   duration REAL NOT NULL,
   audio_path TEXT,
+  order_index INTEGER NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (scene_id) REFERENCES scenes(id) ON DELETE CASCADE,
   FOREIGN KEY (object_id) REFERENCES scene_objects(id) ON DELETE SET NULL

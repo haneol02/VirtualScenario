@@ -140,7 +140,8 @@ export default function TimelinePanel({
   const getTimeFromMouseX = (clientX: number) => {
     if (!timelineRef.current) return 0;
     const rect = timelineRef.current.getBoundingClientRect();
-    const x = clientX - rect.left - 192; // Subtract layer list width (w-48 = 192px)
+    const scrollLeft = timelineRef.current.scrollLeft;
+    const x = clientX - rect.left + scrollLeft - 192; // Subtract layer list width (w-48 = 192px) and add scroll offset
     return Math.max(0, Math.min((x / pixelsPerSecond), maxTime));
   };
 
@@ -380,23 +381,10 @@ export default function TimelinePanel({
     return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
   }, [isDragging]);
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'k' || e.key === 'K') {
-        // Add keyframe at current time for selected object
-        if (selectedObjectId) {
-          onAddKeyframe(selectedObjectId, currentTime);
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedObjectId, currentTime, objects, onAddKeyframe]);
+  // Keyboard shortcuts (removed K key handling - it's handled in SceneEditor)
 
   return (
-    <div className="h-80 bg-gray-850 border-t border-gray-700 flex flex-col select-none">
+    <div className="h-full bg-gray-850 border-t border-gray-700 flex flex-col select-none">
       {/* Toolbar */}
       <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
         <div className="flex items-center gap-2">
@@ -429,9 +417,27 @@ export default function TimelinePanel({
               type="number"
               value={maxTime.toFixed(0)}
               onChange={(e) => {
-                const newMaxTime = parseFloat(e.target.value);
-                if (newMaxTime >= 10 && newMaxTime <= 600) {
-                  onMaxTimeChange(newMaxTime);
+                // 입력 중에는 검증하지 않음
+                const val = e.target.value;
+                if (val !== '') {
+                  const newMaxTime = parseFloat(val);
+                  if (!isNaN(newMaxTime)) {
+                    onMaxTimeChange(newMaxTime);
+                  }
+                }
+              }}
+              onBlur={(e) => {
+                // 포커스 해제 시 범위 검증 및 조정
+                const val = e.target.value;
+                if (val === '' || isNaN(parseFloat(val))) {
+                  onMaxTimeChange(30); // 기본값
+                } else {
+                  const newMaxTime = parseFloat(val);
+                  if (newMaxTime < 10) {
+                    onMaxTimeChange(10);
+                  } else if (newMaxTime > 600) {
+                    onMaxTimeChange(600);
+                  }
                 }
               }}
               className="w-16 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-white focus:outline-none focus:border-blue-500"
