@@ -284,6 +284,47 @@ export default function InspectorPanel({
     }
   };
 
+  // Get current visible/show_nametag values at currentTime (from keyframes or DB)
+  const getCurrentVisibilityValues = () => {
+    if (!selectedObject) return { visible: 1, showNametag: 1 };
+
+    // Check if object has keyframes
+    if ('path_data' in selectedObject && selectedObject.path_data) {
+      try {
+        const keyframes: PathKeyframe[] = JSON.parse(selectedObject.path_data);
+        if (keyframes && keyframes.length > 0) {
+          // Find prevKeyframe at currentTime
+          let prevKeyframe = keyframes[0];
+
+          for (let i = 0; i < keyframes.length - 1; i++) {
+            if (keyframes[i].time <= currentTime && keyframes[i + 1].time >= currentTime) {
+              prevKeyframe = keyframes[i];
+              break;
+            }
+          }
+
+          if (currentTime >= keyframes[keyframes.length - 1].time) {
+            prevKeyframe = keyframes[keyframes.length - 1];
+          }
+
+          // Return keyframe values
+          return {
+            visible: prevKeyframe.visible !== undefined ? prevKeyframe.visible : 1,
+            showNametag: prevKeyframe.show_nametag !== undefined ? prevKeyframe.show_nametag : 1
+          };
+        }
+      } catch (e) {
+        console.error('Failed to parse keyframes:', e);
+      }
+    }
+
+    // No keyframes: use DB values
+    return {
+      visible: ('visible' in selectedObject && selectedObject.visible !== undefined) ? selectedObject.visible : 1,
+      showNametag: selectedObject.show_nametag ?? 1
+    };
+  };
+
   const handleNametagToggle = async (checked: boolean) => {
     // Prevent editing during playback
     if (isPlaying) {
@@ -301,8 +342,8 @@ export default function InspectorPanel({
       } else {
         // Scene objects: use keyframe system
         if (onUpdateVisibility) {
-          const currentVisible = selectedObject.visible ?? 1;
-          onUpdateVisibility(selectedObject.id, currentVisible, checked ? 1 : 0);
+          const currentValues = getCurrentVisibilityValues();
+          onUpdateVisibility(selectedObject.id, currentValues.visible, checked ? 1 : 0);
         }
       }
     } catch (error) {
@@ -327,8 +368,8 @@ export default function InspectorPanel({
       } else {
         // Scene objects: use keyframe system
         if (onUpdateVisibility) {
-          const currentNametag = selectedObject.show_nametag ?? 1;
-          onUpdateVisibility(selectedObject.id, checked ? 1 : 0, currentNametag);
+          const currentValues = getCurrentVisibilityValues();
+          onUpdateVisibility(selectedObject.id, checked ? 1 : 0, currentValues.showNametag);
         }
       }
     } catch (error) {
@@ -594,7 +635,7 @@ export default function InspectorPanel({
             <input
               type="checkbox"
               id="visible"
-              checked={'visible' in selectedObject ? selectedObject.visible !== 0 : true}
+              checked={getCurrentVisibilityValues().visible === 1}
               onChange={(e) => handleVisibleToggle(e.target.checked)}
               className="w-4 h-4"
             />
@@ -608,7 +649,7 @@ export default function InspectorPanel({
             <input
               type="checkbox"
               id="nametag"
-              checked={selectedObject.show_nametag === 1}
+              checked={getCurrentVisibilityValues().showNametag === 1}
               onChange={(e) => handleNametagToggle(e.target.checked)}
               className="w-4 h-4"
             />
