@@ -671,7 +671,7 @@ function ImagePlane({
       />
 
       {/* Nametag */}
-      {currentShowNametag === 1 && (
+      {obj.show_nametag === 1 && (
         <Html
           position={[0, 'scale_y' in obj ? obj.scale_y * 1.2 : 1, 0]}
           center
@@ -752,7 +752,7 @@ function Text3DObject({
       </Text>
 
       {/* Nametag */}
-      {currentShowNametag === 1 && (
+      {obj.show_nametag === 1 && (
         <Html
           position={[0, textSize * 0.7, 0]}
           center
