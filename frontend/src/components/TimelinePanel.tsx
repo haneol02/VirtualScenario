@@ -62,6 +62,10 @@ export default function TimelinePanel({
     time: number;
   } | null>(null);
 
+  // Multi-selection state for dialogues
+  const [selectedDialogueIds, setSelectedDialogueIds] = useState<Set<string>>(new Set());
+  const [lastClickedDialogueId, setLastClickedDialogueId] = useState<string | null>(null);
+
   // Keyframe drag state
   const [keyframeDrag, setKeyframeDrag] = useState<{
     objectId: string;
@@ -122,6 +126,8 @@ export default function TimelinePanel({
     initialDuration: number;
     previewStartTime?: number;
     previewDuration?: number;
+    selectedIds?: string[];  // For multi-selection dragging
+    initialTimes?: Map<string, { startTime: number; duration: number }>;  // Store initial states
   } | null>(null);
 
   // Layer reordering state
@@ -306,13 +312,38 @@ export default function TimelinePanel({
     const dialogue = dialogues.find(d => d.id === dialogueId);
     if (!dialogue) return;
 
-    setDialogueDrag({
-      dialogueId,
-      mode,
-      startX: e.clientX,
-      initialStartTime: dialogue.start_time,
-      initialDuration: dialogue.duration,
-    });
+    // Check if this dialogue is part of a multi-selection
+    const isMultiSelected = selectedDialogueIds.has(dialogueId) && selectedDialogueIds.size > 1 && mode === 'move';
+
+    if (isMultiSelected) {
+      // Multi-selection drag: store all selected dialogues' initial times
+      const initialTimes = new Map<string, { startTime: number; duration: number }>();
+      selectedDialogueIds.forEach(id => {
+        const dlg = dialogues.find(d => d.id === id);
+        if (dlg) {
+          initialTimes.set(id, { startTime: dlg.start_time, duration: dlg.duration });
+        }
+      });
+
+      setDialogueDrag({
+        dialogueId,
+        mode,
+        startX: e.clientX,
+        initialStartTime: dialogue.start_time,
+        initialDuration: dialogue.duration,
+        selectedIds: Array.from(selectedDialogueIds),
+        initialTimes,
+      });
+    } else {
+      // Single dialogue drag
+      setDialogueDrag({
+        dialogueId,
+        mode,
+        startX: e.clientX,
+        initialStartTime: dialogue.start_time,
+        initialDuration: dialogue.duration,
+      });
+    }
   };
 
   useEffect(() => {
@@ -351,19 +382,34 @@ export default function TimelinePanel({
       }
     };
 
-    const handleMouseUp = () => {
+    const handleMouseUp = async () => {
       // Apply changes to backend when drag ends
       if (dialogueDrag.previewStartTime !== undefined || dialogueDrag.previewDuration !== undefined) {
-        const updates: { startTime?: number; duration?: number } = {};
+        // Check if this is a multi-selection drag
+        if (dialogueDrag.selectedIds && dialogueDrag.initialTimes && dialogueDrag.mode === 'move') {
+          // Multi-selection: update all selected dialogues
+          const deltaTime = (dialogueDrag.previewStartTime ?? dialogueDrag.initialStartTime) - dialogueDrag.initialStartTime;
 
-        if (dialogueDrag.previewStartTime !== undefined) {
-          updates.startTime = dialogueDrag.previewStartTime;
-        }
-        if (dialogueDrag.previewDuration !== undefined) {
-          updates.duration = dialogueDrag.previewDuration;
-        }
+          for (const id of dialogueDrag.selectedIds) {
+            const initialState = dialogueDrag.initialTimes.get(id);
+            if (initialState) {
+              const newStartTime = Math.max(0, initialState.startTime + deltaTime);
+              await onUpdateDialogue(id, { startTime: newStartTime });
+            }
+          }
+        } else {
+          // Single dialogue: update only the dragged dialogue
+          const updates: { startTime?: number; duration?: number } = {};
 
-        onUpdateDialogue(dialogueDrag.dialogueId, updates);
+          if (dialogueDrag.previewStartTime !== undefined) {
+            updates.startTime = dialogueDrag.previewStartTime;
+          }
+          if (dialogueDrag.previewDuration !== undefined) {
+            updates.duration = dialogueDrag.previewDuration;
+          }
+
+          onUpdateDialogue(dialogueDrag.dialogueId, updates);
+        }
       }
       setDialogueDrag(null);
     };
@@ -902,12 +948,23 @@ export default function TimelinePanel({
                 {layer.map((dlg) => {
                   // Use preview values if this dialogue is being dragged
                   const isDragging = dialogueDrag?.dialogueId === dlg.id;
-                  const displayStartTime = isDragging && dialogueDrag.previewStartTime !== undefined
-                    ? dialogueDrag.previewStartTime
-                    : dlg.start_time;
-                  const displayDuration = isDragging && dialogueDrag.previewDuration !== undefined
-                    ? dialogueDrag.previewDuration
-                    : dlg.duration;
+                  const isMultiDragging = dialogueDrag?.selectedIds?.includes(dlg.id) && dialogueDrag?.mode === 'move';
+
+                  let displayStartTime = dlg.start_time;
+                  let displayDuration = dlg.duration;
+
+                  if (isDragging) {
+                    // This is the primary dragged dialogue
+                    displayStartTime = dialogueDrag.previewStartTime ?? dlg.start_time;
+                    displayDuration = dialogueDrag.previewDuration ?? dlg.duration;
+                  } else if (isMultiDragging && dialogueDrag?.initialTimes) {
+                    // This dialogue is part of multi-selection
+                    const deltaTime = (dialogueDrag.previewStartTime ?? dialogueDrag.initialStartTime) - dialogueDrag.initialStartTime;
+                    const initialState = dialogueDrag.initialTimes.get(dlg.id);
+                    if (initialState) {
+                      displayStartTime = Math.max(0, initialState.startTime + deltaTime);
+                    }
+                  }
 
                   const startPx = displayStartTime * pixelsPerSecond;
                   const widthPx = displayDuration * pixelsPerSecond;
@@ -918,8 +975,10 @@ export default function TimelinePanel({
                       className={`absolute top-2 h-10 rounded timeline-interactive group ${
                         selectedDialogueId === dlg.id
                           ? 'bg-green-600 border-2 border-green-400'
+                          : selectedDialogueIds.has(dlg.id)
+                          ? 'bg-green-500 border-2 border-green-300'
                           : 'bg-green-700 border-2 border-green-800 hover:bg-green-600 hover:shadow-lg'
-                      } ${isDragging ? 'opacity-80' : 'transition-all'} ${
+                      } ${(isDragging || isMultiDragging) ? 'opacity-80' : 'transition-all'} ${
                         isPlaying ? 'pointer-events-none opacity-50' : ''
                       }`}
                       style={{
@@ -929,7 +988,38 @@ export default function TimelinePanel({
                       onClick={(e) => {
                         if (isPlaying) return;
                         e.stopPropagation();
-                        onSelectDialogue(dlg.id);
+
+                        // Multi-selection logic
+                        if (e.shiftKey && lastClickedDialogueId) {
+                          // Shift+click: Range selection
+                          const allDialogues = dialogues.sort((a, b) => a.start_time - b.start_time);
+                          const lastIndex = allDialogues.findIndex(d => d.id === lastClickedDialogueId);
+                          const currentIndex = allDialogues.findIndex(d => d.id === dlg.id);
+
+                          if (lastIndex !== -1 && currentIndex !== -1) {
+                            const start = Math.min(lastIndex, currentIndex);
+                            const end = Math.max(lastIndex, currentIndex);
+                            const rangeIds = allDialogues.slice(start, end + 1).map(d => d.id);
+                            setSelectedDialogueIds(new Set(rangeIds));
+                            onSelectDialogue(dlg.id);
+                          }
+                        } else if (e.ctrlKey || e.metaKey) {
+                          // Ctrl/Cmd+click: Toggle selection
+                          const newSelection = new Set(selectedDialogueIds);
+                          if (newSelection.has(dlg.id)) {
+                            newSelection.delete(dlg.id);
+                          } else {
+                            newSelection.add(dlg.id);
+                          }
+                          setSelectedDialogueIds(newSelection);
+                          setLastClickedDialogueId(dlg.id);
+                          onSelectDialogue(dlg.id);
+                        } else {
+                          // Normal click: Single selection
+                          setSelectedDialogueIds(new Set([dlg.id]));
+                          setLastClickedDialogueId(dlg.id);
+                          onSelectDialogue(dlg.id);
+                        }
                       }}
                       onContextMenu={(e) => {
                         if (isPlaying) return;

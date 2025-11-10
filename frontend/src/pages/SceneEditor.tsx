@@ -1366,6 +1366,8 @@ export default function SceneEditor() {
                 <div><kbd className="px-1 bg-gray-700 rounded text-white">Space</kbd> 재생/일시정지</div>
                 <div><kbd className="px-1 bg-gray-700 rounded text-white">K</kbd> 키프레임 추가</div>
                 <div><kbd className="px-1 bg-gray-700 rounded text-white">Delete</kbd> 삭제</div>
+                <div><kbd className="px-1 bg-gray-700 rounded text-white">Ctrl+클릭</kbd> 다중 선택</div>
+                <div><kbd className="px-1 bg-gray-700 rounded text-white">Shift+클릭</kbd> 범위 선택</div>
                 <div><kbd className="px-1 bg-gray-700 rounded text-white">Ctrl+C</kbd> 복사</div>
                 <div><kbd className="px-1 bg-gray-700 rounded text-white">Ctrl+V</kbd> 붙여넣기</div>
                 <div><kbd className="px-1 bg-gray-700 rounded text-white">Ctrl+D</kbd> 복제</div>
