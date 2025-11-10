@@ -85,8 +85,8 @@ export function createScenesRouter(db: DatabaseManager) {
   // PUT /api/scenes/:sceneId/objects/:id - 오브젝트 수정
   router.put('/:sceneId/objects/:id', (req, res) => {
     try {
-      const { name, modelId, color, showNametag, transform, pathData, metadata } = req.body;
-      db.updateSceneObject(req.params.id, { name, modelId, color, showNametag, transform, pathData, metadata });
+      const { name, modelId, color, visible, showNametag, transform, pathData, metadata } = req.body;
+      db.updateSceneObject(req.params.id, { name, modelId, color, visible, showNametag, transform, pathData, metadata });
       const object = db.getSceneObject(req.params.id);
       res.json(object);
     } catch (error: any) {
