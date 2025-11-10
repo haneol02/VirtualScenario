@@ -79,6 +79,15 @@ export default function Dashboard() {
     setEditingProjectTitle('');
   };
 
+  const handleDuplicateProject = async (id: string) => {
+    try {
+      await projectsAPI.duplicate(id);
+      loadProjects();
+    } catch (error) {
+      console.error('Failed to duplicate project:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
@@ -154,15 +163,28 @@ export default function Dashboard() {
                       {project.title}
                     </h3>
                   )}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteProject(project.id);
-                    }}
-                    className="text-gray-400 hover:text-red-500 transition-colors ml-2"
-                  >
-                    🗑️
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDuplicateProject(project.id);
+                      }}
+                      className="text-gray-400 hover:text-blue-500 transition-colors"
+                      title="프로젝트 복제"
+                    >
+                      📋
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteProject(project.id);
+                      }}
+                      className="text-gray-400 hover:text-red-500 transition-colors"
+                      title="프로젝트 삭제"
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 </div>
                 {project.description && (
                   <p className="text-sm text-gray-400 mb-3">{project.description}</p>
