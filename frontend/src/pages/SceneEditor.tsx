@@ -559,6 +559,11 @@ export default function SceneEditor() {
     };
 
     try {
+      // Get current visible/show_nametag from 3D viewer or DB
+      const currentTransform = threeViewerRef.current?.getObjectTransform(objectId);
+      const visible = currentTransform?.visible ?? previousObject.visible ?? 1;
+      const show_nametag = currentTransform?.show_nametag ?? previousObject.show_nametag ?? 1;
+
       // Check if there are existing keyframes
       const existingKeyframes: PathKeyframe[] = previousObject.path_data ? JSON.parse(previousObject.path_data) : [];
 
@@ -572,22 +577,32 @@ export default function SceneEditor() {
         let updatedKeyframes = [...existingKeyframes];
 
         if (existingKeyframeIndex >= 0) {
-          // Update existing keyframe
+          // Update existing keyframe (preserve visible/show_nametag if they exist)
           console.log(`✏️ 키프레임 업데이트: ${currentTime.toFixed(1)}초`);
           updatedKeyframes[existingKeyframeIndex] = {
+            ...updatedKeyframes[existingKeyframeIndex],
             time: currentTime,
             position: transform.position,
             rotation: transform.rotation,
             scale: transform.scale,
+            // Preserve existing visible/show_nametag if present, otherwise use current
+            visible: updatedKeyframes[existingKeyframeIndex].visible !== undefined
+              ? updatedKeyframes[existingKeyframeIndex].visible
+              : visible,
+            show_nametag: updatedKeyframes[existingKeyframeIndex].show_nametag !== undefined
+              ? updatedKeyframes[existingKeyframeIndex].show_nametag
+              : show_nametag,
           };
         } else {
-          // Create new keyframe at current time
+          // Create new keyframe at current time with visible/show_nametag
           console.log(`➕ 키프레임 자동 생성: ${currentTime.toFixed(1)}초`);
           updatedKeyframes.push({
             time: currentTime,
             position: transform.position,
             rotation: transform.rotation,
             scale: transform.scale,
+            visible,
+            show_nametag,
           });
           updatedKeyframes.sort((a, b) => a.time - b.time);
         }
