@@ -104,7 +104,7 @@ export default function InspectorPanel({
         interpolated.scale[2].toFixed(3),
       ]);
     }
-  }, [selectedObject?.id, currentTime]);
+  }, [selectedObject, currentTime]);
 
   useEffect(() => {
     if (selectedDialogue) {
@@ -113,7 +113,7 @@ export default function InspectorPanel({
       setLocalDialogueStartTime(selectedDialogue.start_time.toString());
       setLocalDialogueDuration(selectedDialogue.duration.toString());
     }
-  }, [selectedDialogue?.id]);
+  }, [selectedDialogue]);
 
   // Close context menu on click outside
   useEffect(() => {
