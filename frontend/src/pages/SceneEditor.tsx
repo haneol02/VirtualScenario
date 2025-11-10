@@ -38,6 +38,10 @@ export default function SceneEditor() {
   const [newDialogueStartTime, setNewDialogueStartTime] = useState('0');
   const [newDialogueDuration, setNewDialogueDuration] = useState('3');
 
+  // Scene editing state
+  const [editingSceneId, setEditingSceneId] = useState<string | null>(null);
+  const [editingSceneTitle, setEditingSceneTitle] = useState('');
+
   // Timeline state
   const [currentTime, setCurrentTime] = useState(0);
   const [maxTime, setMaxTime] = useState(30); // 기본 30초
@@ -266,6 +270,33 @@ export default function SceneEditor() {
     } catch (error) {
       console.error('Failed to delete scene:', error);
     }
+  };
+
+  const handleStartEditScene = (scene: Scene, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingSceneId(scene.id);
+    setEditingSceneTitle(scene.title);
+  };
+
+  const handleSaveSceneTitle = async (sceneId: string) => {
+    if (!editingSceneTitle.trim()) {
+      alert('장면 이름을 입력하세요.');
+      return;
+    }
+
+    try {
+      await scenesAPI.update(sceneId, { title: editingSceneTitle.trim() });
+      setEditingSceneId(null);
+      setEditingSceneTitle('');
+      loadProjectData();
+    } catch (error) {
+      console.error('Failed to update scene title:', error);
+    }
+  };
+
+  const handleCancelEditScene = () => {
+    setEditingSceneId(null);
+    setEditingSceneTitle('');
   };
 
   const handleSelectScene = async (scene: Scene) => {
@@ -904,24 +935,82 @@ export default function SceneEditor() {
               {scenes.map((scene) => (
                 <div
                   key={scene.id}
-                  onClick={() => handleSelectScene(scene)}
-                  className={`rounded-lg p-3 cursor-pointer transition-colors border ${
-                    selectedScene?.id === scene.id
-                      ? 'bg-blue-700 border-blue-500'
-                      : 'bg-gray-700 border-gray-600 hover:bg-gray-650'
+                  onClick={() => editingSceneId !== scene.id && handleSelectScene(scene)}
+                  className={`rounded-lg p-3 transition-colors border ${
+                    editingSceneId === scene.id
+                      ? 'bg-gray-750 border-yellow-500'
+                      : selectedScene?.id === scene.id
+                      ? 'bg-blue-700 border-blue-500 cursor-pointer'
+                      : 'bg-gray-700 border-gray-600 hover:bg-gray-650 cursor-pointer'
                   }`}
                 >
                   <div className="flex items-start justify-between mb-1">
-                    <span className="font-medium">{scene.order_index}. {scene.title}</span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteScene(scene.id);
-                      }}
-                      className="text-gray-400 hover:text-red-500 text-sm"
-                    >
-                      🗑️
-                    </button>
+                    {editingSceneId === scene.id ? (
+                      <input
+                        type="text"
+                        value={editingSceneTitle}
+                        onChange={(e) => setEditingSceneTitle(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleSaveSceneTitle(scene.id);
+                          } else if (e.key === 'Escape') {
+                            handleCancelEditScene();
+                          }
+                        }}
+                        onBlur={() => handleSaveSceneTitle(scene.id)}
+                        autoFocus
+                        className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-blue-500"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : (
+                      <span className="font-medium">{scene.order_index}. {scene.title}</span>
+                    )}
+                    <div className="flex items-center gap-1 ml-2">
+                      {editingSceneId === scene.id ? (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSaveSceneTitle(scene.id);
+                            }}
+                            className="text-green-400 hover:text-green-300 text-sm"
+                            title="저장"
+                          >
+                            ✓
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCancelEditScene();
+                            }}
+                            className="text-gray-400 hover:text-gray-300 text-sm"
+                            title="취소"
+                          >
+                            ✕
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={(e) => handleStartEditScene(scene, e)}
+                            className="text-gray-400 hover:text-blue-400 text-sm"
+                            title="이름 편집"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteScene(scene.id);
+                            }}
+                            className="text-gray-400 hover:text-red-500 text-sm"
+                            title="삭제"
+                          >
+                            🗑️
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                   {scene.description && (
                     <p className="text-xs text-gray-400 mb-1">{scene.description}</p>
