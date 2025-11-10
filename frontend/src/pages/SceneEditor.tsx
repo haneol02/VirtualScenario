@@ -827,7 +827,7 @@ export default function SceneEditor() {
         visible,
         show_nametag: showNametag
       };
-      console.log('✏️ Modified keyframe at', currentTime + 's:', { visible, show_nametag });
+      console.log('✏️ Modified keyframe at', currentTime + 's:', { visible, showNametag });
     } else {
       // CREATE new keyframe at current time
       const position = currentTransform?.position ?? [obj.position_x, obj.position_y, obj.position_z] as [number, number, number];
@@ -844,7 +844,7 @@ export default function SceneEditor() {
       };
 
       updatedKeyframes = [...keyframes, newKeyframe].sort((a, b) => a.time - b.time);
-      console.log('➕ Created new keyframe at', currentTime + 's:', { visible, show_nametag });
+      console.log('➕ Created new keyframe at', currentTime + 's:', { visible, showNametag });
     }
 
     try {
