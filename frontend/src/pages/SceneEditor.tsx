@@ -1075,20 +1075,20 @@ export default function SceneEditor() {
                         <>
                           <button
                             onClick={(e) => handleStartEditScene(scene, e)}
-                            className="text-gray-400 hover:text-blue-400 text-sm"
+                            className="text-gray-400 hover:text-blue-400 text-xs"
                             title="이름 편집"
                           >
-                            ✏️
+                            편집
                           </button>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeleteScene(scene.id);
                             }}
-                            className="text-gray-400 hover:text-red-500 text-sm"
+                            className="text-gray-400 hover:text-red-500 text-xs"
                             title="삭제"
                           >
-                            🗑️
+                            삭제
                           </button>
                         </>
                       )}
@@ -1099,12 +1099,12 @@ export default function SceneEditor() {
                   )}
                   <div className="flex items-center gap-2 text-xs text-gray-500">
                     {scene.participant_count && (
-                      <span>👥 {scene.participant_count}명</span>
+                      <span>{scene.participant_count}명</span>
                     )}
                     {scene.duration !== undefined && scene.duration !== null && scene.duration > 0 && (
                       <>
                         {scene.participant_count && <span>•</span>}
-                        <span className="text-blue-400">⏱️ {scene.duration}초</span>
+                        <span className="text-blue-400">{scene.duration}초</span>
                       </>
                     )}
                   </div>

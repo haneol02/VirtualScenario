@@ -819,7 +819,6 @@ export default function TimelinePanel({
               title="장면 길이 - 수정하면 이 장면에만 적용됩니다"
             />
             <span className="text-sm text-gray-400">s</span>
-            <span className="text-xs text-blue-400 ml-2 px-2 py-0.5 bg-blue-500/10 rounded">📝 장면별 개별 설정</span>
           </div>
         </div>
 
