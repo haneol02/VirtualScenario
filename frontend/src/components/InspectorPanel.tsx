@@ -1,4 +1,4 @@
-import { SceneObject, BackgroundObject, Dialogue, scenesAPI, backgroundMapsAPI, PathKeyframe, Asset } from '../lib/api';
+import { SceneObject, BackgroundObject, Dialogue, scenesAPI, backgroundMapsAPI, PathKeyframe, Asset, assetsAPI } from '../lib/api';
 import { useState, useEffect } from 'react';
 
 interface InspectorPanelProps {
@@ -47,6 +47,9 @@ export default function InspectorPanel({
   // Local state for color
   const [localColor, setLocalColor] = useState('#ffffff');
 
+  // Local state for light intensity
+  const [localIntensity, setLocalIntensity] = useState('1.0');
+
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -93,6 +96,15 @@ export default function InspectorPanel({
 
       // Sync color
       setLocalColor(selectedObject.color || '#ffffff');
+
+      // Sync light intensity
+      if (selectedObject.model_id?.startsWith('light_')) {
+        const asset = assets.find(a => a.id === selectedObject.model_id);
+        if (asset && asset.metadata) {
+          const metadata = typeof asset.metadata === 'string' ? JSON.parse(asset.metadata) : asset.metadata;
+          setLocalIntensity((metadata.intensity || 1.0).toString());
+        }
+      }
 
       // Sync transform values
       const interpolated = getInterpolatedTransform(selectedObject);
@@ -448,6 +460,42 @@ export default function InspectorPanel({
     }
   };
 
+  const handleIntensityChange = async (newIntensity: number) => {
+    // Prevent editing during playback
+    if (isPlaying) {
+      console.warn('Cannot edit during playback');
+      return;
+    }
+
+    if (!selectedObject || !selectedObject.model_id) return;
+
+    try {
+      // Find the asset
+      const asset = assets.find(a => a.id === selectedObject.model_id);
+      if (!asset) return;
+
+      // Parse existing metadata
+      const existingMetadata = asset.metadata
+        ? (typeof asset.metadata === 'string' ? JSON.parse(asset.metadata) : asset.metadata)
+        : {};
+
+      // Update intensity in metadata
+      const updatedMetadata = {
+        ...existingMetadata,
+        intensity: newIntensity
+      };
+
+      // Update asset
+      await assetsAPI.update(asset.id, {
+        metadata: updatedMetadata
+      });
+
+      onUpdate();
+    } catch (error) {
+      console.error('Failed to update intensity:', error);
+    }
+  };
+
   const handleDialogueUpdate = async (field: string, value: any) => {
     // Prevent editing during playback
     if (isPlaying) {
@@ -629,6 +677,42 @@ export default function InspectorPanel({
               />
             </div>
           </div>
+
+          {/* Light Intensity Slider (for light objects only) */}
+          {selectedObject.model_id?.startsWith('light_') && (
+            <div className="bg-gray-750 rounded-lg p-3 border border-gray-600">
+              <label className="block text-xs font-semibold text-gray-400 mb-2 select-none" onDragStart={(e) => e.preventDefault()}>
+                💡 광원 밝기 (Intensity)
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min="0"
+                  max="5"
+                  step="0.1"
+                  value={localIntensity}
+                  onChange={(e) => setLocalIntensity(e.target.value)}
+                  onMouseUp={(e) => handleIntensityChange(parseFloat((e.target as HTMLInputElement).value))}
+                  className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  step="0.1"
+                  value={localIntensity}
+                  onChange={(e) => setLocalIntensity(e.target.value)}
+                  onBlur={(e) => handleIntensityChange(parseFloat(e.target.value) || 1.0)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.currentTarget.blur();
+                    }
+                  }}
+                  className="w-20 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-blue-500 text-center"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Visible Toggle */}
           <div className="flex items-center gap-2 select-none" onDragStart={(e) => e.preventDefault()}>
