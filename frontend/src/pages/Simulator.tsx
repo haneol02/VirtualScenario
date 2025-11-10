@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { projectsAPI, scenesAPI, backgroundMapsAPI, assetsAPI, type Project, type Scene, type SceneObject, type Dialogue, type BackgroundObject, type Asset } from '../lib/api';
 import ThreeViewer from '../components/ThreeViewer';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 export default function Simulator() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -276,152 +277,162 @@ export default function Simulator() {
   const currentScene = scenes[currentSceneIndex];
 
   return (
-    <div className="h-screen bg-gray-900 text-white flex flex-col">
-      {/* Header */}
-      <header className="bg-gray-800 border-b border-gray-700 px-6 py-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <button
-              onClick={() => navigate('/')}
-              className="text-blue-400 hover:text-blue-300 mb-1 text-sm"
-            >
-              ← 대시보드
-            </button>
-            <h1 className="text-2xl font-bold">{project.title} - 시뮬레이터</h1>
-            <p className="text-sm text-gray-400">
-              씬 {currentSceneIndex + 1} / {scenes.length}: {currentScene.title}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-4">
-            {/* Playback Speed */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-400">속도:</span>
-              <select
-                value={playbackSpeed}
-                onChange={(e) => setPlaybackSpeed(parseFloat(e.target.value))}
-                className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
-              >
-                <option value="0.5">0.5x</option>
-                <option value="1">1x</option>
-                <option value="2">2x</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* 3D Viewer */}
-      <main className="flex-1 relative">
-        <ThreeViewer
-          objects={[...backgroundObjects, ...displayObjects]}
-          selectedObjectId={selectedObjectId}
-          onObjectSelect={handleObjectSelect}
-          onObjectTransform={handleObjectTransform}
-          currentTime={currentTime}
-          isPlaying={isPlaying}
-          assets={assets}
-        />
-
-        {/* Pause Instruction */}
-        {!isPlaying && (
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 bg-opacity-90 text-white px-6 py-3 rounded-lg shadow-2xl z-50 font-medium flex items-center gap-2 select-none pointer-events-none">
-            <span className="text-2xl">ℹ️</span>
-            <span>일시정지 중 - 오브젝트를 클릭하고 드래그하여 동선을 설명할 수 있습니다</span>
-          </div>
-        )}
-
-        {/* Subtitles */}
-        {activeDialogues.length > 0 && (
-          <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 w-3/4 max-w-3xl">
-            {activeDialogues.map(dlg => {
-              const speaker = dlg.speaker_name || (dlg.object_id ? displayObjects.find(obj => obj.id === dlg.object_id)?.name : null);
-              return (
-                <div
-                  key={dlg.id}
-                  className="bg-black bg-opacity-80 rounded-lg p-4 mb-2 animate-fade-in"
+    <div className="h-screen bg-gray-900 text-white">
+      <PanelGroup direction="vertical">
+        {/* Header - Fixed Size */}
+        <Panel defaultSize={10} minSize={8} maxSize={15}>
+          <header className="h-full bg-gray-800 border-b border-gray-700 px-6 py-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <button
+                  onClick={() => navigate('/')}
+                  className="text-blue-400 hover:text-blue-300 mb-1 text-sm"
                 >
-                  {speaker && (
-                    <div className="text-blue-400 font-semibold mb-1 text-sm">
-                      {speaker}
-                    </div>
-                  )}
-                  <div className="text-white text-lg">{dlg.text}</div>
+                  ← 대시보드
+                </button>
+                <h1 className="text-2xl font-bold">{project.title} - 시뮬레이터</h1>
+                <p className="text-sm text-gray-400">
+                  씬 {currentSceneIndex + 1} / {scenes.length}: {currentScene.title}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-4">
+                {/* Playback Speed */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-400">속도:</span>
+                  <select
+                    value={playbackSpeed}
+                    onChange={(e) => setPlaybackSpeed(parseFloat(e.target.value))}
+                    className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
+                  >
+                    <option value="0.5">0.5x</option>
+                    <option value="1">1x</option>
+                    <option value="2">2x</option>
+                  </select>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </main>
+              </div>
+            </div>
+          </header>
+        </Panel>
 
-      {/* Playback Controls */}
-      <footer className="bg-gray-800 border-t border-gray-700 px-6 py-4">
-        {/* Timeline */}
-        <div className="mb-3">
-          <input
-            type="range"
-            min="0"
-            max={sceneDuration}
-            step="0.1"
-            value={currentTime}
-            onChange={(e) => handleSeek(parseFloat(e.target.value))}
-            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
-          />
-          <div className="flex justify-between text-xs text-gray-400 mt-1">
-            <span>{formatTime(currentTime)}</span>
-            <span>{formatTime(sceneDuration)}</span>
-          </div>
-        </div>
+        {/* Main 3D Viewer - Resizable */}
+        <PanelResizeHandle className="h-1 bg-gray-700 hover:bg-blue-500 transition-colors cursor-row-resize" />
+        <Panel defaultSize={75} minSize={50}>
+          <main className="h-full relative">
+            <ThreeViewer
+              objects={[...backgroundObjects, ...displayObjects]}
+              selectedObjectId={selectedObjectId}
+              onObjectSelect={handleObjectSelect}
+              onObjectTransform={handleObjectTransform}
+              currentTime={currentTime}
+              isPlaying={isPlaying}
+              assets={assets}
+            />
 
-        {/* Control Buttons */}
-        <div className="flex items-center justify-center gap-4">
-          {/* Previous Scene */}
-          <button
-            onClick={handlePreviousScene}
-            disabled={currentSceneIndex === 0}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              currentSceneIndex === 0
-                ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                : 'bg-gray-700 hover:bg-gray-600 text-white'
-            }`}
-            title="이전 씬"
-          >
-            ⏮️ 이전
-          </button>
+            {/* Pause Instruction */}
+            {!isPlaying && (
+              <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 bg-opacity-90 text-white px-6 py-3 rounded-lg shadow-2xl z-50 font-medium flex items-center gap-2 select-none pointer-events-none">
+                <span className="text-2xl">ℹ️</span>
+                <span>일시정지 중 - 오브젝트를 클릭하고 드래그하여 동선을 설명할 수 있습니다</span>
+              </div>
+            )}
 
-          {/* Stop */}
-          <button
-            onClick={handleStop}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-medium"
-            title="정지"
-          >
-            ⏹️ 정지
-          </button>
+            {/* Subtitles */}
+            {activeDialogues.length > 0 && (
+              <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 w-3/4 max-w-3xl">
+                {activeDialogues.map(dlg => {
+                  const speaker = dlg.speaker_name || (dlg.object_id ? displayObjects.find(obj => obj.id === dlg.object_id)?.name : null);
+                  return (
+                    <div
+                      key={dlg.id}
+                      className="bg-black bg-opacity-80 rounded-lg p-4 mb-2 animate-fade-in"
+                    >
+                      {speaker && (
+                        <div className="text-blue-400 font-semibold mb-1 text-sm">
+                          {speaker}
+                        </div>
+                      )}
+                      <div className="text-white text-lg">{dlg.text}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </main>
+        </Panel>
 
-          {/* Play/Pause */}
-          <button
-            onClick={handlePlayPause}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-bold text-lg"
-            title={isPlaying ? "일시정지" : "재생"}
-          >
-            {isPlaying ? '⏸️ 일시정지' : '▶️ 재생'}
-          </button>
+        {/* Footer Controls - Resizable */}
+        <PanelResizeHandle className="h-1 bg-gray-700 hover:bg-blue-500 transition-colors cursor-row-resize" />
+        <Panel defaultSize={15} minSize={10} maxSize={30}>
+          <footer className="h-full bg-gray-800 border-t border-gray-700 px-6 py-4">
+            {/* Timeline */}
+            <div className="mb-3">
+              <input
+                type="range"
+                min="0"
+                max={sceneDuration}
+                step="0.1"
+                value={currentTime}
+                onChange={(e) => handleSeek(parseFloat(e.target.value))}
+                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+              />
+              <div className="flex justify-between text-xs text-gray-400 mt-1">
+                <span>{formatTime(currentTime)}</span>
+                <span>{formatTime(sceneDuration)}</span>
+              </div>
+            </div>
 
-          {/* Next Scene */}
-          <button
-            onClick={handleNextScene}
-            disabled={currentSceneIndex === scenes.length - 1}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              currentSceneIndex === scenes.length - 1
-                ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                : 'bg-gray-700 hover:bg-gray-600 text-white'
-            }`}
-            title="다음 씬"
-          >
-            다음 ⏭️
-          </button>
-        </div>
-      </footer>
+            {/* Control Buttons */}
+            <div className="flex items-center justify-center gap-4">
+              {/* Previous Scene */}
+              <button
+                onClick={handlePreviousScene}
+                disabled={currentSceneIndex === 0}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  currentSceneIndex === 0
+                    ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                    : 'bg-gray-700 hover:bg-gray-600 text-white'
+                }`}
+                title="이전 씬"
+              >
+                ⏮️ 이전
+              </button>
+
+              {/* Stop */}
+              <button
+                onClick={handleStop}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-medium"
+                title="정지"
+              >
+                ⏹️ 정지
+              </button>
+
+              {/* Play/Pause */}
+              <button
+                onClick={handlePlayPause}
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-bold text-lg"
+                title={isPlaying ? "일시정지" : "재생"}
+              >
+                {isPlaying ? '⏸️ 일시정지' : '▶️ 재생'}
+              </button>
+
+              {/* Next Scene */}
+              <button
+                onClick={handleNextScene}
+                disabled={currentSceneIndex === scenes.length - 1}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  currentSceneIndex === scenes.length - 1
+                    ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                    : 'bg-gray-700 hover:bg-gray-600 text-white'
+                }`}
+                title="다음 씬"
+              >
+                다음 ⏭️
+              </button>
+            </div>
+          </footer>
+        </Panel>
+      </PanelGroup>
     </div>
   );
 }
