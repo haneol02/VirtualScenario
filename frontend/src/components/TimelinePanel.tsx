@@ -591,8 +591,8 @@ export default function TimelinePanel({
                     dragOverIndex === index && draggedItem?.type === 'object' ? 'border-t-2 border-t-blue-400' : ''
                   }`}
                 >
-                  {/* Object Name (no truncate) */}
-                  <div className="text-sm font-medium mb-1 leading-tight">{obj.name}</div>
+                  {/* Object Name */}
+                  <div className="text-sm font-medium mb-1 leading-tight truncate">{obj.name}</div>
 
                   {/* Icons Row */}
                   <div className="flex items-center gap-1.5 text-xs">
@@ -668,8 +668,8 @@ export default function TimelinePanel({
                     dragOverIndex === index && draggedItem?.type === 'dialogue' ? 'border-t-2 border-t-green-400' : ''
                   }`}
                 >
-                  {/* Dialogue Text (no truncate) */}
-                  <div className="text-sm font-medium mb-1 leading-tight">{displayText}</div>
+                  {/* Dialogue Text */}
+                  <div className="text-sm font-medium mb-1 leading-tight truncate">{displayText}</div>
 
                   {/* Time + Badge Row */}
                   <div className="flex items-center justify-between text-xs">
