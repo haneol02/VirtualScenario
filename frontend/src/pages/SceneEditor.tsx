@@ -1125,6 +1125,7 @@ export default function SceneEditor() {
                     selectedDialogue={selectedDialogueId ? dialogues.find(dlg => dlg.id === selectedDialogueId) : undefined}
                     sceneId={selectedScene.id}
                     assets={assets}
+                    currentTime={currentTime}
                     onUpdate={() => handleSelectScene(selectedScene)}
                     onDelete={(id, type) => {
                       if (type === 'object') {
