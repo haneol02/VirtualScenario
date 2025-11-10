@@ -396,7 +396,7 @@ export default function TimelinePanel({
   }, [selectedObjectId, currentTime, objects, onAddKeyframe]);
 
   return (
-    <div className="h-80 bg-gray-850 border-t border-gray-700 flex flex-col select-none">
+    <div className="h-full bg-gray-850 border-t border-gray-700 flex flex-col select-none">
       {/* Toolbar */}
       <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
         <div className="flex items-center gap-2">

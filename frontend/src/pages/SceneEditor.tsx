@@ -6,6 +6,7 @@ import { useUndoRedo } from '../hooks/useUndoRedo';
 import TimelinePanel from '../components/TimelinePanel';
 import AssetLibraryPanel from '../components/AssetLibraryPanel';
 import InspectorPanel from '../components/InspectorPanel';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 export default function SceneEditor() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -725,11 +726,14 @@ export default function SceneEditor() {
   }
 
   return (
-    <div className="h-screen bg-gray-900 text-white flex flex-col">
-      {/* Top Section: Sidebar + Main Area */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Tabbed */}
-        <aside className="w-80 bg-gray-800 border-r border-gray-700 flex flex-col">
+    <div className="h-screen bg-gray-900 text-white">
+      <PanelGroup direction="vertical">
+        {/* Top Section: Sidebar + Main Area + Inspector */}
+        <Panel defaultSize={75} minSize={30}>
+          <PanelGroup direction="horizontal">
+            {/* Left Sidebar - Tabbed */}
+            <Panel defaultSize={20} minSize={15} maxSize={40}>
+              <aside className="w-full h-full bg-gray-800 border-r border-gray-700 flex flex-col">
         {/* Header */}
         <div className="p-4 border-b border-gray-700">
           <button
@@ -989,9 +993,14 @@ export default function SceneEditor() {
           )}
         </div>
       </aside>
+            </Panel>
 
-      {/* Main Area - 3D Viewer */}
-      <main className="flex-1 flex flex-col items-center justify-center bg-gray-900 relative">
+            {/* Resize Handle */}
+            <PanelResizeHandle className="w-1 bg-gray-700 hover:bg-blue-500 transition-colors cursor-col-resize" />
+
+            {/* Main Area - 3D Viewer */}
+            <Panel defaultSize={60} minSize={30}>
+              <main className="h-full flex flex-col items-center justify-center bg-gray-900 relative">
         {selectedScene ? (
           <>
             <div className="flex-1 w-full">
@@ -1104,58 +1113,71 @@ export default function SceneEditor() {
           </div>
         )}
       </main>
+            </Panel>
 
-        {/* Inspector Panel (Right) */}
+            {/* Resize Handle & Inspector Panel (Right) */}
+            {selectedScene && (
+              <>
+                <PanelResizeHandle className="w-1 bg-gray-700 hover:bg-blue-500 transition-colors cursor-col-resize" />
+                <Panel defaultSize={20} minSize={15} maxSize={40}>
+                  <InspectorPanel
+                    selectedObject={selectedObjectId ? objects.find(obj => obj.id === selectedObjectId) : undefined}
+                    selectedDialogue={selectedDialogueId ? dialogues.find(dlg => dlg.id === selectedDialogueId) : undefined}
+                    sceneId={selectedScene.id}
+                    assets={assets}
+                    onUpdate={() => handleSelectScene(selectedScene)}
+                    onDelete={(id, type) => {
+                      if (type === 'object') {
+                        handleDeleteObject(id);
+                      } else {
+                        handleDeleteDialogue(id);
+                      }
+                    }}
+                  />
+                </Panel>
+              </>
+            )}
+          </PanelGroup>
+        </Panel>
+        {/* End of Top Section */}
+
+        {/* Timeline Panel (Bottom) */}
         {selectedScene && (
-          <InspectorPanel
-            selectedObject={selectedObjectId ? objects.find(obj => obj.id === selectedObjectId) : undefined}
-            selectedDialogue={selectedDialogueId ? dialogues.find(dlg => dlg.id === selectedDialogueId) : undefined}
-            sceneId={selectedScene.id}
-            assets={assets}
-            onUpdate={() => handleSelectScene(selectedScene)}
-            onDelete={(id, type) => {
-              if (type === 'object') {
-                handleDeleteObject(id);
-              } else {
-                handleDeleteDialogue(id);
-              }
-            }}
-          />
+          <>
+            <PanelResizeHandle className="h-1 bg-gray-700 hover:bg-blue-500 transition-colors cursor-row-resize" />
+            <Panel defaultSize={25} minSize={15} maxSize={50}>
+              <TimelinePanel
+                objects={objects}
+                dialogues={dialogues}
+                currentTime={currentTime}
+                maxTime={maxTime}
+                isPlaying={isPlaying}
+                selectedObjectId={selectedObjectId}
+                selectedDialogueId={selectedDialogueId}
+                onTimeChange={setCurrentTime}
+                onPlayPause={handlePlayPause}
+                onAddKeyframe={handleAddKeyframe}
+                onUpdateKeyframe={handleUpdateKeyframe}
+                onDeleteKeyframe={handleDeleteKeyframe}
+                onSelectObject={(id) => {
+                  setSelectedObjectId(id);
+                  setSelectedDialogueId(undefined); // Deselect dialogue when object selected
+                }}
+                onSelectDialogue={(id) => {
+                  setSelectedDialogueId(id);
+                  setSelectedObjectId(undefined); // Deselect object when dialogue selected
+                }}
+                onMaxTimeChange={setMaxTime}
+                onUpdateDialogue={handleUpdateDialogue}
+                onReorderObjects={handleReorderObjects}
+                onReorderDialogues={handleReorderDialogues}
+                onDeleteObject={handleDeleteObject}
+                onDeleteDialogue={handleDeleteDialogue}
+              />
+            </Panel>
+          </>
         )}
-      </div>
-      {/* End of Top Section */}
-
-      {/* Timeline Panel (Bottom) */}
-      {selectedScene && (
-        <TimelinePanel
-          objects={objects}
-          dialogues={dialogues}
-          currentTime={currentTime}
-          maxTime={maxTime}
-          isPlaying={isPlaying}
-          selectedObjectId={selectedObjectId}
-          selectedDialogueId={selectedDialogueId}
-          onTimeChange={setCurrentTime}
-          onPlayPause={handlePlayPause}
-          onAddKeyframe={handleAddKeyframe}
-          onUpdateKeyframe={handleUpdateKeyframe}
-          onDeleteKeyframe={handleDeleteKeyframe}
-          onSelectObject={(id) => {
-            setSelectedObjectId(id);
-            setSelectedDialogueId(undefined); // Deselect dialogue when object selected
-          }}
-          onSelectDialogue={(id) => {
-            setSelectedDialogueId(id);
-            setSelectedObjectId(undefined); // Deselect object when dialogue selected
-          }}
-          onMaxTimeChange={setMaxTime}
-          onUpdateDialogue={handleUpdateDialogue}
-          onReorderObjects={handleReorderObjects}
-          onReorderDialogues={handleReorderDialogues}
-          onDeleteObject={handleDeleteObject}
-          onDeleteDialogue={handleDeleteDialogue}
-        />
-      )}
+      </PanelGroup>
 
       {/* Floating Action Buttons */}
       {selectedScene && (
