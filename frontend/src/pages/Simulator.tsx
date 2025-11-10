@@ -130,35 +130,40 @@ export default function Simulator() {
         setBackgroundObjects([]);
       }
 
-      // Calculate scene duration based on dialogues and keyframes
-      let maxTime = 10; // Minimum 10 seconds
+      // Use scene duration if available, otherwise calculate from dialogues and keyframes
+      if (scene.duration !== undefined && scene.duration !== null && scene.duration > 0) {
+        setSceneDuration(scene.duration);
+      } else {
+        // Calculate scene duration based on dialogues and keyframes
+        let maxTime = 10; // Minimum 10 seconds
 
-      // Check dialogues
-      dialoguesData.forEach(dlg => {
-        const endTime = dlg.start_time + dlg.duration;
-        if (endTime > maxTime) {
-          maxTime = endTime;
-        }
-      });
-
-      // Check keyframes in scene objects
-      objectsData.forEach(obj => {
-        if (obj.path_data) {
-          try {
-            const keyframes = JSON.parse(obj.path_data);
-            keyframes.forEach((kf: any) => {
-              if (kf.time > maxTime) {
-                maxTime = kf.time;
-              }
-            });
-          } catch (e) {
-            console.error('Failed to parse path_data for duration calculation:', e);
+        // Check dialogues
+        dialoguesData.forEach(dlg => {
+          const endTime = dlg.start_time + dlg.duration;
+          if (endTime > maxTime) {
+            maxTime = endTime;
           }
-        }
-      });
+        });
 
-      // Add 5 second buffer
-      setSceneDuration(Math.max(10, maxTime + 5));
+        // Check keyframes in scene objects
+        objectsData.forEach(obj => {
+          if (obj.path_data) {
+            try {
+              const keyframes = JSON.parse(obj.path_data);
+              keyframes.forEach((kf: any) => {
+                if (kf.time > maxTime) {
+                  maxTime = kf.time;
+                }
+              });
+            } catch (e) {
+              console.error('Failed to parse path_data for duration calculation:', e);
+            }
+          }
+        });
+
+        // Add 5 second buffer
+        setSceneDuration(Math.max(10, maxTime + 5));
+      }
     } catch (error) {
       console.error('Failed to load scene data:', error);
     }

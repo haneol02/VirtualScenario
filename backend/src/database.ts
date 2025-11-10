@@ -271,6 +271,10 @@ export class DatabaseManager {
       fields.push('background_map_id = ?');
       values.push(data.backgroundMapId);
     }
+    if (data.duration !== undefined) {
+      fields.push('duration = ?');
+      values.push(data.duration);
+    }
 
     if (fields.length === 0) return;
 
