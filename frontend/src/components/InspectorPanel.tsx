@@ -383,15 +383,20 @@ export default function InspectorPanel({
   return (
     <aside className="w-full h-full bg-gray-800 border-l border-gray-700 flex flex-col overflow-y-auto relative z-[60]">
       {/* Header */}
-      <div className="p-4 border-b border-gray-700 flex items-center justify-between select-none">
-        <h3 className="text-lg font-semibold text-white">인스펙터</h3>
+      <div className="p-4 border-b border-gray-700 flex items-center gap-3 select-none">
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-medium text-gray-400 mb-1">인스펙터</h3>
+          <div className="text-base font-semibold text-white truncate">
+            {selectedObject ? selectedObject.name : selectedDialogue ? selectedDialogue.text : '-'}
+          </div>
+        </div>
         {selectedObject && (
-          <span className="px-2 py-1 bg-blue-600 text-white text-xs font-semibold rounded">
+          <span className="px-2 py-1 bg-blue-600 text-white text-xs font-semibold rounded shrink-0">
             오브젝트
           </span>
         )}
         {selectedDialogue && (
-          <span className="px-2 py-1 bg-green-600 text-white text-xs font-semibold rounded">
+          <span className="px-2 py-1 bg-green-600 text-white text-xs font-semibold rounded shrink-0">
             대화/자막
           </span>
         )}
