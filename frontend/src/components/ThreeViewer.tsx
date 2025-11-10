@@ -102,10 +102,15 @@ function LightObject({
 
   // Update intensity when metadata changes
   useEffect(() => {
-    if (lightRef.current && 'intensity' in lightRef.current) {
-      (lightRef.current as any).intensity = intensity;
+    if (lightRef.current && 'intensity' in lightRef.current && asset) {
+      // Re-parse metadata to get updated intensity
+      const metadata = asset.metadata
+        ? (typeof asset.metadata === 'string' ? JSON.parse(asset.metadata) : asset.metadata)
+        : {};
+      const newIntensity = metadata.intensity !== undefined ? metadata.intensity : 1.0;
+      (lightRef.current as any).intensity = newIntensity;
     }
-  }, [intensity]);
+  }, [asset]);
 
   // Transform handling
   const handleTransform = () => {

@@ -1481,7 +1481,10 @@ export default function SceneEditor() {
                     assets={assets}
                     currentTime={currentTime}
                     isPlaying={isPlaying}
-                    onUpdate={() => handleSelectScene(selectedScene)}
+                    onUpdate={async () => {
+                      await handleSelectScene(selectedScene);
+                      await loadAssets();
+                    }}
                     onDelete={(id, type) => {
                       if (type === 'object') {
                         handleDeleteObject(id);
