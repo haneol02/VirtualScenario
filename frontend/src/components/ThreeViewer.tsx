@@ -996,10 +996,10 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
 
       {/* Transform 모드 전환 버튼 */}
       {selectedObjectId && (
-        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-gray-900 bg-opacity-90 rounded-lg p-1.5 sm:p-2 flex gap-1 sm:gap-2 z-10 max-w-[95vw]">
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-gray-900 bg-opacity-90 rounded-lg p-2 flex gap-2 z-10 max-w-[calc(100%-2rem)] mx-4">
           <button
             onClick={() => setTransformMode('translate')}
-            className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
               transformMode === 'translate'
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -1010,7 +1010,7 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
           </button>
           <button
             onClick={() => setTransformMode('rotate')}
-            className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
               transformMode === 'rotate'
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -1021,7 +1021,7 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
           </button>
           <button
             onClick={() => setTransformMode('scale')}
-            className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
               transformMode === 'scale'
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -1034,7 +1034,7 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
       )}
 
       {/* 안내 텍스트 - 작은 화면에서는 숨김 */}
-      <div className="hidden lg:block absolute bottom-2 sm:bottom-4 left-2 sm:left-4 bg-gray-900 bg-opacity-75 text-white p-2 sm:p-3 rounded-lg text-xs pointer-events-none select-none z-10 max-w-[200px]">
+      <div className="hidden lg:block absolute bottom-4 left-4 bg-gray-900 bg-opacity-75 text-white p-3 rounded-lg text-xs pointer-events-none select-none z-10 max-w-[180px]">
         <p className="mb-1">🖱️ <strong>좌클릭</strong>: 회전</p>
         <p className="mb-1">🖱️ <strong>우클릭</strong>: 팬</p>
         <p className="mb-1">🖱️ <strong>휠</strong>: 줌</p>

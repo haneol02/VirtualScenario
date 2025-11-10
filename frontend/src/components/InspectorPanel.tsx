@@ -473,7 +473,7 @@ export default function InspectorPanel({
 
           {/* Model Selection */}
           <div className="bg-gray-750 rounded-lg p-3 border border-gray-600">
-            <label className="block text-xs font-semibold text-blue-400 mb-2 select-none" onDragStart={(e) => e.preventDefault()}>🎨 3D 모델 / 에셋</label>
+            <label className="block text-xs font-semibold text-gray-400 mb-2 select-none" onDragStart={(e) => e.preventDefault()}>3D 모델 / 에셋</label>
             <select
               value={selectedObject.model_id || ''}
               onChange={(e) => handleModelChange(e.target.value)}
@@ -488,7 +488,7 @@ export default function InspectorPanel({
                 ))}
               </optgroup>
               {assets.some(a => a.type === 'model') && (
-                <optgroup label="📦 업로드된 3D 모델">
+                <optgroup label="업로드된 3D 모델">
                   {assets.filter(a => a.type === 'model').map(asset => (
                     <option key={asset.id} value={asset.id}>
                       {asset.name} {asset.file_format ? `(.${asset.file_format})` : ''}
@@ -550,7 +550,7 @@ export default function InspectorPanel({
 
           {/* Color Picker */}
           <div className="bg-gray-750 rounded-lg p-3 border border-gray-600">
-            <label className="block text-xs font-semibold text-purple-400 mb-2 select-none" onDragStart={(e) => e.preventDefault()}>🎨 색상</label>
+            <label className="block text-xs font-semibold text-gray-400 mb-2 select-none" onDragStart={(e) => e.preventDefault()}>색상</label>
             <div className="flex items-center gap-2">
               <input
                 type="color"
@@ -615,7 +615,7 @@ export default function InspectorPanel({
               className="w-4 h-4"
             />
             <label htmlFor="locked" className="text-sm text-gray-300 cursor-pointer">
-              🔒 오브젝트 잠금
+              오브젝트 잠금
             </label>
           </div>
 
@@ -628,7 +628,6 @@ export default function InspectorPanel({
               return keyframes.length > 0 && (
                 <div className="bg-blue-900 bg-opacity-30 border border-blue-600 rounded-lg p-3 text-xs select-none" onDragStart={(e) => e.preventDefault()}>
                   <div className="flex items-start gap-2">
-                    <span className="text-blue-400 text-lg">◆</span>
                     <div className="flex-1">
                       <div className="text-blue-200 font-semibold mb-1">키프레임 애니메이션 활성</div>
                       <div className="text-blue-300 text-xs">
@@ -773,7 +772,7 @@ export default function InspectorPanel({
                     <div key={idx} className="bg-gray-750 border border-gray-600 rounded p-3 select-none"
                       onDragStart={(e) => e.preventDefault()}>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-semibold text-blue-400">◆ 키프레임 {idx + 1}</span>
+                        <span className="text-xs font-semibold text-blue-400">키프레임 {idx + 1}</span>
                         <button
                           onClick={async () => {
                             const updated = keyframes.filter((_, i) => i !== idx);
@@ -786,9 +785,9 @@ export default function InspectorPanel({
                               console.error('Failed to delete keyframe:', error);
                             }
                           }}
-                          className="text-xs text-red-400 hover:text-red-300"
+                          className="text-xs text-red-400 hover:text-red-300 px-1"
                         >
-                          🗑️
+                          삭제
                         </button>
                       </div>
                       <div className="space-y-1 text-xs">
@@ -821,7 +820,7 @@ export default function InspectorPanel({
                   ))}
                 </div>
                 <div className="mt-2 text-xs text-gray-500 text-center select-none" onDragStart={(e) => e.preventDefault()}>
-                  💡 타임라인에서 'K' 키로 키프레임 추가
+                  타임라인에서 'K' 키로 키프레임 추가
                 </div>
               </div>
             );
@@ -835,7 +834,7 @@ export default function InspectorPanel({
             className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-sm font-medium text-white select-none"
             onDragStart={(e) => e.preventDefault()}
           >
-            🗑️ 오브젝트 삭제 (Delete)
+            오브젝트 삭제 (Delete)
           </button>
         </div>
       )}
@@ -936,7 +935,7 @@ export default function InspectorPanel({
           {/* Layer Index */}
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-2 select-none" onDragStart={(e) => e.preventDefault()}>
-              레이어 <span className="text-gray-500">(0 = 자동 배치)</span>
+              레이어
             </label>
             <input
               type="number"
@@ -954,9 +953,6 @@ export default function InspectorPanel({
               min="0"
               className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-green-500"
             />
-            <p className="text-xs text-gray-500 mt-1">
-              0 = 자동 배치, 1 이상 = 수동 레이어 지정
-            </p>
           </div>
 
           <hr className="border-gray-700" />
@@ -967,7 +963,7 @@ export default function InspectorPanel({
             className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-sm font-medium text-white select-none"
             onDragStart={(e) => e.preventDefault()}
           >
-            🗑️ 대화 삭제 (Delete)
+            대화 삭제 (Delete)
           </button>
         </div>
       )}
@@ -992,7 +988,6 @@ export default function InspectorPanel({
                 className="w-full px-4 py-2 text-left text-sm text-white hover:bg-gray-700 flex items-center gap-2 select-none"
                 onDragStart={(e) => e.preventDefault()}
               >
-                <span>🗑️</span>
                 <span>삭제 (Delete)</span>
               </button>
             </>
@@ -1009,7 +1004,6 @@ export default function InspectorPanel({
                 className="w-full px-4 py-2 text-left text-sm text-white hover:bg-gray-700 flex items-center gap-2 select-none"
                 onDragStart={(e) => e.preventDefault()}
               >
-                <span>🗑️</span>
                 <span>삭제 (Delete)</span>
               </button>
             </>

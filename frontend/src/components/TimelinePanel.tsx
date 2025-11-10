@@ -906,28 +906,28 @@ export default function TimelinePanel({
                     {/* Visible Toggle */}
                     <button
                       onClick={(e) => handleToggleVisible(e, obj.id)}
-                      className="opacity-60 hover:opacity-100 transition-opacity text-sm"
-                      title={obj.visible === 0 ? "숨김" : "표시"}
+                      className="px-1.5 py-0.5 bg-gray-700 hover:bg-gray-600 rounded text-[10px] text-gray-300 transition-colors"
+                      title={obj.visible === 0 ? "숨김 (클릭하여 표시)" : "표시 중 (클릭하여 숨김)"}
                     >
-                      {obj.visible === 0 ? '👁️‍🗨️' : '👁️'}
+                      {obj.visible === 0 ? '숨김' : '보기'}
                     </button>
 
                     {/* Nametag Toggle */}
                     <button
                       onClick={(e) => handleToggleNametag(e, obj.id)}
-                      className="opacity-60 hover:opacity-100 transition-opacity text-sm"
-                      title={obj.show_nametag === 0 ? "네임태그 숨김" : "네임태그 표시"}
+                      className="px-1.5 py-0.5 bg-gray-700 hover:bg-gray-600 rounded text-[10px] text-gray-300 transition-colors"
+                      title={obj.show_nametag === 0 ? "라벨 숨김 (클릭하여 표시)" : "라벨 표시 중 (클릭하여 숨김)"}
                     >
-                      {obj.show_nametag === 0 ? '🏷️' : '📛'}
+                      {obj.show_nametag === 0 ? '숨김' : '라벨'}
                     </button>
 
                     {/* Locked Toggle */}
                     <button
                       onClick={(e) => handleToggleLocked(e, obj.id)}
-                      className="opacity-60 hover:opacity-100 transition-opacity text-sm"
-                      title={('locked' in obj && obj.locked === 1) ? "잠금" : "해제"}
+                      className="px-1.5 py-0.5 bg-gray-700 hover:bg-gray-600 rounded text-[10px] text-gray-300 transition-colors"
+                      title={('locked' in obj && obj.locked === 1) ? "잠금 (클릭하여 해제)" : "해제 (클릭하여 잠금)"}
                     >
-                      {('locked' in obj && obj.locked === 1) ? '🔒' : '🔓'}
+                      {('locked' in obj && obj.locked === 1) ? '잠금' : '열림'}
                     </button>
 
                     {/* Object Type Badge */}
