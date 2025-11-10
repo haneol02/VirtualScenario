@@ -25,6 +25,7 @@ export default function Simulator() {
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [selectedObjectId, setSelectedObjectId] = useState<string | undefined>();
   const [manualTransforms, setManualTransforms] = useState<Map<string, { position: [number, number, number]; rotation: [number, number, number]; scale: [number, number, number] }>>(new Map());
+  const [showSubtitles, setShowSubtitles] = useState(true);
 
   const animationFrameRef = useRef<number>();
   const lastTimeRef = useRef<number>(0);
@@ -308,6 +309,19 @@ export default function Simulator() {
               </div>
 
               <div className="flex items-center gap-4">
+                {/* Subtitle Toggle */}
+                <button
+                  onClick={() => setShowSubtitles(!showSubtitles)}
+                  className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                    showSubtitles
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                  title="자막 표시/숨김"
+                >
+                  {showSubtitles ? '💬 자막 ON' : '💬 자막 OFF'}
+                </button>
+
                 {/* Playback Speed */}
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-400">속도:</span>
@@ -342,6 +356,7 @@ export default function Simulator() {
                   isPlaying={isPlaying}
                   assets={assets}
                   gridSize={backgroundMap ? { width: backgroundMap.grid_width, depth: backgroundMap.grid_depth } : undefined}
+                  backgroundObjectIds={backgroundObjects.map(obj => obj.id)}
                 />
 
             {/* Pause Instruction */}
@@ -353,7 +368,7 @@ export default function Simulator() {
             )}
 
                 {/* Subtitles */}
-                {activeDialogues.length > 0 && (
+                {showSubtitles && activeDialogues.length > 0 && (
                   <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 w-3/4 max-w-3xl">
                     {activeDialogues.map(dlg => {
                       const speaker = dlg.speaker_name || (dlg.object_id ? displayObjects.find(obj => obj.id === dlg.object_id)?.name : null);
