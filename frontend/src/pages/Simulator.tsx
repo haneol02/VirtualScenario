@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { projectsAPI, scenesAPI, backgroundMapsAPI, assetsAPI, type Project, type Scene, type SceneObject, type Dialogue, type BackgroundObject, type Asset } from '../lib/api';
+import { projectsAPI, scenesAPI, backgroundMapsAPI, assetsAPI, type Project, type Scene, type SceneObject, type Dialogue, type BackgroundObject, type Asset, type BackgroundMap } from '../lib/api';
 import ThreeViewer from '../components/ThreeViewer';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
@@ -13,6 +13,7 @@ export default function Simulator() {
   const [currentSceneIndex, setCurrentSceneIndex] = useState(0);
   const [objects, setObjects] = useState<SceneObject[]>([]);
   const [backgroundObjects, setBackgroundObjects] = useState<BackgroundObject[]>([]);
+  const [backgroundMap, setBackgroundMap] = useState<BackgroundMap | null>(null);
   const [dialogues, setDialogues] = useState<Dialogue[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,11 +117,16 @@ export default function Simulator() {
       setObjects(objectsData);
       setDialogues(dialoguesData);
 
-      // Load background objects if background map is set
+      // Load background map and objects if background map is set
       if (scene.background_map_id) {
-        const bgObjects = await backgroundMapsAPI.getObjects(scene.background_map_id);
+        const [bgMap, bgObjects] = await Promise.all([
+          backgroundMapsAPI.getById(scene.background_map_id),
+          backgroundMapsAPI.getObjects(scene.background_map_id),
+        ]);
+        setBackgroundMap(bgMap);
         setBackgroundObjects(bgObjects);
       } else {
+        setBackgroundMap(null);
         setBackgroundObjects([]);
       }
 
@@ -327,6 +333,7 @@ export default function Simulator() {
               currentTime={currentTime}
               isPlaying={isPlaying}
               assets={assets}
+              gridSize={backgroundMap ? { width: backgroundMap.grid_width, depth: backgroundMap.grid_depth } : undefined}
             />
 
             {/* Pause Instruction */}
