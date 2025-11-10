@@ -115,7 +115,6 @@ export default function SceneEditor() {
           const obj = objects.find(o => o.id === selectedObjectId);
           if (obj) {
             setCopiedObject(obj);
-            console.log('오브젝트 복사됨:', obj.name);
           }
         }
       }
@@ -304,13 +303,11 @@ export default function SceneEditor() {
         // Scene has set duration - use it
         setMaxTime(scene.duration);
         setIsManualMaxTime(true);
-        console.log(`✅ 장면 "${scene.title}" 로드: 길이 ${scene.duration}초`);
       } else {
         // No duration set - use default 30 seconds
         const defaultDuration = 30;
         setMaxTime(defaultDuration);
         setIsManualMaxTime(false); // Allow user to change it
-        console.log(`✅ 장면 "${scene.title}" 로드: 기본 길이 ${defaultDuration}초 (수정 가능)`);
       }
     } catch (error) {
       console.error('Failed to load scene data:', error);
@@ -578,7 +575,6 @@ export default function SceneEditor() {
 
         if (existingKeyframeIndex >= 0) {
           // Update existing keyframe (preserve visible/show_nametag if they exist)
-          console.log(`✏️ 키프레임 업데이트: ${currentTime.toFixed(1)}초`);
           updatedKeyframes[existingKeyframeIndex] = {
             ...updatedKeyframes[existingKeyframeIndex],
             time: currentTime,
@@ -595,7 +591,6 @@ export default function SceneEditor() {
           };
         } else {
           // Create new keyframe at current time with visible/show_nametag
-          console.log(`➕ 키프레임 자동 생성: ${currentTime.toFixed(1)}초`);
           updatedKeyframes.push({
             time: currentTime,
             position: transform.position,
@@ -654,9 +649,6 @@ export default function SceneEditor() {
     // Get current transform from 3D viewer
     const currentTransform = threeViewerRef.current?.getObjectTransform(objectId);
 
-    console.log('🔍 getObjectTransform result:', currentTransform);
-    console.log('🔍 obj from DB:', { visible: obj.visible, show_nametag: obj.show_nametag });
-
     // Fallback to DB values if 3D transform not available
     const position = currentTransform?.position ?? [obj.position_x, obj.position_y, obj.position_z] as [number, number, number];
     const rotation = currentTransform?.rotation ?? [obj.rotation_x, obj.rotation_y, obj.rotation_z] as [number, number, number];
@@ -664,8 +656,6 @@ export default function SceneEditor() {
     // Use actual visible/show_nametag from 3D viewer (reflects current state after toggles)
     const visible = currentTransform?.visible ?? obj.visible ?? 1;
     const show_nametag = currentTransform?.show_nametag ?? obj.show_nametag ?? 1;
-
-    console.log('🔑 Final values for keyframe:', { visible, show_nametag });
 
     // Parse existing keyframes
     const existingKeyframes: PathKeyframe[] = obj.path_data ? JSON.parse(obj.path_data) : [];
@@ -842,7 +832,6 @@ export default function SceneEditor() {
         visible,
         show_nametag: showNametag
       };
-      console.log('✏️ Modified keyframe at', currentTime + 's:', { visible, showNametag });
     } else {
       // CREATE new keyframe at current time
       const position = currentTransform?.position ?? [obj.position_x, obj.position_y, obj.position_z] as [number, number, number];
@@ -859,7 +848,6 @@ export default function SceneEditor() {
       };
 
       updatedKeyframes = [...keyframes, newKeyframe].sort((a, b) => a.time - b.time);
-      console.log('➕ Created new keyframe at', currentTime + 's:', { visible, showNametag });
     }
 
     try {
@@ -1556,8 +1544,6 @@ export default function SceneEditor() {
                           s.id === selectedScene.id ? { ...s, duration: newMaxTime } : s
                         )
                       );
-
-                      console.log(`💾 장면 "${selectedScene.title}" 길이 저장: ${newMaxTime}초`);
                     } catch (error) {
                       console.error('Failed to update scene duration:', error);
                     }

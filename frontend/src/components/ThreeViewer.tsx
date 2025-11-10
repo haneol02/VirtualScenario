@@ -358,35 +358,14 @@ function SceneObjectMesh({
           );
 
           // Apply visible and show_nametag (no interpolation, discrete values)
-          // Find the most recent keyframe with visible/show_nametag values
-          let visibleValue = 1;
-          let nametagValue = 1;
-
-          // Search backwards from current keyframe for visible value
-          for (let i = keyframes.indexOf(prevKeyframe); i >= 0; i--) {
-            if (keyframes[i].visible !== undefined) {
-              visibleValue = keyframes[i].visible;
-              break;
-            }
-          }
-
-          // Search backwards from current keyframe for show_nametag value
-          for (let i = keyframes.indexOf(prevKeyframe); i >= 0; i--) {
-            if (keyframes[i].show_nametag !== undefined) {
-              nametagValue = keyframes[i].show_nametag;
-              break;
-            }
-          }
+          // Use prevKeyframe values with fallback to DB
+          const visibleValue = prevKeyframe.visible !== undefined ? prevKeyframe.visible :
+            (('visible' in obj && obj.visible !== undefined) ? obj.visible : 1);
+          const nametagValue = prevKeyframe.show_nametag !== undefined ? prevKeyframe.show_nametag :
+            (obj.show_nametag ?? 1);
 
           meshRef.current.visible = visibleValue === 1;
           setCurrentShowNametag(nametagValue);
-
-          console.log('🎬 Keyframe applied at', currentTime + 's:', {
-            objectId: obj.id,
-            visible: visibleValue,
-            show_nametag: nametagValue,
-            fromKeyframe: prevKeyframe.time + 's'
-          });
 
           return; // Exit early, we used keyframes
         }
@@ -401,12 +380,6 @@ function SceneObjectMesh({
 
     meshRef.current.visible = dbVisible !== 0;
     setCurrentShowNametag(dbNametag);
-
-    console.log('📄 DB values applied:', {
-      objectId: obj.id,
-      visible: dbVisible,
-      show_nametag: dbNametag
-    });
   }, [currentTime, obj]);
 
   // 색상 결정 (color 필드 우선, 없으면 타입별 기본 색상)
@@ -956,14 +929,12 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
     getObjectTransform: (objectId: string) => {
       const mesh = objectRefs.current.get(objectId);
       if (!mesh) {
-        console.log('⚠️ getObjectTransform: mesh not found for', objectId);
         return null;
       }
 
       // Find object in props to get visible and show_nametag
       const obj = objects.find(o => o.id === objectId);
       if (!obj) {
-        console.log('⚠️ getObjectTransform: obj not found for', objectId);
         return null;
       }
 
@@ -980,13 +951,6 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
         // Use DB value (already updated by toggle handlers)
         show_nametag: obj.show_nametag ?? 1,
       };
-
-      console.log('✅ getObjectTransform for', objectId, ':', {
-        'mesh.visible': mesh.visible,
-        'obj.show_nametag': obj.show_nametag,
-        'result.visible': result.visible,
-        'result.show_nametag': result.show_nametag
-      });
 
       return result;
     }
