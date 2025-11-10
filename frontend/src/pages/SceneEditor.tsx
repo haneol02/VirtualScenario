@@ -339,6 +339,9 @@ export default function SceneEditor() {
       await handleSelectScene(selectedScene);
       loadAssets(); // Reload assets in case new ones were added
 
+      // Automatically create a keyframe at 0 seconds for the new object
+      await handleAddKeyframe(createdObject.id, 0);
+
       // Record undo action
       pushAction({
         type: 'create_object',
