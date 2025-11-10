@@ -929,11 +929,6 @@ export default function TimelinePanel({
                     >
                       {('locked' in obj && obj.locked === 1) ? '잠금' : '열림'}
                     </button>
-
-                    {/* Object Type Badge */}
-                    <span className="px-1 py-0.5 bg-blue-600 text-white text-[10px] font-semibold rounded flex-shrink-0 ml-auto">
-                      오브젝트
-                    </span>
                   </div>
                 </div>
               );
@@ -962,27 +957,19 @@ export default function TimelinePanel({
                   <div className="flex items-center justify-between mb-1 h-5">
                     <div className="text-sm font-medium text-gray-300 flex items-center gap-2 overflow-hidden">
                       <span className="truncate whitespace-nowrap">대화/자막 레이어 [{isManualLayer ? actualLayerIndex : '메인'}]</span>
-                      {isManualLayer && (
-                        <span className="px-1.5 py-0.5 bg-blue-600 text-white text-[9px] font-semibold rounded flex-shrink-0">
-                          수동
-                        </span>
-                      )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="px-1.5 py-0.5 bg-green-600 text-white text-[10px] font-semibold rounded">
-                        {layer.length}개
-                      </span>
                       {isManualLayer && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteLayer(actualLayerIndex);
                           }}
-                          className="text-red-400 hover:text-red-300 text-xs"
+                          className="text-red-400 hover:text-red-300 text-xs px-1"
                           title="레이어 삭제"
                           disabled={isPlaying}
                         >
-                          🗑️
+                          삭제
                         </button>
                       )}
                     </div>

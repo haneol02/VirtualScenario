@@ -647,8 +647,15 @@ export default function SceneEditor() {
     // Save previous state for undo
     const previousPathData = obj.path_data;
 
-    // Add new keyframe with scale
-    const newKeyframe: PathKeyframe = { time, position, rotation, scale };
+    // Add new keyframe with scale, visible, and show_nametag
+    const newKeyframe: PathKeyframe = {
+      time,
+      position,
+      rotation,
+      scale,
+      visible: obj.visible ?? 1,
+      show_nametag: obj.show_nametag ?? 1
+    };
     const updatedKeyframes = [...existingKeyframes, newKeyframe].sort((a, b) => a.time - b.time);
 
     try {

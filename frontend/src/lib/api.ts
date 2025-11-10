@@ -30,6 +30,8 @@ export interface PathKeyframe {
   position: [number, number, number];
   rotation: [number, number, number];
   scale: [number, number, number];  // Scale 애니메이션 지원
+  visible?: number;  // 0 or 1 for visibility
+  show_nametag?: number;  // 0 or 1 for nametag visibility
 }
 
 export interface Project {

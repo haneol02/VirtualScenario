@@ -264,6 +264,9 @@ function SceneObjectMesh({
   const meshRef = useRef<THREE.Mesh>(null);
   const transformRef = useRef<any>(null);
 
+  // Track show_nametag from keyframe
+  const [currentShowNametag, setCurrentShowNametag] = useState<number>(obj.show_nametag ?? 1);
+
   // Register mesh ref to parent
   useEffect(() => {
     if (meshRef.current && onMeshCreated) {
@@ -352,6 +355,14 @@ function SceneObjectMesh({
         THREE.MathUtils.lerp(prevScale[1], nextScale[1], t),
         THREE.MathUtils.lerp(prevScale[2], nextScale[2], t)
       );
+
+      // Apply visible and show_nametag from keyframe (use current keyframe's value)
+      if (prevKeyframe.visible !== undefined) {
+        meshRef.current.visible = prevKeyframe.visible === 1;
+      }
+      if (prevKeyframe.show_nametag !== undefined) {
+        setCurrentShowNametag(prevKeyframe.show_nametag);
+      }
     } catch (e) {
       console.error('Failed to apply keyframe animation:', e);
     }
@@ -437,7 +448,7 @@ function SceneObjectMesh({
           />
 
           {/* Nametag */}
-          {obj.show_nametag === 1 && (
+          {currentShowNametag === 1 && (
             <Html
               position={[0, 'scale_y' in obj ? obj.scale_y * 0.7 : 1, 0]}
               center
@@ -518,7 +529,7 @@ function SceneObjectMesh({
           />
 
           {/* Nametag */}
-          {obj.show_nametag === 1 && (
+          {currentShowNametag === 1 && (
             <Html
               position={[0, 'scale_y' in obj ? obj.scale_y * 0.7 : 1, 0]}
               center
@@ -660,7 +671,7 @@ function ImagePlane({
       />
 
       {/* Nametag */}
-      {obj.show_nametag === 1 && (
+      {currentShowNametag === 1 && (
         <Html
           position={[0, 'scale_y' in obj ? obj.scale_y * 1.2 : 1, 0]}
           center
@@ -741,7 +752,7 @@ function Text3DObject({
       </Text>
 
       {/* Nametag */}
-      {obj.show_nametag === 1 && (
+      {currentShowNametag === 1 && (
         <Html
           position={[0, textSize * 0.7, 0]}
           center
