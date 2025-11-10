@@ -596,15 +596,10 @@ export default function TimelinePanel({
 
                   {/* Icons Row */}
                   <div className="flex items-center gap-1.5 text-xs">
-                    {/* Type Icon */}
-                    <span className="opacity-70" title={`타입: ${obj.type}`}>
-                      {getTypeIcon(obj.type)}
-                    </span>
-
                     {/* Visible Toggle */}
                     <button
                       onClick={(e) => handleToggleVisible(e, obj.id)}
-                      className="opacity-60 hover:opacity-100 transition-opacity"
+                      className="opacity-60 hover:opacity-100 transition-opacity text-sm"
                       title={obj.visible === 0 ? "숨김" : "표시"}
                     >
                       {obj.visible === 0 ? '👁️‍🗨️' : '👁️'}
@@ -613,7 +608,7 @@ export default function TimelinePanel({
                     {/* Nametag Toggle */}
                     <button
                       onClick={(e) => handleToggleNametag(e, obj.id)}
-                      className="opacity-60 hover:opacity-100 transition-opacity"
+                      className="opacity-60 hover:opacity-100 transition-opacity text-sm"
                       title={obj.show_nametag === 0 ? "네임태그 숨김" : "네임태그 표시"}
                     >
                       {obj.show_nametag === 0 ? '🏷️' : '📛'}
@@ -622,11 +617,16 @@ export default function TimelinePanel({
                     {/* Locked Toggle */}
                     <button
                       onClick={(e) => handleToggleLocked(e, obj.id)}
-                      className="opacity-60 hover:opacity-100 transition-opacity"
+                      className="opacity-60 hover:opacity-100 transition-opacity text-sm"
                       title={('locked' in obj && obj.locked === 1) ? "잠금" : "해제"}
                     >
                       {('locked' in obj && obj.locked === 1) ? '🔒' : '🔓'}
                     </button>
+
+                    {/* Object Type Badge */}
+                    <span className="px-1 py-0.5 bg-blue-600 text-white text-[10px] font-semibold rounded flex-shrink-0 ml-auto">
+                      오브젝트
+                    </span>
                   </div>
                 </div>
               );
@@ -658,7 +658,7 @@ export default function TimelinePanel({
                       time: currentTime,
                     });
                   }}
-                  className={`h-14 px-3 py-2 text-sm border-b border-gray-750 transition-colors ${
+                  className={`h-14 px-3 py-1.5 text-sm border-b border-gray-750 transition-colors ${
                     isPlaying ? 'cursor-not-allowed' : 'cursor-move'
                   } ${
                     selectedDialogueId === dlg.id
@@ -668,14 +668,17 @@ export default function TimelinePanel({
                     dragOverIndex === index && draggedItem?.type === 'dialogue' ? 'border-t-2 border-t-green-400' : ''
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="truncate flex-1">{displayText}</div>
-                    <span className="px-1.5 py-0.5 bg-green-600 text-white text-xs font-semibold rounded flex-shrink-0">
+                  {/* Dialogue Text (no truncate) */}
+                  <div className="text-sm font-medium mb-1 leading-tight">{displayText}</div>
+
+                  {/* Time + Badge Row */}
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-gray-400">
+                      {dlg.start_time.toFixed(1)}s - {(dlg.start_time + dlg.duration).toFixed(1)}s
+                    </span>
+                    <span className="px-1 py-0.5 bg-green-600 text-white text-[10px] font-semibold rounded flex-shrink-0">
                       대화/자막
                     </span>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-0.5">
-                    {dlg.start_time.toFixed(1)}s - {(dlg.start_time + dlg.duration).toFixed(1)}s
                   </div>
                 </div>
               );
