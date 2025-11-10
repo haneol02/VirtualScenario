@@ -554,7 +554,7 @@ export default function BackgroundMapEditor() {
 
       {/* Create Map Dialog */}
       {showCreateMapDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000]">
           <div className="bg-gray-800 rounded-lg p-6 w-96">
             <h3 className="text-xl font-bold mb-4">새 배경 맵 만들기</h3>
 
@@ -648,7 +648,7 @@ function AddObjectDialog({ onClose, onAdd }: {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000]">
       <div className="bg-gray-800 rounded-lg p-6 w-96">
         <h3 className="text-xl font-bold mb-4">오브젝트 추가</h3>
 
