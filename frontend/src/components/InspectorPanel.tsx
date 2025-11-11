@@ -310,6 +310,16 @@ export default function InspectorPanel({
       try {
         const keyframes: PathKeyframe[] = JSON.parse(selectedObject.path_data);
         if (keyframes && keyframes.length > 0) {
+          // Check for exact match first (with tolerance) to ensure we get the right keyframe
+          const tolerance = 0.01;
+          const exactMatch = keyframes.find(kf => Math.abs(kf.time - currentTime) < tolerance);
+          if (exactMatch) {
+            return {
+              visible: exactMatch.visible !== undefined ? exactMatch.visible : 1,
+              showNametag: exactMatch.show_nametag !== undefined ? exactMatch.show_nametag : 1
+            };
+          }
+
           // Find prevKeyframe at currentTime
           let prevKeyframe = keyframes[0];
 
