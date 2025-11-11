@@ -1894,7 +1894,7 @@ export default function SceneEditor() {
                                 👤 {speaker.name}
                               </span>
                             )}
-                            <p className="text-sm">{dlg.text}</p>
+                            <p className="text-sm whitespace-pre-line">{dlg.text}</p>
                           </div>
                           <button
                             onClick={() => handleDeleteDialogue(dlg.id)}
