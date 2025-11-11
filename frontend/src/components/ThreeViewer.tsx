@@ -324,23 +324,32 @@ function SceneObjectMesh({
         if (keyframes && keyframes.length > 0) {
           // HAS KEYFRAMES: Use currentTime to determine values
 
-          // Find surrounding keyframes
+          // Check for exact match first (with tolerance) to ensure currentKeyframe is applied at its time
+          const tolerance = 0.01;
+          const exactMatch = keyframes.find(kf => Math.abs(kf.time - currentTime) < tolerance);
+
           let prevKeyframe = keyframes[0];
           let nextKeyframe = keyframes[keyframes.length - 1];
 
-          for (let i = 0; i < keyframes.length - 1; i++) {
-            if (keyframes[i].time <= currentTime && keyframes[i + 1].time >= currentTime) {
-              prevKeyframe = keyframes[i];
-              nextKeyframe = keyframes[i + 1];
-              break;
+          if (exactMatch) {
+            // At exact keyframe position: use that keyframe for both prev and next (t=0)
+            prevKeyframe = nextKeyframe = exactMatch;
+          } else {
+            // Find surrounding keyframes
+            for (let i = 0; i < keyframes.length - 1; i++) {
+              if (keyframes[i].time < currentTime && keyframes[i + 1].time > currentTime) {
+                prevKeyframe = keyframes[i];
+                nextKeyframe = keyframes[i + 1];
+                break;
+              }
             }
-          }
 
-          // If before first keyframe or after last keyframe, use that keyframe
-          if (currentTime <= keyframes[0].time) {
-            prevKeyframe = nextKeyframe = keyframes[0];
-          } else if (currentTime >= keyframes[keyframes.length - 1].time) {
-            prevKeyframe = nextKeyframe = keyframes[keyframes.length - 1];
+            // If before first keyframe or after last keyframe, use that keyframe
+            if (currentTime <= keyframes[0].time) {
+              prevKeyframe = nextKeyframe = keyframes[0];
+            } else if (currentTime >= keyframes[keyframes.length - 1].time) {
+              prevKeyframe = nextKeyframe = keyframes[keyframes.length - 1];
+            }
           }
 
           // Linear interpolation (lerp) for position and rotation
