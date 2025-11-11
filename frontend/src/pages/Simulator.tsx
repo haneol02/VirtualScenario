@@ -382,7 +382,7 @@ export default function Simulator() {
                               {speaker}
                             </div>
                           )}
-                          <div className="text-white text-lg">{dlg.text}</div>
+                          <div className="text-white text-lg whitespace-pre-line">{dlg.text}</div>
                         </div>
                       );
                     })}
