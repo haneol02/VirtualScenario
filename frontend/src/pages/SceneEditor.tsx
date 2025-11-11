@@ -1481,6 +1481,7 @@ export default function SceneEditor() {
                     assets={assets}
                     currentTime={currentTime}
                     isPlaying={isPlaying}
+                    objectType="scene"
                     onUpdate={async () => {
                       await handleSelectScene(selectedScene);
                       await loadAssets();
