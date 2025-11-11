@@ -360,7 +360,7 @@ export default function InspectorPanel({
         // Scene objects: use keyframe system
         if (onUpdateVisibility) {
           const currentValues = getCurrentVisibilityValues();
-          onUpdateVisibility(selectedObject.id, currentValues.visible, checked ? 1 : 0);
+          await onUpdateVisibility(selectedObject.id, currentValues.visible, checked ? 1 : 0);
         }
       }
     } catch (error) {
@@ -386,7 +386,7 @@ export default function InspectorPanel({
         // Scene objects: use keyframe system
         if (onUpdateVisibility) {
           const currentValues = getCurrentVisibilityValues();
-          onUpdateVisibility(selectedObject.id, checked ? 1 : 0, currentValues.showNametag);
+          await onUpdateVisibility(selectedObject.id, checked ? 1 : 0, currentValues.showNametag);
         }
       }
     } catch (error) {
