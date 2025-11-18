@@ -229,6 +229,15 @@ export default function Dashboard() {
                   >
                     재생
                   </button>
+                  <button
+                    onClick={() => {
+                      window.open(`http://localhost:3001/api/projects/${project.id}/export-excel`, '_blank');
+                    }}
+                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded text-sm font-medium transition-colors"
+                    title="엑셀 파일로 다운로드"
+                  >
+                    내보내기
+                  </button>
                 </div>
               </div>
             ))}

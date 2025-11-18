@@ -801,6 +801,7 @@ export class DatabaseManager {
       const dialogues = this.getDialogues(scene.id).map((dlg: any) => ({
         id: dlg.id,
         characterId: dlg.object_id,
+        speakerName: dlg.speaker_name,
         text: dlg.text,
         startTime: dlg.start_time,
         duration: dlg.duration,
