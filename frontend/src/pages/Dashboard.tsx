@@ -231,7 +231,9 @@ export default function Dashboard() {
                   </button>
                   <button
                     onClick={() => {
-                      window.open(`http://localhost:3001/api/projects/${project.id}/export-excel`, '_blank');
+                      const protocol = window.location.protocol;
+                      const hostname = window.location.hostname;
+                      window.open(`${protocol}//${hostname}:3001/api/projects/${project.id}/export-excel`, '_blank');
                     }}
                     className="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded text-sm font-medium transition-colors"
                     title="엑셀 파일로 다운로드"

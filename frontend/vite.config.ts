@@ -15,5 +15,6 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    host: true, // 또는 host: '0.0.0.0'
   },
 });
