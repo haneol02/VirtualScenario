@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS background_maps (
   description TEXT,
   icon TEXT,
   background_image_path TEXT,  -- 바닥에 깔릴 이미지/지도 경로
+  grid_size TEXT DEFAULT '{"width": 20, "depth": 20}',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -35,6 +36,8 @@ CREATE TABLE IF NOT EXISTS background_objects (
   model_id TEXT,
   color TEXT DEFAULT '#6b7280',  -- HEX 색상 코드
   show_nametag INTEGER DEFAULT 1,  -- 네임태그 표시 여부 (1=표시, 0=숨김)
+  visible INTEGER DEFAULT 1,
+  locked INTEGER DEFAULT 0,
   position_x REAL NOT NULL DEFAULT 0,
   position_y REAL NOT NULL DEFAULT 0,
   position_z REAL NOT NULL DEFAULT 0,
@@ -57,6 +60,7 @@ CREATE TABLE IF NOT EXISTS scenes (
   title TEXT NOT NULL,
   description TEXT,
   participant_count INTEGER,
+  duration REAL NOT NULL DEFAULT 30,
   background_map_id TEXT,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -73,6 +77,8 @@ CREATE TABLE IF NOT EXISTS scene_objects (
   model_id TEXT,
   color TEXT DEFAULT '#6b7280',  -- HEX 색상 코드
   show_nametag INTEGER DEFAULT 1,  -- 네임태그 표시 여부 (1=표시, 0=숨김)
+  visible INTEGER DEFAULT 1,
+  locked INTEGER DEFAULT 0,
   position_x REAL NOT NULL DEFAULT 0,
   position_y REAL NOT NULL DEFAULT 0,
   position_z REAL NOT NULL DEFAULT 0,
@@ -84,6 +90,7 @@ CREATE TABLE IF NOT EXISTS scene_objects (
   scale_z REAL NOT NULL DEFAULT 1.0,
   path_data TEXT,
   metadata TEXT,
+  order_index INTEGER DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (scene_id) REFERENCES scenes(id) ON DELETE CASCADE
 );
@@ -99,6 +106,7 @@ CREATE TABLE IF NOT EXISTS dialogues (
   duration REAL NOT NULL,
   audio_path TEXT,
   order_index INTEGER NOT NULL DEFAULT 0,
+  layer_index INTEGER DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (scene_id) REFERENCES scenes(id) ON DELETE CASCADE,
   FOREIGN KEY (object_id) REFERENCES scene_objects(id) ON DELETE SET NULL

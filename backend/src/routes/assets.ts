@@ -5,72 +5,84 @@ import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { DatabaseManager } from '../database';
 
-// Configure multer storage for models
-const modelStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '../../uploads/models'));
-  },
-  filename: (req, file, cb) => {
-    const uniqueId = uuidv4();
-    const ext = path.extname(file.originalname);
-    cb(null, `${uniqueId}${ext}`);
-  }
-});
-
-// Configure multer storage for images
-const imageStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '../../uploads/images'));
-  },
-  filename: (req, file, cb) => {
-    const uniqueId = uuidv4();
-    const ext = path.extname(file.originalname);
-    cb(null, `${uniqueId}${ext}`);
-  }
-});
-
-// File filter for 3D models
-const modelFilter = (req: any, file: any, cb: any) => {
-  const allowedFormats = ['.glb', '.gltf', '.obj', '.fbx'];
-  const ext = path.extname(file.originalname).toLowerCase();
-
-  if (allowedFormats.includes(ext)) {
-    cb(null, true);
-  } else {
-    cb(new Error(`Invalid file format. Allowed: ${allowedFormats.join(', ')}`));
-  }
-};
-
-// File filter for images
-const imageFilter = (req: any, file: any, cb: any) => {
-  const allowedFormats = ['.png', '.jpg', '.jpeg'];
-  const ext = path.extname(file.originalname).toLowerCase();
-
-  if (allowedFormats.includes(ext)) {
-    cb(null, true);
-  } else {
-    cb(new Error(`Invalid file format. Allowed: ${allowedFormats.join(', ')}`));
-  }
-};
-
-const uploadModel = multer({
-  storage: modelStorage,
-  fileFilter: modelFilter,
-  limits: {
-    fileSize: 500 * 1024 * 1024 // 500MB max
-  }
-});
-
-const uploadImage = multer({
-  storage: imageStorage,
-  fileFilter: imageFilter,
-  limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB max
-  }
-});
-
-export function createAssetsRouter(db: DatabaseManager) {
+export function createAssetsRouter(db: DatabaseManager, uploadsBaseDir?: string) {
   const router = express.Router();
+  const baseDir = uploadsBaseDir || path.join(__dirname, '../../uploads');
+
+  const ensureDirs = (...segments: string[]) => {
+    const fullPath = path.join(...segments);
+    if (!fs.existsSync(fullPath)) {
+      fs.mkdirSync(fullPath, { recursive: true });
+    }
+    return fullPath;
+  };
+
+  const modelsPath = ensureDirs(baseDir, 'models');
+  const imagesPath = ensureDirs(baseDir, 'images');
+
+  // File filter for 3D models
+  const modelFilter = (req: any, file: any, cb: any) => {
+    const allowedFormats = ['.glb', '.gltf', '.obj', '.fbx'];
+    const ext = path.extname(file.originalname).toLowerCase();
+
+    if (allowedFormats.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Invalid file format. Allowed: ${allowedFormats.join(', ')}`));
+    }
+  };
+
+  // File filter for images
+  const imageFilter = (req: any, file: any, cb: any) => {
+    const allowedFormats = ['.png', '.jpg', '.jpeg'];
+    const ext = path.extname(file.originalname).toLowerCase();
+
+    if (allowedFormats.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Invalid file format. Allowed: ${allowedFormats.join(', ')}`));
+    }
+  };
+
+  // Configure multer storage for models
+  const modelStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, modelsPath);
+    },
+    filename: (req, file, cb) => {
+      const uniqueId = uuidv4();
+      const ext = path.extname(file.originalname);
+      cb(null, `${uniqueId}${ext}`);
+    }
+  });
+
+  // Configure multer storage for images
+  const imageStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, imagesPath);
+    },
+    filename: (req, file, cb) => {
+      const uniqueId = uuidv4();
+      const ext = path.extname(file.originalname);
+      cb(null, `${uniqueId}${ext}`);
+    }
+  });
+
+  const uploadModel = multer({
+    storage: modelStorage,
+    fileFilter: modelFilter,
+    limits: {
+      fileSize: 500 * 1024 * 1024 // 500MB max
+    }
+  });
+
+  const uploadImage = multer({
+    storage: imageStorage,
+    fileFilter: imageFilter,
+    limits: {
+      fileSize: 10 * 1024 * 1024 // 10MB max
+    }
+  });
 
   // Get all assets
   router.get('/', (req, res) => {

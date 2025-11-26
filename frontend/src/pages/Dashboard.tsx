@@ -297,11 +297,9 @@ export default function Dashboard() {
           <div>
             <span className="font-semibold">VirtualScenario</span>
             <span className="mx-2">•</span>
-            <span>v0.1.0</span>
+            <span>v1.0.0</span>
           </div>
-          <div>
-            동아대학교 AI학과
-          </div>
+          <div>문의 : gksdjf051@gmail.com</div>
         </div>
       </footer>
     </div>

@@ -9,6 +9,11 @@ const getApiBaseUrl = () => {
     return import.meta.env.VITE_API_URL;
   }
 
+  // Detect Electron environment (file:// protocol)
+  if (window.location.protocol === 'file:') {
+    return 'http://localhost:3001/api';
+  }
+
   // Use current hostname with port 3001
   const hostname = window.location.hostname;
   const protocol = window.location.protocol;

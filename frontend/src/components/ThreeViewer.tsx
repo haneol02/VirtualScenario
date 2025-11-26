@@ -438,6 +438,15 @@ function SceneObjectMesh({
   };
 
   const color = getColor();
+  const buildAssetUrl = (filePath: string) => {
+    if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+      return filePath;
+    }
+    const protocol = window.location.protocol === 'file:' ? 'http:' : window.location.protocol;
+    const host = window.location.hostname || 'localhost';
+    const port = 3001;
+    return `${protocol}//${host}:${port}${filePath}`;
+  };
 
   // Check asset types
   const is3DModel = asset?.type === 'model' && asset.file_path && asset.file_format;
@@ -538,7 +547,7 @@ function SceneObjectMesh({
           <ErrorBoundary FallbackComponent={() => <ImageFallback meshRef={meshRef} initialTransform={initialTransform} obj={obj} />}>
             <ImagePlane
               meshRef={meshRef}
-              imagePath={`${window.location.protocol}//${window.location.hostname}:3001${asset.file_path}`}
+              imagePath={buildAssetUrl(asset.file_path!)}
               initialTransform={initialTransform}
               isSelected={isSelected}
               onSelect={onSelect}

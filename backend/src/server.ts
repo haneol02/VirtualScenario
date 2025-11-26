@@ -9,10 +9,16 @@ import { createBackgroundMapsRouter } from './routes/backgroundMaps';
 import { createAssetsRouter } from './routes/assets';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = Number(process.env.PORT) || 3001;
+
+// Determine base directory (for Electron, use app data folder)
+const isElectron = process.env.ELECTRON_RUN_AS_NODE || process.versions.electron;
+const baseDir = isElectron
+  ? path.join(process.env.APPDATA || process.env.HOME || __dirname, 'VirtualScenario')
+  : __dirname;
 
 // Ensure upload directories exist
-const uploadsDir = path.join(__dirname, '../uploads');
+const uploadsDir = path.join(baseDir, 'uploads');
 const modelsDir = path.join(uploadsDir, 'models');
 const imagesDir = path.join(uploadsDir, 'images');
 
@@ -31,16 +37,19 @@ app.use(cors({
 app.use(express.json());
 
 // Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/uploads', express.static(uploadsDir));
 
-// Initialize database
-const db = new DatabaseManager();
+// Initialize database (use app data folder in Electron)
+const dbPath = isElectron
+  ? path.join(baseDir, 'data', 'scenario.db')
+  : undefined; // Will use default path
+const db = new DatabaseManager(dbPath);
 
 // Routes
 app.use('/api/projects', createProjectsRouter(db));
 app.use('/api/scenes', createScenesRouter(db));
 app.use('/api/background-maps', createBackgroundMapsRouter(db));
-app.use('/api/assets', createAssetsRouter(db));
+app.use('/api/assets', createAssetsRouter(db, uploadsDir));
 
 // Health check
 app.get('/api/health', (req, res) => {

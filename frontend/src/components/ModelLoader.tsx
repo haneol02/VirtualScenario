@@ -11,6 +11,18 @@ interface ModelLoaderProps {
   color?: string;
 }
 
+function buildAssetUrl(filePath: string) {
+  // Keep absolute URLs as-is
+  if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+    return filePath;
+  }
+
+  const protocol = window.location.protocol === 'file:' ? 'http:' : window.location.protocol;
+  const host = window.location.hostname || 'localhost';
+  const port = 3001;
+  return `${protocol}//${host}:${port}${filePath}`;
+}
+
 // Loading Fallback Component
 function LoadingFallback({ position = [0, 0, 0] }: { position?: [number, number, number] }) {
   return (
@@ -28,8 +40,7 @@ function LoadingFallback({ position = [0, 0, 0] }: { position?: [number, number,
 
 // GLB/GLTF Loader Component
 function GLTFModelLoader({ filePath, color }: { filePath: string; color?: string }) {
-  // Use dynamic hostname
-  const apiUrl = `${window.location.protocol}//${window.location.hostname}:3001${filePath}`;
+  const apiUrl = buildAssetUrl(filePath);
   const { scene } = useGLTF(apiUrl, true); // Enable Draco compression support
   const clonedScene = scene.clone();
 
@@ -53,8 +64,7 @@ function GLTFModelLoader({ filePath, color }: { filePath: string; color?: string
 
 // OBJ Loader Component
 function OBJModelLoader({ filePath, color }: { filePath: string; color?: string }) {
-  // Use dynamic hostname
-  const apiUrl = `${window.location.protocol}//${window.location.hostname}:3001${filePath}`;
+  const apiUrl = buildAssetUrl(filePath);
   const obj = useLoader(OBJLoader, apiUrl);
   const clonedObj = obj.clone();
 
@@ -75,8 +85,7 @@ function OBJModelLoader({ filePath, color }: { filePath: string; color?: string 
 
 // FBX Loader Component
 function FBXModelLoader({ filePath, color }: { filePath: string; color?: string }) {
-  // Use dynamic hostname
-  const apiUrl = `${window.location.protocol}//${window.location.hostname}:3001${filePath}`;
+  const apiUrl = buildAssetUrl(filePath);
   const fbx = useLoader(FBXLoader, apiUrl);
   const clonedFbx = fbx.clone();
 

@@ -13,7 +13,17 @@
       "Bash(npx tsx:*)",
       "Bash(netstat:*)",
       "Bash(sqlite3:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(if not exist assets mkdir assets)",
+      "Bash(mkdir:*)",
+      "Bash(npm run package:win:*)",
+      "Bash(npm run build:all:*)",
+      "Bash(electron-builder:*)",
+      "Bash(npx electron-builder:*)",
+      "Bash(npx asar list:*)",
+      "Bash(cmd /c:*)",
+      "Bash(npx electron-rebuild:*)",
+      "Read(//c/Users/Haneol/AppData/Roaming/virtual-scenario-backend/**)"
     ],
     "deny": [],
     "ask": []

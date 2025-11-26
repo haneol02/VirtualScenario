@@ -14,7 +14,10 @@ export default function UserGuideModal({ isOpen, onClose }: UserGuideModalProps)
 
   useEffect(() => {
     if (isOpen) {
-      fetch('/USER_GUIDE.md')
+      setLoading(true);
+      const guideUrl = new URL('./USER_GUIDE.md', window.location.href).toString();
+
+      fetch(guideUrl)
         .then((res) => res.text())
         .then((text) => {
           setContent(text);
