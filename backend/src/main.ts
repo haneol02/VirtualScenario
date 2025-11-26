@@ -70,6 +70,13 @@ function logToRenderer(message: string) {
 }
 
 function createWindow() {
+  // Prefer ICO on Windows, but gracefully fall back to PNG if ICO is missing
+  const assetBase = app.isPackaged ? path.join(process.resourcesPath, 'assets') : path.join(__dirname, '../assets');
+  const iconCandidates = process.platform === 'win32'
+    ? [path.join(assetBase, 'Icon.ico'), path.join(assetBase, 'Icon.png')]
+    : [path.join(assetBase, 'Icon.png')];
+  const iconPath = iconCandidates.find(p => fs.existsSync(p));
+
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -84,7 +91,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
     },
     title: 'VirtualScenario - 코레일 안전교육 시나리오 에디터',
-    icon: path.join(__dirname, '../../assets/icon.png'), // Optional: add app icon
+    icon: iconPath, // Optional: add app icon
   });
 
   // Load frontend

@@ -47,6 +47,7 @@
     "files": [
       "dist/**/*",
       "../frontend/dist/**/*",
+      "assets/**/*",
       "database/**/*",
       "package.json"
     ],
@@ -83,7 +84,8 @@
     "win": {
       "target": [
         "nsis"
-      ]
+      ],
+      "icon": "assets/Icon.ico"
     },
     "mac": {
       "target": [
@@ -97,7 +99,7 @@
         "AppImage",
         "deb"
       ],
-      "icon": "assets/icon.png",
+      "icon": "assets/Icon.png",
       "category": "Education"
     },
     "nsis": {

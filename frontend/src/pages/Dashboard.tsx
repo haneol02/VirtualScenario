@@ -13,6 +13,12 @@ export default function Dashboard() {
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [editingProjectTitle, setEditingProjectTitle] = useState('');
 
+  const getApiBase = () => {
+    const protocol = window.location.protocol === 'file:' ? 'http:' : window.location.protocol;
+    const hostname = window.location.hostname || 'localhost';
+    return `${protocol}//${hostname}:3001/api`;
+  };
+
   useEffect(() => {
     loadProjects();
   }, []);
@@ -231,9 +237,8 @@ export default function Dashboard() {
                   </button>
                   <button
                     onClick={() => {
-                      const protocol = window.location.protocol;
-                      const hostname = window.location.hostname;
-                      window.open(`${protocol}//${hostname}:3001/api/projects/${project.id}/export-excel`, '_blank');
+                      const apiBase = getApiBase();
+                      window.open(`${apiBase}/projects/${project.id}/export-excel`, '_blank');
                     }}
                     className="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded text-sm font-medium transition-colors"
                     title="엑셀 파일로 다운로드"
