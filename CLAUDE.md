@@ -743,4 +743,14 @@ Phase 6:   추가 개선사항 (선택)         [░░░░░░░░░░�
 
 ---
 
+## Electron 패키징 백엔드 실행 메모 (2025-12-01)
+- 원인: `better-sqlite3` 바이너리가 Node ABI 115로 깔려 Electron 33(Node ABI 130)에서 실패 → 백엔드 서버 미기동.
+- 패키징 전 윈도우(x64) 기준 절차:
+  1) `cd backend`
+  2) `npm install better-sqlite3@11.10.0` (C++ 빌드 도구/파이썬 필요)
+  3) `npm run rebuild:native` (`electron-builder install-app-deps --platform=win32 --arch=x64 --version=33.4.11`)
+  4) `npm run package` (또는 `npm run package:win`)
+- `backend/package.json`에 `asarUnpack`으로 `better-sqlite3/sqlite3` 포함, `node_modules` 포함 설정 있음.
+- 성공 여부는 `%APPDATA%/virtual-scenario-backend/app.log`에서 백엔드 기동 로그 확인.
+
 마지막 업데이트: 2025-11-08 01:00

@@ -11,10 +11,11 @@
     "start": "node dist/server.js",
     "electron": "electron .",
     "electron:dev": "NODE_ENV=development electron .",
-    "package": "npm run build:all && electron-builder",
-    "package:win": "npm run build:all && electron-builder --win",
-    "package:mac": "npm run build:all && electron-builder --mac",
-    "package:linux": "npm run build:all && electron-builder --linux"
+    "rebuild:native": "electron-builder install-app-deps --platform=win32 --arch=x64 --version=33.4.11",
+    "package": "npm run build:all && npm run rebuild:native && electron-builder",
+    "package:win": "npm run build:all && npm run rebuild:native && electron-builder --win",
+    "package:mac": "npm run build:all && npm run rebuild:native && electron-builder --mac",
+    "package:linux": "npm run build:all && npm run rebuild:native && electron-builder --linux"
   },
   "dependencies": {
     "@types/multer": "^2.0.0",
@@ -40,11 +41,17 @@
   "build": {
     "appId": "com.dongauniv.virtualscenario",
     "productName": "VirtualScenario",
+    "electronVersion": "33.4.11",
     "directories": {
       "output": "release",
       "buildResources": "assets"
     },
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**/*",
+      "node_modules/sqlite3/**/*"
+    ],
     "files": [
+      "node_modules/**/*",
       "dist/**/*",
       "../frontend/dist/**/*",
       "assets/**/*",
