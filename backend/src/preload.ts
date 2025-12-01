@@ -8,5 +8,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const handler = (_: any, state: { isMaximized: boolean }) => callback(state);
     ipcRenderer.on('window-state', handler);
     return () => ipcRenderer.removeListener('window-state', handler);
+  },
+  exportVideo: (webmBuffer: Uint8Array) => {
+    return ipcRenderer.invoke('export-video', { webmBuffer });
   }
 });

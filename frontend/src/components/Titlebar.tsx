@@ -2,15 +2,6 @@ import { useEffect, useState } from 'react';
 
 type WindowState = { isMaximized: boolean };
 
-declare global {
-  interface Window {
-    electronAPI?: {
-      windowControl: (action: 'minimize' | 'maximize' | 'close') => void;
-      onWindowState?: (callback: (state: WindowState) => void) => () => void;
-    };
-  }
-}
-
 export default function Titlebar() {
   const [isMaximized, setIsMaximized] = useState(false);
 

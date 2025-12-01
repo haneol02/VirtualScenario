@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { BackgroundMap, BackgroundObject, backgroundMapsAPI, Asset, assetsAPI } from '../lib/api';
 import ThreeViewer, { ThreeViewerHandle } from '../components/ThreeViewer';
 import { useUndoRedo } from '../hooks/useUndoRedo';
@@ -9,7 +9,20 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 export default function BackgroundMapEditor() {
   const navigate = useNavigate();
+  const location = useLocation();
   const threeViewerRef = useRef<ThreeViewerHandle>(null);
+  const navigationState = (location.state || null) as {
+    from?: string;
+    projectId?: string;
+    returnTo?: string;
+  } | null;
+  const backTarget =
+    navigationState?.returnTo ||
+    (navigationState?.from === 'scene-editor' && navigationState.projectId
+      ? `/editor/${navigationState.projectId}`
+      : '/');
+  const backLabel =
+    navigationState?.from === 'scene-editor' ? '← 시나리오 편집으로' : '← 대시보드';
 
   const [backgroundMaps, setBackgroundMaps] = useState<BackgroundMap[]>([]);
   const [selectedMap, setSelectedMap] = useState<BackgroundMap | null>(null);
@@ -428,10 +441,10 @@ export default function BackgroundMapEditor() {
           <aside className="h-full bg-gray-800 border-r border-gray-700 flex flex-col">
             <div className="p-4 border-b border-gray-700">
               <button
-                onClick={() => navigate('/')}
+                onClick={() => navigate(backTarget)}
                 className="text-blue-400 hover:text-blue-300 mb-2 text-sm"
               >
-                ← 대시보드
+                {backLabel}
               </button>
               <h2 className="text-xl font-bold">배경 맵 관리</h2>
             </div>

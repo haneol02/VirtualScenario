@@ -743,6 +743,19 @@ Phase 6:   추가 개선사항 (선택)         [░░░░░░░░░░�
 
 ---
 
+## 버전 변경 체크리스트 (빌드/문서)
+- 설치 파일명(`VirtualScenario Setup x.y.z`)은 `backend/package.json`의 `version`을 따라가므로 릴리스 전 숫자 갱신.
+- 워크스페이스 루트 버전(`package.json`의 `version`)도 같은 버전으로 맞춰 관리.
+- 앱/문서 노출 버전 갱신 위치:
+  - `backend/src/main.ts`: 도움말 > "VirtualScenario 정보" 대화상자 문자열 `VirtualScenario v1.1.0`
+  - `frontend/src/pages/Dashboard.tsx`: 푸터에 노출되는 `v1.1.0`
+  - `frontend/public/USER_GUIDE.md`: "현재 버전" 표시
+  - `docs/PROJECT_DOCUMENTATION.md`: Dashboard 프로젝트 생성 섹션의 기본값 `"1.1.0"`
+  - `docs/INCOMPLETE_FEATURES.md`: JSON 예시의 `"version": "1.1.0"`
+- 버전 갱신 후 `rg "1\\.1\\.0"` / `rg "v1\\.1\\.0"`로 잔여 문자열이 없는지 확인.
+
+---
+
 ## Electron 패키징 백엔드 실행 메모 (2025-12-01)
 - 원인: `better-sqlite3` 바이너리가 Node ABI 115로 깔려 Electron 33(Node ABI 130)에서 실패 → 백엔드 서버 미기동.
 - 패키징 전 윈도우(x64) 기준 절차:
@@ -753,4 +766,4 @@ Phase 6:   추가 개선사항 (선택)         [░░░░░░░░░░�
 - `backend/package.json`에 `asarUnpack`으로 `better-sqlite3/sqlite3` 포함, `node_modules` 포함 설정 있음.
 - 성공 여부는 `%APPDATA%/virtual-scenario-backend/app.log`에서 백엔드 기동 로그 확인.
 
-마지막 업데이트: 2025-11-08 01:00
+마지막 업데이트: 2025-12-02 01:00

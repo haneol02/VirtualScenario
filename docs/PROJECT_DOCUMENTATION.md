@@ -1,7 +1,7 @@
 # VirtualScenario - 코레일 안전교육 시나리오 에디터 & 3D 시뮬레이터
 
 ![Project Status](https://img.shields.io/badge/Status-Phase%202%20Complete-success)
-![Version](https://img.shields.io/badge/Version-0.4.0-blue)
+![Version](https://img.shields.io/badge/Version-1.1.0-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
 ---
@@ -53,6 +53,7 @@
 - **🔄 Undo/Redo**: 모든 편집 작업을 실행 취소/다시 실행 (최대 50단계)
 - **🏷️ 네임태그 시스템**: 3D 공간에서 오브젝트 이름 실시간 표시
 - **🎮 시뮬레이터**: 재생 컨트롤, 타임라인, 자막 시스템 완비
+- **📹 영상 내보내기 (MP4)**: 시나리오 재생을 녹화해 MP4 파일로 저장 (Electron)
 - **🎨 6가지 프리미티브**: Box, Sphere, Cylinder, Cone, Plane, Torus
 - **🎨 색상 커스터마이징**: HEX Color Picker로 오브젝트 색상 자유 변경
 - **📦 RESTful API**: Frontend/Backend 완전 분리 구조
@@ -574,7 +575,7 @@ VirtualScenario는 4개의 핵심 페이지로 구성되어 있으며, 각 페�
 - 입력 항목:
   - 제목 (필수)
   - 설명 (선택)
-  - 버전 (기본값: "1.0.0")
+  - 버전 (기본값: "1.1.0")
 
 ##### 1.3 프로젝트 편집
 - ✏️ 아이콘 클릭으로 Scene Editor 진입
@@ -1634,6 +1635,13 @@ npm run package
 2. 재생 컨트롤로 시나리오 재생
 3. 속도 조절 (0.5x/1x/2x)
 
+#### 7. 영상 내보내기 (MP4)
+
+1. Electron 앱 실행 (`npm run electron` 또는 패키지)
+2. 시뮬레이터 우측 상단 **"📹 MP4 내보내기"** 클릭
+3. 캔버스 로드 후 자동 녹화 → 시나리오 종료 시 저장 위치 선택 → MP4 변환 완료
+- 브라우저 개발 서버에서는 MP4 내보내기를 지원하지 않습니다.
+
 ---
 
 ### 키보드 단축키
@@ -1951,7 +1959,7 @@ Copyright (c) 2025 동아대학교 AI학과
 
 ---
 
-**마지막 업데이트**: 2025-11-10
+**마지막 업데이트**: 2025-12-02
 
 ---
 

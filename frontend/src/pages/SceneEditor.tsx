@@ -233,6 +233,20 @@ export default function SceneEditor() {
     }
   };
 
+  const handleOpenBackgroundEditor = () => {
+    if (projectId) {
+      navigate('/background-maps', {
+        state: {
+          from: 'scene-editor',
+          projectId,
+          returnTo: `/editor/${projectId}`,
+        },
+      });
+    } else {
+      navigate('/background-maps');
+    }
+  };
+
   const handleCreateScene = async () => {
     if (!newSceneTitle.trim() || !projectId) return;
 
@@ -1184,7 +1198,7 @@ export default function SceneEditor() {
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-lg font-semibold">배경 맵 선택</h3>
                   <button
-                    onClick={() => navigate('/background-maps')}
+                    onClick={handleOpenBackgroundEditor}
                     className="text-xs text-blue-400 hover:text-blue-300"
                   >
                     관리 →
@@ -1259,7 +1273,7 @@ export default function SceneEditor() {
                       <p className="text-4xl mb-2">🗺️</p>
                       <p className="text-sm">배경 맵이 없습니다</p>
                       <button
-                        onClick={() => navigate('/background-maps')}
+                        onClick={handleOpenBackgroundEditor}
                         className="mt-2 text-xs text-blue-400 hover:text-blue-300"
                       >
                         배경 맵 만들기 →

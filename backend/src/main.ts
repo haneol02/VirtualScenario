@@ -1,6 +1,8 @@
-import { app, BrowserWindow, Menu, shell, ipcMain } from 'electron';
+import { app, BrowserWindow, Menu, shell, ipcMain, dialog } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
+import { spawn } from 'child_process';
+import ffmpegStatic from 'ffmpeg-static';
 
 let mainWindow: BrowserWindow | null = null;
 let httpServer: any = null;
@@ -14,6 +16,60 @@ function log(message: string) {
   const logMessage = `[${timestamp}] ${message}\n`;
   logStream.write(logMessage);
   console.log(message);
+}
+
+// Try to locate ffmpeg binary (prefer bundled ffmpeg-static)
+function resolveFfmpegPath(): string | null {
+  const staticPath = ffmpegStatic ? ffmpegStatic.replace('app.asar', 'app.asar.unpacked') : null;
+  if (staticPath && fs.existsSync(staticPath)) {
+    return staticPath;
+  }
+  // Fallback to system ffmpeg if available in PATH
+  return 'ffmpeg';
+}
+
+// Convert recorded WEBM into MP4 using ffmpeg
+function convertWebmToMp4(ffmpegPath: string, inputPath: string, outputPath: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const ffmpeg = spawn(ffmpegPath, [
+      '-y',
+      '-i',
+      inputPath,
+      '-c:v',
+      'libx264',
+      '-preset',
+      'veryfast',
+      '-crf',
+      '22',
+      '-pix_fmt',
+      'yuv420p',
+      '-c:a',
+      'aac',
+      outputPath,
+    ]);
+
+    let stderr = '';
+    ffmpeg.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    ffmpeg.on('error', (error) => {
+      reject(error);
+    });
+
+    ffmpeg.on('close', (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`ffmpeg exited with code ${code}: ${stderr}`));
+      }
+    });
+  });
+}
+
+function getDefaultExportFilePath() {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  return path.join(app.getPath('videos'), `VirtualScenario-${timestamp}.mp4`);
 }
 
 function copyFolderIfMissing(src: string, dest: string) {
@@ -249,7 +305,6 @@ async function startBackendServer() {
 
     // Show error dialog to user
     if (mainWindow) {
-      const { dialog } = require('electron');
       dialog.showErrorBox('Server Error', `Failed to start backend server:\n\n${error}`);
     }
   }
@@ -348,7 +403,7 @@ function createMenu() {
           label: 'VirtualScenario 정보',
           click: () => {
 const aboutMessage = `
-VirtualScenario v1.0.0
+VirtualScenario v1.1.0
 
 코레일 안전교육 시나리오 에디터 & 3D 시뮬레이터
 
@@ -356,7 +411,6 @@ VirtualScenario v1.0.0
             `.trim();
 
             if (mainWindow) {
-              const { dialog } = require('electron');
               dialog.showMessageBox(mainWindow, {
                 type: 'info',
                 title: 'VirtualScenario 정보',
@@ -431,6 +485,54 @@ app.on('before-quit', () => {
 
 app.on('will-quit', () => {
   stopBackendServer();
+});
+
+ipcMain.handle('export-video', async (_event, payload: { webmBuffer: Uint8Array }) => {
+  try {
+    const ffmpegPath = resolveFfmpegPath();
+    if (!ffmpegPath) {
+      return { canceled: false, error: 'ffmpeg 실행 파일을 찾을 수 없습니다. ffmpeg-static 또는 시스템 ffmpeg를 설치해주세요.' };
+    }
+
+    const saveOptions = {
+      title: '시나리오 영상을 MP4로 저장',
+      defaultPath: getDefaultExportFilePath(),
+      filters: [{ name: 'MP4 비디오', extensions: ['mp4'] }],
+    };
+    const { canceled, filePath } = mainWindow
+      ? await dialog.showSaveDialog(mainWindow, saveOptions)
+      : await dialog.showSaveDialog(saveOptions);
+
+    if (canceled || !filePath) {
+      return { canceled: true };
+    }
+
+    if (!payload?.webmBuffer || payload.webmBuffer.length === 0) {
+      return { canceled: false, error: '녹화 데이터가 비어 있습니다.' };
+    }
+
+    log(`🎞️ Received recorded buffer: ${payload.webmBuffer.length} bytes`);
+
+    const tempWebmPath = path.join(app.getPath('temp'), `virtualscenario-export-${Date.now()}.webm`);
+    fs.writeFileSync(tempWebmPath, Buffer.from(payload.webmBuffer));
+
+    try {
+      log(`🎬 Converting recorded WEBM to MP4 using ffmpeg at ${ffmpegPath}`);
+      await convertWebmToMp4(ffmpegPath, tempWebmPath, filePath);
+      log(`✅ Video exported to ${filePath}`);
+      return { canceled: false, filePath };
+    } catch (error) {
+      const message = (error as Error).message || '알 수 없는 오류가 발생했습니다.';
+      log(`❌ Failed to export video: ${message}`);
+      return { canceled: false, error: message };
+    } finally {
+      fs.existsSync(tempWebmPath) && fs.unlink(tempWebmPath, () => {});
+    }
+  } catch (error) {
+    const message = (error as Error).message || '알 수 없는 오류가 발생했습니다.';
+    log(`❌ Export video error: ${message}`);
+    return { canceled: false, error: message };
+  }
 });
 
 // IPC for custom titlebar controls

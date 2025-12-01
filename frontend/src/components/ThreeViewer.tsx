@@ -14,6 +14,7 @@ export interface ThreeViewerHandle {
     visible: number;
     show_nametag: number;
   } | null;
+  getCanvasElement: () => HTMLCanvasElement | null;
 }
 
 interface ThreeViewerProps {
@@ -952,6 +953,7 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
 }, ref) => {
   const [transformMode, setTransformMode] = useState<TransformMode>('translate');
   const objectRefs = useRef<Map<string, THREE.Mesh>>(new Map());
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Keyboard shortcuts for transform mode
   useEffect(() => {
@@ -1001,7 +1003,8 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
       };
 
       return result;
-    }
+    },
+    getCanvasElement: () => canvasRef.current
   }), [objects]);
 
   const handleTransformEnd = (objectId: string, transform: any) => {
@@ -1025,6 +1028,9 @@ const ThreeViewer = forwardRef<ThreeViewerHandle, ThreeViewerProps>(({
         camera={{ position: [10, 10, 10], fov: 50 }}
         shadows
         onPointerMissed={() => onObjectSelect?.(undefined as any)}
+        onCreated={(state) => {
+          canvasRef.current = state.gl.domElement;
+        }}
       >
         {/* 조명 */}
         <ambientLight intensity={0.5} />
