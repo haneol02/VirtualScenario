@@ -2,7 +2,7 @@
 
 ## 프로젝트 개요
 - **목적**: 코레일 안전교육 시나리오 에디터 & 3D 시뮬레이터
-- **아키텍처**: Frontend(React) + Backend(Express + SQLite) + Unity 시뮬레이터
+- **아키텍처**: Frontend(React) + Backend(Express + SQLite) + Electron 데스크톱 앱
 - **개발자**: 동아대 AI학과 3년차
 
 ---
@@ -56,11 +56,12 @@
 ### 🔨 진행 중 (0%)
 - 없음
 
-### ⏳ Phase 3-4 대기 중
-- Path 애니메이션 고급 기능 (타임라인 드래그, 커브 에디팅)
-- JSON Export (Unity 연동)
-- PDF/HWP 문서 생성
-- Electron 데스크톱 앱 패키징
+### ✅ Phase 3-4 완료 (100%)
+- ✅ Path 애니메이션 시스템 (키프레임 기반)
+- ✅ JSON Export (시나리오 데이터)
+- ✅ MP4 내보내기 (ffmpeg)
+- ✅ Excel 내보내기 (ExcelJS)
+- ✅ Electron 데스크톱 앱 패키징
 
 ---
 
@@ -87,9 +88,6 @@ VirtualScenario/
 │   ├── PROJECT_PLANNING_V2.md
 │   ├── PROJECT_STRUCTURE.md
 │   └── SUPABASE_SETUP.md (폐기)
-│
-├── electron-editor/       # (구버전, 폐기 예정)
-├── unity-simulator/       # Unity 프로젝트 (미래)
 │
 └── README.md
 ```
@@ -393,104 +391,36 @@ npm run build && npm run package
 
 ---
 
-### **Phase 4: Export & 문서화** (예상 소요: 1-2주)
+### **Phase 4: Export & 문서화** ✅ (완료)
 
-#### 4-1. JSON Export (Unity 연동) ⭐ 중요
-**목표**: Unity에서 Import 가능한 JSON 형식으로 내보내기
+#### 4-1. JSON Export ✅
+- ✅ `/api/projects/:id/export` API 구현
+- ✅ 전체 프로젝트 데이터 직렬화
+- ✅ Scene, Objects, Dialogues, Paths 포함
+- ✅ Frontend "Export" 버튼 및 다운로드
 
-**구현 항목**:
-1. **Export API**:
-   - `/api/projects/:id/export` 완성
-   - 전체 프로젝트 데이터 직렬화
-   - Scene, Objects, Dialogues, Paths 포함
+#### 4-2. MP4 영상 내보내기 ✅
+- ✅ 시뮬레이터 녹화 기능
+- ✅ ffmpeg를 통한 MP4 변환
+- ✅ Electron 환경에서 파일 저장
 
-2. **JSON 구조 설계**:
-```json
-{
-  "project": { "title": "...", "version": "..." },
-  "scenes": [
-    {
-      "id": "...",
-      "title": "...",
-      "backgroundMap": { ... },
-      "objects": [
-        {
-          "name": "...",
-          "type": "...",
-          "transform": { ... },
-          "pathData": [ ... ]
-        }
-      ],
-      "dialogues": [ ... ]
-    }
-  ]
-}
-```
-
-3. **Download 기능**:
-   - Frontend에서 "Export" 버튼 추가
-   - JSON 파일 다운로드
-
-**예상 작업량**: 2-3일
+#### 4-3. Excel 문서 생성 ✅
+- ✅ ExcelJS 통합
+- ✅ 프로젝트/씬/오브젝트/대화 정보 포함
+- ✅ Excel 파일 다운로드 기능
 
 ---
 
-#### 4-2. PDF 문서 생성
-**목표**: 교육 시나리오를 PDF 문서로 출력
+### **Phase 5: Electron 데스크톱 앱** ✅ (완료)
 
-**구현 항목**:
-1. **jsPDF 통합**:
-   - `npm install jspdf jspdf-autotable`
-   - PDF 템플릿 디자인
-
-2. **문서 내용**:
-   - 프로젝트 정보 (제목, 버전, 날짜)
-   - 씬별 섹션:
-     - 씬 제목, 설명
-     - 오브젝트 목록 (이름, 타입, 위치)
-     - 대화/자막 목록 (시간, 발화자, 내용)
-   - 3D 뷰 스크린샷 (선택)
-
-3. **Export 버튼**:
-   - Dashboard 또는 SceneEditor에 "PDF 다운로드" 버튼
-
-**예상 작업량**: 3-4일
-
----
-
-#### 4-3. HWP Export (선택, 낮은 우선순위)
-**목표**: 한글(HWP) 파일로 내보내기
-
-**구현 항목**:
-- DOCX 형식으로 먼저 구현 (docx 라이브러리)
-- 또는 PDF → HWP 변환 도구 활용
-
-**예상 작업량**: 2-3일
-
----
-
-### **Phase 5: Electron 데스크톱 앱** (예상 소요: 1주)
-
-#### 5-1. Electron 앱 구성 ⭐
-**목표**: 독립 실행 가능한 Windows 앱 제작
-
-**구현 항목**:
-1. **Electron 설정**:
-   - Backend 서버 자동 실행 (child_process)
-   - Frontend 로드 (BrowserWindow)
-   - 개발/프로덕션 모드 분기
-
-2. **메뉴바 & 단축키**:
-   - File: 새 프로젝트, 열기, 저장, 종료
-   - Edit: Undo, Redo
-   - View: 전체화면, 개발자 도구
-
-3. **빌드 & 패키징**:
-   - electron-builder 설정
-   - Windows installer (.exe) 생성
-   - 아이콘, 앱 이름 설정
-
-**예상 작업량**: 4-5일
+#### 5-1. Electron 앱 구성 ✅
+- ✅ Backend 서버 자동 실행
+- ✅ Frontend 로드 (BrowserWindow)
+- ✅ 개발/프로덕션 모드 분기
+- ✅ 메뉴바 & 단축키
+- ✅ electron-builder 설정
+- ✅ Windows installer (.exe) 생성
+- ✅ 아이콘, 앱 이름 설정
 
 ---
 
@@ -518,17 +448,17 @@ npm run build && npm run package
 
 ### **우선순위 요약**
 
-| 순위 | 작업 | 소요 시간 | 중요도 |
-|------|------|-----------|--------|
-| 1 | Path 애니메이션 시스템 | 5-7일 | ⭐⭐⭐ |
-| 2 | JSON Export (Unity 연동) | 2-3일 | ⭐⭐⭐ |
-| 3 | Electron 앱 패키징 | 4-5일 | ⭐⭐ |
-| 4 | PDF 문서 생성 | 3-4일 | ⭐⭐ |
-| 5 | 3D 모델 Import | 3-4일 | ⭐ |
-| 6 | 카메라 시스템 개선 | 2-3일 | ⭐ |
-| 7 | HWP Export | 2-3일 | ⭐ |
+| 순위 | 작업 | 상태 |
+|------|------|------|
+| 1 | Path 애니메이션 시스템 | ✅ 완료 |
+| 2 | JSON Export | ✅ 완료 |
+| 3 | MP4 내보내기 | ✅ 완료 |
+| 4 | Excel 내보내기 | ✅ 완료 |
+| 5 | Electron 앱 패키징 | ✅ 완료 |
+| 6 | 3D 모델 Import | ⏳ 선택사항 |
+| 7 | 카메라 시스템 개선 | ⏳ 선택사항 |
 
-**총 예상 소요 시간**: 3-5주
+**현재 상태**: 프로덕션 레벨 완성 ✅
 
 ---
 
@@ -718,14 +648,14 @@ npm run dev
 4. ✅ **고급 기능 완성**: 배경 맵, 네임태그, Undo/Redo, 시뮬레이터
 5. ✅ **UI/UX 최적화**: 토글 편집, 버튼 위치 개선
 
-### 다음 단계 (Phase 3-4): Path 애니메이션 & Export
+### 완료된 단계 (Phase 3-5): 100% ✅
 
-**최우선 작업**:
-1. 🎯 Path 애니메이션 시스템 (5-7일)
-2. 🎯 JSON Export for Unity (2-3일)
-3. 🎯 PDF 문서 생성 (3-4일)
+**완료된 작업**:
+1. ✅ Path 애니메이션 시스템 (키프레임 기반)
+2. ✅ JSON/MP4/Excel 내보내기
+3. ✅ Electron 데스크톱 앱 패키징
 
-**최종 목표**: 완전히 작동하는 시나리오 에디터 + Unity 연동 + Electron 데스크톱 앱
+**최종 상태**: 완전히 작동하는 시나리오 에디터 & 3D 시뮬레이터 & Electron 데스크톱 앱
 
 ---
 
@@ -733,12 +663,12 @@ npm run dev
 
 ```
 Phase 1-2: 기본 구조 & 3D 에디터      [████████████████████] 100%
-Phase 3:   Path 애니메이션 & 고급 기능 [░░░░░░░░░░░░░░░░░░░░]   0%
-Phase 4:   Export & 문서화             [░░░░░░░░░░░░░░░░░░░░]   0%
-Phase 5:   Electron 패키징             [░░░░░░░░░░░░░░░░░░░░]   0%
+Phase 3:   Path 애니메이션 시스템      [████████████████████] 100%
+Phase 4:   Export 기능                 [████████████████████] 100%
+Phase 5:   Electron 패키징             [████████████████████] 100%
 Phase 6:   추가 개선사항 (선택)         [░░░░░░░░░░░░░░░░░░░░]   0%
 
-전체 진행률: ████████░░░░░░░░░░░░ 40%
+전체 진행률: ████████████████████ 100% ✅
 ```
 
 ---
@@ -766,4 +696,4 @@ Phase 6:   추가 개선사항 (선택)         [░░░░░░░░░░�
 - `backend/package.json`에 `asarUnpack`으로 `better-sqlite3/sqlite3` 포함, `node_modules` 포함 설정 있음.
 - 성공 여부는 `%APPDATA%/virtual-scenario-backend/app.log`에서 백엔드 기동 로그 확인.
 
-마지막 업데이트: 2025-12-02 01:00
+마지막 업데이트: 2025-12-04 (Unity 관련 문서 정리 완료)

@@ -3,18 +3,19 @@
 ## 1. 프로젝트 개요
 
 ### 1.1 프로젝트 목표
-코레일 안전교육 및 업무 시나리오를 **작성-시각화-문서화**하는 통합 솔루션 개발 (데스크톱 앱)
+코레일 안전교육 및 업무 시나리오를 **작성-시각화-재생**하는 통합 솔루션 개발 (데스크톱 앱)
 
 ### 1.2 핵심 가치
 - **오프라인**: 인터넷 연결 없이 독립 실행
 - **직관성**: 비개발자도 쉽게 시나리오 작성 가능
-- **시각화**: 3D 환경에서 인터랙티브한 시뮬레이션
-- **문서화**: 교육 자료용 PDF/HWP 자동 생성
+- **시각화**: 3D 환경에서 인터랙티브한 편집 및 시뮬레이션
+- **내보내기**: MP4 영상, Excel 문서, JSON 데이터 내보내기
 
-### 1.3 아키텍처 변경사항
-- ~~Supabase (BaaS)~~ → **SQLite (로컬 DB)**
-- ~~Next.js (웹앱)~~ → **Electron + React (데스크톱 앱)**
-- ~~온라인 협업~~ → **로컬 파일 기반 작업**
+### 1.3 아키텍처
+- **데이터베이스**: SQLite (로컬 DB)
+- **Frontend**: React + Vite (웹 기술)
+- **Backend**: Express + Electron (데스크톱 앱)
+- **파일 시스템**: 로컬 파일 기반 작업
 
 ---
 
@@ -26,30 +27,32 @@
 ┌────────────────────────────────────────────────────┐
 │         Electron Desktop App (Main Process)        │
 ├────────────────────────────────────────────────────┤
+│  - Express Server (REST API)                       │
 │  - SQLite Database (better-sqlite3)                │
 │  - File System Access                              │
-│  - IPC Communication                               │
 │  - Window Management                               │
+│  - MP4 Encoding (ffmpeg)                           │
 └────────────────────────────────────────────────────┘
-                      ▲ IPC
+                      ▲ HTTP
                       │
 ┌────────────────────────────────────────────────────┐
-│      Renderer Process (React + TypeScript)         │
+│         Frontend (React + TypeScript)              │
 ├────────────────────────────────────────────────────┤
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────┐ │
-│  │   Project    │  │    Scene     │  │  Object  │ │
-│  │  Management  │  │    Editor    │  │  Library │ │
+│  │   Project    │  │    Scene     │  │ Background│ │
+│  │  Dashboard   │  │    Editor    │  │Map Editor│ │
 │  └──────────────┘  └──────────────┘  └──────────┘ │
 │                                                     │
 │  ┌─────────────────────────────────────────────┐  │
-│  │        Three.js 3D Viewer (Top-down)        │  │
-│  │  - Drag & Drop object placement             │  │
-│  │  - Path editing                              │  │
+│  │        Three.js 3D Viewer                   │  │
+│  │  - Transform Controls (Gizmo)               │  │
+│  │  - Keyframe Animation                       │  │
+│  │  - 6 Primitives (box, sphere, etc.)         │  │
 │  └─────────────────────────────────────────────┘  │
 │                                                     │
 │  ┌──────────────┐  ┌──────────────┐  ┌─────────┐ │
-│  │   Timeline   │  │   Document   │  │   JSON  │ │
-│  │   Editor     │  │   Exporter   │  │ Exporter│ │
+│  │   Timeline   │  │  Simulator   │  │ Export  │ │
+│  │   Editor     │  │  (Playback)  │  │MP4/Excel│ │
 │  └──────────────┘  └──────────────┘  └─────────┘ │
 └────────────────────────────────────────────────────┘
                       │
@@ -59,51 +62,30 @@
               ├───────────────┤
               │ - SQLite DB   │
               │ - JSON exports│
-              │ - PDF docs    │
-              │ - Assets      │
+              │ - Excel files │
+              │ - MP4 videos  │
               └───────────────┘
-                      │
-                      ▼ JSON Import
-┌────────────────────────────────────────────────────┐
-│     Unity 3D Simulator (Standalone Desktop)        │
-├────────────────────────────────────────────────────┤
-│  - JSON Importer                                   │
-│  - Interactive 3D Simulation                       │
-│  - Drag to move objects                            │
-│  - Path animation                                  │
-│  - Dialogue timeline                               │
-│  - Export (MP4/PNG)                                │
-└────────────────────────────────────────────────────┘
 ```
 
 ### 2.2 기술 스택
 
-#### Desktop Editor (Electron)
+#### Desktop App (Electron)
 
 ```typescript
 // Main Process (Node.js)
-- Runtime: Electron 33+
+- Runtime: Electron 33
+- Server: Express 4
 - Database: better-sqlite3
 - File System: Node.js fs/promises
-- IPC: electron.ipcMain / ipcRenderer
+- MP4 Encoding: ffmpeg
+- Excel Export: ExcelJS
 
-// Renderer Process (Frontend)
+// Frontend (React)
 - Framework: React 18 + TypeScript
 - Build Tool: Vite 6
-- State Management: Zustand
-- 3D Library: Three.js + @react-three/fiber
-- UI Components: Tailwind CSS + shadcn/ui
-- Form Validation: Zod
-- PDF Generation: jsPDF
-```
-
-#### Unity Simulator
-```csharp
-// Unity
-- Version: Unity 2022.3 LTS
-- Scripting: C# (.NET Standard 2.1)
-- JSON Parsing: Newtonsoft.Json
-- 3D Interaction: Custom Raycast Drag System
+- 3D Library: Three.js + @react-three/fiber + @react-three/drei
+- UI Components: Tailwind CSS
+- HTTP Client: Axios
 ```
 
 ---
@@ -289,427 +271,145 @@ INSERT OR IGNORE INTO asset_library (id, category, name, thumbnail_path, metadat
 
 ---
 
-## 4. Electron 프로젝트 구조
+## 4. 현재 프로젝트 구조
 
 ### 4.1 폴더 구조
 
 ```
-electron-editor/
-├── src/
-│   ├── main/                   # Main Process
-│   │   ├── index.ts           # Electron 진입점
-│   │   ├── database.ts        # SQLite 연결 및 쿼리
-│   │   ├── ipc-handlers.ts    # IPC 핸들러
-│   │   └── window.ts          # Window 관리
-│   │
-│   ├── renderer/              # Renderer Process (React)
-│   │   ├── src/
-│   │   │   ├── components/
-│   │   │   │   ├── ProjectList.tsx
-│   │   │   │   ├── SceneEditor.tsx
-│   │   │   │   ├── ThreeViewer.tsx
-│   │   │   │   ├── ObjectLibrary.tsx
-│   │   │   │   ├── PropertyPanel.tsx
-│   │   │   │   ├── TimelineEditor.tsx
-│   │   │   │   └── ExportPanel.tsx
-│   │   │   │
-│   │   │   ├── store/
-│   │   │   │   └── editorStore.ts   # Zustand store
-│   │   │   │
-│   │   │   ├── lib/
-│   │   │   │   ├── ipc.ts           # IPC 통신 래퍼
-│   │   │   │   ├── types.ts         # TypeScript types
-│   │   │   │   └── utils.ts
-│   │   │   │
-│   │   │   ├── App.tsx
-│   │   │   └── main.tsx
-│   │   │
-│   │   ├── index.html
-│   │   └── vite.config.ts
-│   │
-│   └── preload/
-│       └── index.ts           # Preload script (contextBridge)
+VirtualScenario/
+├── frontend/                   # React 앱
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── ThreeViewer.tsx
+│   │   │   ├── InspectorPanel.tsx
+│   │   │   └── TimelinePanel.tsx
+│   │   ├── pages/
+│   │   │   ├── Dashboard.tsx
+│   │   │   ├── SceneEditor.tsx
+│   │   │   ├── BackgroundMapEditor.tsx
+│   │   │   └── Simulator.tsx
+│   │   ├── hooks/
+│   │   │   └── useUndoRedo.ts
+│   │   ├── lib/
+│   │   │   └── api.ts          # API 클라이언트
+│   │   └── App.tsx
+│   └── package.json
 │
-├── resources/
-│   ├── schema.sql             # Database schema
-│   ├── icon.png
-│   └── installer/
+├── backend/                    # Electron + Express
+│   ├── src/
+│   │   ├── main.ts            # Electron 진입점
+│   │   ├── server.ts          # Express 서버
+│   │   ├── database.ts        # SQLite 관리
+│   │   └── routes/            # API 라우트
+│   ├── database/
+│   │   ├── schema.sql
+│   │   └── data/scenario.db
+│   └── package.json
 │
-├── assets/
-│   ├── models/                # 3D models (GLB/FBX)
-│   ├── thumbs/                # Thumbnails
-│   └── templates/             # PDF templates
-│
-├── package.json
-├── electron-builder.config.js
-└── tsconfig.json
+├── docs/                       # 문서
+└── package.json               # Root
 ```
 
-### 4.2 Main Process - Database 연결
+### 4.2 주요 API 엔드포인트
+
+현재 시스템은 REST API 방식을 사용합니다.
+
+#### Backend - Express Routes
 
 ```typescript
-// src/main/database.ts
-import Database from 'better-sqlite3';
-import { app } from 'electron';
-import * as path from 'path';
-import * as fs from 'fs';
+// Projects
+GET    /api/projects               // 프로젝트 목록
+POST   /api/projects               // 프로젝트 생성
+GET    /api/projects/:id           // 프로젝트 조회
+PUT    /api/projects/:id           // 프로젝트 수정
+DELETE /api/projects/:id           // 프로젝트 삭제
 
-const userDataPath = app.getPath('userData');
-const dbPath = path.join(userDataPath, 'scenario.db');
+// Scenes
+GET    /api/projects/:id/scenes    // 씬 목록
+POST   /api/projects/:id/scenes    // 씬 생성
+PUT    /api/scenes/:id             // 씬 수정
+DELETE /api/scenes/:id             // 씬 삭제
 
-export class DatabaseManager {
-  private db: Database.Database;
+// Objects
+GET    /api/scenes/:id/objects     // 오브젝트 목록
+POST   /api/scenes/:id/objects     // 오브젝트 생성
+PUT    /api/scenes/:sceneId/objects/:id
+DELETE /api/scenes/:sceneId/objects/:id
 
-  constructor() {
-    this.db = new Database(dbPath);
-    this.db.pragma('foreign_keys = ON');
-    this.initialize();
-  }
+// Dialogues
+GET    /api/scenes/:id/dialogues
+POST   /api/scenes/:id/dialogues
+PUT    /api/scenes/:sceneId/dialogues/:id
+DELETE /api/scenes/:sceneId/dialogues/:id
 
-  private initialize() {
-    const schemaPath = path.join(__dirname, '../../resources/schema.sql');
-    const schema = fs.readFileSync(schemaPath, 'utf-8');
-    this.db.exec(schema);
-  }
+// Background Maps
+GET    /api/background-maps
+POST   /api/background-maps
+GET    /api/background-maps/:id
+PUT    /api/background-maps/:id
+DELETE /api/background-maps/:id
 
-  // Projects
-  getProjects() {
-    return this.db.prepare('SELECT * FROM projects WHERE is_deleted = 0 ORDER BY updated_at DESC').all();
-  }
-
-  getProject(id: string) {
-    return this.db.prepare('SELECT * FROM projects WHERE id = ?').get(id);
-  }
-
-  createProject(data: any) {
-    const stmt = this.db.prepare(`
-      INSERT INTO projects (id, title, description, version)
-      VALUES (?, ?, ?, ?)
-    `);
-    return stmt.run(data.id, data.title, data.description, data.version);
-  }
-
-  updateProject(id: string, data: any) {
-    const stmt = this.db.prepare(`
-      UPDATE projects
-      SET title = ?, description = ?, version = ?
-      WHERE id = ?
-    `);
-    return stmt.run(data.title, data.description, data.version, id);
-  }
-
-  deleteProject(id: string) {
-    const stmt = this.db.prepare('UPDATE projects SET is_deleted = 1 WHERE id = ?');
-    return stmt.run(id);
-  }
-
-  // Scenes
-  getScenes(projectId: string) {
-    return this.db.prepare('SELECT * FROM scenes WHERE project_id = ? ORDER BY order_index').all(projectId);
-  }
-
-  createScene(data: any) {
-    const stmt = this.db.prepare(`
-      INSERT INTO scenes (id, project_id, order_index, title, description, duration, participant_count)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
-    return stmt.run(
-      data.id,
-      data.projectId,
-      data.order,
-      data.title,
-      data.description,
-      data.duration,
-      data.participantCount
-    );
-  }
-
-  // Scene Objects
-  getSceneObjects(sceneId: string) {
-    return this.db.prepare('SELECT * FROM scene_objects WHERE scene_id = ?').all(sceneId);
-  }
-
-  createSceneObject(data: any) {
-    const stmt = this.db.prepare(`
-      INSERT INTO scene_objects (
-        id, scene_id, type, name, model_id,
-        position_x, position_y, position_z,
-        rotation_x, rotation_y, rotation_z,
-        scale_x, scale_y, scale_z,
-        path_data, metadata
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    return stmt.run(
-      data.id,
-      data.sceneId,
-      data.type,
-      data.name,
-      data.modelId,
-      data.position[0], data.position[1], data.position[2],
-      data.rotation[0], data.rotation[1], data.rotation[2],
-      data.scale[0], data.scale[1], data.scale[2],
-      JSON.stringify(data.path),
-      JSON.stringify(data.metadata)
-    );
-  }
-
-  // Dialogues
-  getDialogues(sceneId: string) {
-    return this.db.prepare('SELECT * FROM dialogues WHERE scene_id = ? ORDER BY start_time').all(sceneId);
-  }
-
-  // Asset Library
-  getAssetLibrary() {
-    return this.db.prepare('SELECT * FROM asset_library ORDER BY category, name').all();
-  }
-
-  // Full project export
-  getProjectWithScenes(projectId: string) {
-    const project = this.getProject(projectId);
-    if (!project) return null;
-
-    const scenes = this.getScenes(projectId).map(scene => ({
-      ...scene,
-      objects: this.getSceneObjects(scene.id).map(obj => ({
-        ...obj,
-        position: [obj.position_x, obj.position_y, obj.position_z],
-        rotation: [obj.rotation_x, obj.rotation_y, obj.rotation_z],
-        scale: [obj.scale_x, obj.scale_y, obj.scale_z],
-        path: obj.path_data ? JSON.parse(obj.path_data) : null,
-        metadata: obj.metadata ? JSON.parse(obj.metadata) : null,
-      })),
-      dialogues: this.getDialogues(scene.id),
-    }));
-
-    return { ...project, scenes };
-  }
-
-  close() {
-    this.db.close();
-  }
-}
+// Export
+GET    /api/projects/:id/export    // JSON 내보내기
 ```
 
-### 4.3 Main Process - IPC Handlers
+#### Frontend - API Client
 
 ```typescript
-// src/main/ipc-handlers.ts
-import { ipcMain } from 'electron';
-import { DatabaseManager } from './database';
-import { v4 as uuidv4 } from 'uuid';
+// frontend/src/lib/api.ts
+import axios from 'axios';
 
-export function setupIpcHandlers(db: DatabaseManager) {
-  // Projects
-  ipcMain.handle('db:getProjects', () => {
-    return db.getProjects();
-  });
+const API_BASE = 'http://localhost:3001/api';
 
-  ipcMain.handle('db:getProject', (_, id: string) => {
-    return db.getProject(id);
-  });
-
-  ipcMain.handle('db:createProject', (_, data) => {
-    const id = uuidv4();
-    db.createProject({ ...data, id });
-    return db.getProject(id);
-  });
-
-  ipcMain.handle('db:updateProject', (_, id: string, data) => {
-    db.updateProject(id, data);
-    return db.getProject(id);
-  });
-
-  ipcMain.handle('db:deleteProject', (_, id: string) => {
-    return db.deleteProject(id);
-  });
-
-  // Scenes
-  ipcMain.handle('db:getScenes', (_, projectId: string) => {
-    return db.getScenes(projectId);
-  });
-
-  ipcMain.handle('db:createScene', (_, data) => {
-    const id = uuidv4();
-    db.createScene({ ...data, id });
-    return db.getSceneObjects(id);
-  });
-
-  // Scene Objects
-  ipcMain.handle('db:getSceneObjects', (_, sceneId: string) => {
-    return db.getSceneObjects(sceneId);
-  });
-
-  ipcMain.handle('db:createSceneObject', (_, data) => {
-    const id = uuidv4();
-    return db.createSceneObject({ ...data, id });
-  });
-
-  // Dialogues
-  ipcMain.handle('db:getDialogues', (_, sceneId: string) => {
-    return db.getDialogues(sceneId);
-  });
-
-  // Asset Library
-  ipcMain.handle('db:getAssetLibrary', () => {
-    return db.getAssetLibrary();
-  });
-
-  // Export
-  ipcMain.handle('db:exportProject', (_, projectId: string) => {
-    return db.getProjectWithScenes(projectId);
-  });
-
-  // File operations
-  ipcMain.handle('file:saveJSON', async (_, { path, data }) => {
-    const fs = await import('fs/promises');
-    await fs.writeFile(path, JSON.stringify(data, null, 2));
-    return { success: true };
-  });
-
-  ipcMain.handle('file:showSaveDialog', async (_, options) => {
-    const { dialog } = await import('electron');
-    return dialog.showSaveDialog(options);
-  });
-}
-```
-
-### 4.4 Preload Script
-
-```typescript
-// src/preload/index.ts
-import { contextBridge, ipcRenderer } from 'electron';
-
-const api = {
-  // Database
-  db: {
-    getProjects: () => ipcRenderer.invoke('db:getProjects'),
-    getProject: (id: string) => ipcRenderer.invoke('db:getProject', id),
-    createProject: (data: any) => ipcRenderer.invoke('db:createProject', data),
-    updateProject: (id: string, data: any) => ipcRenderer.invoke('db:updateProject', id, data),
-    deleteProject: (id: string) => ipcRenderer.invoke('db:deleteProject', id),
-
-    getScenes: (projectId: string) => ipcRenderer.invoke('db:getScenes', projectId),
-    createScene: (data: any) => ipcRenderer.invoke('db:createScene', data),
-
-    getSceneObjects: (sceneId: string) => ipcRenderer.invoke('db:getSceneObjects', sceneId),
-    createSceneObject: (data: any) => ipcRenderer.invoke('db:createSceneObject', data),
-
-    getDialogues: (sceneId: string) => ipcRenderer.invoke('db:getDialogues', sceneId),
-
-    getAssetLibrary: () => ipcRenderer.invoke('db:getAssetLibrary'),
-
-    exportProject: (projectId: string) => ipcRenderer.invoke('db:exportProject', projectId),
-  },
-
-  // File operations
-  file: {
-    saveJSON: (path: string, data: any) => ipcRenderer.invoke('file:saveJSON', { path, data }),
-    showSaveDialog: (options: any) => ipcRenderer.invoke('file:showSaveDialog', options),
-  },
-};
-
-contextBridge.exposeInMainWorld('electronAPI', api);
-
-export type ElectronAPI = typeof api;
-```
-
-### 4.5 Renderer - IPC 래퍼
-
-```typescript
-// src/renderer/src/lib/ipc.ts
-export const db = (window as any).electronAPI.db;
-export const file = (window as any).electronAPI.file;
-
-// Type-safe wrapper
-export interface Project {
-  id: string;
-  title: string;
-  description?: string;
-  version: string;
-  thumbnail_path?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Scene {
-  id: string;
-  project_id: string;
-  order_index: number;
-  title: string;
-  description?: string;
-  duration: number;
-  participant_count?: number;
-}
-
-export const projectAPI = {
-  getAll: (): Promise<Project[]> => db.getProjects(),
-  getById: (id: string): Promise<Project> => db.getProject(id),
-  create: (data: Partial<Project>): Promise<Project> => db.createProject(data),
-  update: (id: string, data: Partial<Project>): Promise<Project> => db.updateProject(id, data),
-  delete: (id: string): Promise<void> => db.deleteProject(id),
-  export: (id: string): Promise<any> => db.exportProject(id),
+export const projectsAPI = {
+  getAll: () => axios.get(`${API_BASE}/projects`),
+  create: (data) => axios.post(`${API_BASE}/projects`, data),
+  update: (id, data) => axios.put(`${API_BASE}/projects/${id}`, data),
+  delete: (id) => axios.delete(`${API_BASE}/projects/${id}`),
+  export: (id) => axios.get(`${API_BASE}/projects/${id}/export`),
 };
 ```
 
 ---
 
-## 5. 개발 로드맵 (Electron 버전)
+## 5. 개발 로드맵
 
-### Phase 1: Electron 기본 구조 (2주)
+### Phase 1-2: 기본 구조 & 3D 에디터 ✅ (완료)
 
-#### Week 1: Electron 셋업
-- [ ] Electron + Vite + React 프로젝트 구성
-- [ ] SQLite 데이터베이스 연결
-- [ ] IPC 통신 구조 구축
-- [ ] 기본 Window UI
+#### 완료된 기능
+- ✅ Electron + Vite + React 프로젝트 구성
+- ✅ Express REST API + SQLite 데이터베이스
+- ✅ 프로젝트/씬 CRUD
+- ✅ Three.js 3D 뷰어
+- ✅ Transform Controls (Gizmo)
+- ✅ 배경 맵 시스템
+- ✅ 시뮬레이터 (재생 기능)
+- ✅ 키프레임 애니메이션
+- ✅ Undo/Redo 시스템
 
-#### Week 2: 프로젝트 관리
-- [ ] 프로젝트 CRUD UI
-- [ ] Scene CRUD UI
-- [ ] Asset Library 표시
-- [ ] 기본 레이아웃 구성
-
-**Milestone 1**: 프로젝트 생성 및 씬 관리 가능
-
----
-
-### Phase 2: 3D 에디터 (3주)
-
-#### Week 3-4: Three.js 통합
-- [ ] Three.js 캔버스 셋업
-- [ ] 오브젝트 드래그 앤 드롭
-- [ ] Transform controls
-- [ ] Grid & snapping
-
-#### Week 5: JSON Export
-- [ ] JSON 스키마 구현
-- [ ] Export 기능
-- [ ] 파일 저장 다이얼로그
-
-**Milestone 2**: 3D 씬 구성 및 JSON 내보내기
+**Milestone 1-2**: 기본 에디터 및 시뮬레이터 완성 ✅
 
 ---
 
-### Phase 3: Unity 연동 (2주)
+### Phase 3: 내보내기 기능 ✅ (완료)
 
-#### Week 6-7: Unity Importer
-- [ ] Unity JSON importer
-- [ ] Scene builder
-- [ ] Drag interaction
-- [ ] Path animation
+#### 완료된 기능
+- ✅ JSON Export (시나리오 데이터)
+- ✅ MP4 Export (영상 녹화)
+- ✅ Excel Export (엑셀 문서)
 
-**Milestone 3**: Electron → Unity 파이프라인 완성
+**Milestone 3**: 다양한 형식으로 내보내기 완성 ✅
 
 ---
 
-### Phase 4: 문서화 & 고도화 (2주)
+### Phase 4: Electron 패키징 ✅ (완료)
 
-#### Week 8-9: PDF Export
-- [ ] jsPDF 통합
-- [ ] 템플릿 시스템
-- [ ] 미리보기 기능
+#### 완료된 기능
+- ✅ Electron 앱 패키징
+- ✅ Windows 인스톨러 (.exe)
+- ✅ 독립 실행 가능한 데스크톱 앱
 
-**Milestone 4**: End-to-End 완성
+**Milestone 4**: 최종 배포 가능한 앱 완성 ✅
 
 ---
 
@@ -766,15 +466,13 @@ module.exports = {
    ↓
 React Component
    ↓
-IPC invoke (preload)
+HTTP Request (Axios)
    ↓
-Main Process Handler
+Express API (localhost:3001)
    ↓
 SQLite Query (better-sqlite3)
    ↓
-Result
-   ↓
-IPC return
+JSON Response
    ↓
 React State Update
    ↓
@@ -783,18 +481,17 @@ UI Re-render
 
 ---
 
-## 8. 주요 차이점 (Web vs Electron)
+## 8. 프로젝트 특징
 
-| 항목 | Web (Supabase) | Electron (SQLite) |
-|------|----------------|-------------------|
-| 실행 환경 | 브라우저 (온라인) | 데스크톱 (오프라인) |
-| 데이터 저장 | Supabase (클라우드) | SQLite (로컬) |
-| 인증 | Supabase Auth | 불필요 |
-| 파일 접근 | 제한적 (Storage API) | 전체 파일 시스템 |
-| 배포 | Vercel/Netlify | Installer (EXE/DMG) |
-| 협업 | 실시간 가능 | 파일 공유 방식 |
-| 업데이트 | 자동 (새로고침) | 수동 (업데이트 체크) |
+| 항목 | 설명 |
+|------|------|
+| 실행 환경 | 데스크톱 앱 (오프라인) |
+| 데이터 저장 | SQLite (로컬) |
+| 3D 렌더링 | Three.js |
+| 파일 내보내기 | MP4, Excel, JSON |
+| 배포 방식 | Windows Installer (.exe) |
+| 업데이트 | 독립 실행 파일 |
 
 ---
 
-이제 Electron 기반으로 개발을 시작합니다!
+**현재 상태**: 프로덕션 레벨 완성 ✅

@@ -6,11 +6,10 @@ Frontend와 Backend를 완전히 분리한 명확한 구조
 
 ```
 VirtualScenario/
-├── frontend/              # React UI (포트 3000)
+├── frontend/              # React UI
 │   ├── src/
 │   │   ├── components/   # React 컴포넌트
 │   │   ├── pages/        # 페이지
-│   │   ├── store/        # Zustand 상태 관리
 │   │   └── lib/          # API 클라이언트
 │   ├── public/
 │   ├── package.json
@@ -19,20 +18,16 @@ VirtualScenario/
 ├── backend/               # Electron Main + Express API (포트 3001)
 │   ├── src/
 │   │   ├── main.ts       # Electron 진입점
-│   │   ├── api/          # Express REST API
-│   │   ├── database/     # SQLite 관리
-│   │   └── ipc/          # Electron IPC (대안)
+│   │   ├── server.ts     # Express 서버
+│   │   ├── database.ts   # SQLite 관리
+│   │   └── routes/       # Express REST API
 │   ├── database/
-│   │   └── schema.sql
+│   │   ├── schema.sql
+│   │   └── data/         # SQLite DB 파일
 │   ├── package.json
 │   └── tsconfig.json
 │
-├── shared/                # 공통 타입
-│   └── types.ts
-│
 ├── docs/                  # 문서
-├── assets/                # 3D 모델, 에셋
-├── unity-simulator/       # Unity 프로젝트 (나중에)
 │
 ├── package.json          # Root workspace
 └── README.md
@@ -40,31 +35,32 @@ VirtualScenario/
 
 ## 아키텍처
 
-### Option 1: Electron IPC (기존 방식)
-```
-Frontend (React) ←→ IPC ←→ Backend (Electron Main + SQLite)
-```
-
-### Option 2: REST API (추천) ⭐
+### 현재 구조: REST API + Electron ✅
 ```
 Frontend (React) ←→ HTTP (localhost:3001) ←→ Backend (Express + SQLite)
                                                ↓
-                                         Electron Main (창 관리)
+                                         Electron Main (창 관리, MP4 내보내기)
 ```
+
+### 주요 특징
+- **Frontend**: Vite 개발 서버 (개발 모드) 또는 정적 파일 (프로덕션)
+- **Backend**: Express 서버 + SQLite 데이터베이스
+- **Electron**: BrowserWindow로 Frontend 로드, 백엔드 서버 자동 실행
 
 ## 장점
 
 1. **명확한 책임 분리**
    - Frontend: UI만 담당
    - Backend: 데이터 + 비즈니스 로직
+   - Electron: 데스크톱 앱 패키징 + 시스템 기능
 
 2. **독립 개발 가능**
    - Frontend만 따로 개발/테스트
    - Backend만 따로 개발/테스트
 
-3. **웹 변환 용이**
-   - 나중에 웹앱으로 전환 쉬움
-   - Backend를 그대로 웹 서버로 사용
+3. **오프라인 독립 실행**
+   - 인터넷 연결 없이 작동
+   - SQLite로 로컬 데이터 저장
 
 4. **디버깅 편리**
    - Frontend: 브라우저 개발자 도구
@@ -77,13 +73,14 @@ Frontend (React) ←→ HTTP (localhost:3001) ←→ Backend (Express + SQLite)
 - **Vite** (빌드 도구)
 - **TailwindCSS** (스타일)
 - **Three.js** (3D 렌더링)
-- **Zustand** (상태 관리)
 - **Axios** (HTTP 클라이언트)
 
 ### Backend
 - **Electron** (데스크톱 앱)
 - **Express** (REST API)
 - **better-sqlite3** (SQLite)
+- **ffmpeg** (MP4 변환)
+- **ExcelJS** (엑셀 내보내기)
 - **TypeScript**
 
 ## 개발 순서

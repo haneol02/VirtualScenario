@@ -6,15 +6,15 @@
 
 코레일 안전교육 및 업무 시나리오를 **작성-시각화-재생**하는 웹/데스크톱 애플리케이션
 
-### 핵심 기능 (2025-11-08 기준)
+### 핵심 기능 (2025-12-04 기준)
 - ✅ **REST API Backend**: Express + SQLite (오프라인 DB)
 - ✅ **React Frontend**: Three.js 기반 3D 에디터 & 시뮬레이터
 - ✅ **배경 맵 시스템**: 재사용 가능한 3D 배경 환경
 - ✅ **시뮬레이터**: 실시간 재생, 타임라인, 자막
 - ✅ **영상 내보내기 (MP4)**: 시뮬레이터 재생을 녹화해 MP4로 저장 (Electron)
 - ✅ **Undo/Redo**: Ctrl+Z/Ctrl+Shift+Z 지원
-- ⏳ **Unity 연동**: JSON Export (예정)
-- ⏳ **문서 자동 생성**: PDF/HWP 교육 자료 (예정)
+- ✅ **JSON Export**: 시나리오 데이터 내보내기
+- ✅ **Excel Export**: 시나리오를 엑셀 파일로 내보내기
 
 ---
 
@@ -79,14 +79,14 @@ GET    /api/projects/:id/export       # JSON Export
 - SQLite (better-sqlite3)
 - Node.js 20
 
-**Frontend** 🔨 (예정)
+**Frontend** ✅
 - React 18 + Vite
 - Three.js
 - TailwindCSS
 
-**Unity** 🔨 (예정)
-- Unity 2022.3 LTS
-- C# + Newtonsoft.Json
+**Desktop** ✅
+- Electron 33
+- MP4 내보내기 (ffmpeg)
 
 ---
 
@@ -98,6 +98,6 @@ GET    /api/projects/:id/export       # JSON Export
 
 ---
 
-**현재 상태**: Backend/Frontend/시뮬레이터 동작 ✅ | Electron MP4 내보내기 포함 (v1.1.0)
+**현재 상태**: Backend/Frontend/시뮬레이터/Electron 앱 동작 ✅ | MP4/Excel 내보내기 포함 (v1.1.0)
 
-마지막 업데이트: 2025-12-02  (MP4 내보내기 추가)
+마지막 업데이트: 2025-12-04
